@@ -6,6 +6,7 @@ files  = [  "nic_constants_pkg.vhd" ,
 						"nic_tx_fsm.vhd" ,
 						"nic_buffer.vhd" ,
 						"nic_elastic_buffer.vhd",
+                                                "nic_bw_throttling.vhd",
 						"nic_wbgen2_pkg.vhd",
 						"xwrsw_nic.vhd",
 						"wrsw_nic.vhd"];

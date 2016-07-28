@@ -67,6 +67,9 @@ entity xwrsw_nic is
   port (
     clk_sys_i : in std_logic;
     rst_n_i   : in std_logic;
+    
+    pps_p_i     : in std_logic;
+    pps_valid_i : in std_logic;
 
 -------------------------------------------------------------------------------
 -- WRF sink
@@ -138,6 +141,8 @@ architecture rtl of xwrsw_nic is
     port (
       clk_sys_i             : in  std_logic;
       rst_n_i               : in  std_logic;
+      pps_p_i               : in std_logic;
+      pps_valid_i           : in std_logic;
       snk_i                 : in  t_wrf_sink_in;
       snk_o                 : out t_wrf_sink_out;
       regs_i                : in  t_nic_out_registers;
@@ -487,6 +492,9 @@ begin  -- rtl
     port map (
       clk_sys_i => clk_sys_i,
       rst_n_i   => nic_reset_n,
+
+      pps_p_i     => pps_p_i,
+      pps_valid_i => pps_valid_i,
 
       snk_i => snk_i,
       snk_o => snk_o,

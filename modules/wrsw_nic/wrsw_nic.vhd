@@ -54,6 +54,9 @@ entity wrsw_nic is
     clk_sys_i : in std_logic;
     rst_n_i   : in std_logic;
 
+    pps_p_i     : in std_logic;
+    pps_valid_i : in std_logic;
+
 -------------------------------------------------------------------------------
 -- Pipelined Wishbone interface
 -------------------------------------------------------------------------------
@@ -120,6 +123,8 @@ architecture rtl of wrsw_nic is
     port (
       clk_sys_i           : in  std_logic;
       rst_n_i             : in  std_logic;
+      pps_p_i             : in std_logic;
+      pps_valid_i         : in std_logic;
       snk_i               : in  t_wrf_sink_in;
       snk_o               : out t_wrf_sink_out;
       src_i               : in  t_wrf_source_in;
@@ -154,6 +159,8 @@ begin
     port map (
       clk_sys_i           => clk_sys_i,
       rst_n_i             => rst_n_i,
+      pps_p_i             => pps_p_i,
+      pps_valid_i         => pps_valid_i,
       snk_i               => snk_in,
       snk_o               => snk_out,
       src_i               => src_in,

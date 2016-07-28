@@ -57,6 +57,8 @@ entity nic_rx_fsm is
         clk_sys_i : in std_logic;
         rst_n_i   : in std_logic;
 
+        pps_p_i     : in std_logic;
+        pps_valid_i : in std_logic;
 -------------------------------------------------------------------------------
 -- WRF sink
 -------------------------------------------------------------------------------
@@ -121,6 +123,20 @@ architecture behavioral of NIC_RX_FSM is
       dreq_i    : in  std_logic);
   end component;
 
+  component nic_bw_throttling
+    port (
+      clk_sys_i   : in  std_logic;
+      rst_n_i     : in  std_logic;
+      pps_p_i     : in std_logic;
+      pps_valid_i : in std_logic;
+      snk_i   : in  t_wrf_sink_in;
+      snk_o   : out t_wrf_sink_out;
+      src_o   : out t_wrf_source_out;
+      src_i   : in  t_wrf_source_in;
+      bw_o    : out std_logic_vector(31 downto 0);
+      rnd_o   : out std_logic_vector(31 downto 0));
+  end component;
+
 
   type t_rx_fsm_state is (RX_DISABLED, RX_WAIT_SOF, RX_REQUEST_DESCRIPTOR, RX_DATA, RX_UPDATE_DESC, RX_MEM_RESYNC, RX_MEM_FLUSH);
 
@@ -147,8 +163,24 @@ architecture behavioral of NIC_RX_FSM is
 
   signal fab_in     : t_ep_internal_fabric;
   signal fab_dreq   : std_logic;
+
+  signal bw_src_out : t_wrf_source_out;
+  signal bw_src_in  : t_wrf_source_in;
   
 begin
+
+  U_Throttling: nic_bw_throttling
+    port map (
+      clk_sys_i   => clk_sys_i,
+      rst_n_i     => rst_n_i,
+      pps_p_i     => pps_p_i,
+      pps_valid_i => pps_valid_i,
+      snk_i       => snk_i,
+      snk_o       => snk_o,
+      src_o       => bw_src_out,
+      src_i       => bw_src_in,
+      bw_o        => regs_o.bw_i,
+      rnd_o       => regs_o.rnd_i);
 
   U_Buffer : nic_elastic_buffer
     generic map (
@@ -156,8 +188,8 @@ begin
     port map (
       clk_sys_i => clk_sys_i,
       rst_n_i   => rst_n_i,
-      snk_i     => snk_i,
-      snk_o     => snk_o,
+      snk_i     => bw_src_out, --snk_i,
+      snk_o     => bw_src_in,  --snk_o,
       fab_o     => fab_in,
       dreq_i    => fab_dreq);
 
