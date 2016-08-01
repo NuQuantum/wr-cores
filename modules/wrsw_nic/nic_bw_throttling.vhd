@@ -1,13 +1,49 @@
+-------------------------------------------------------------------------------
+-- Title      : Rx bandwidth throttling
+-- Project    : WhiteRabbit Switch
+-------------------------------------------------------------------------------
+-- File       : nic_bw_throttling.vhd
+-- Author     : Grzegorz Daniluk
+-- Company    : CERN BE-Co-HT
+-- Created    : 2016-07-28
+-- Platform   : FPGA-generic
+-- Standard   : VHDL
+-------------------------------------------------------------------------------
+-- Description:
+-- Module implementing Random Early Detection algorithm for throttling the
+-- bandwidth of RX traffic on NIC.
+-------------------------------------------------------------------------------
+--
+-- Copyright (c) 2016 CERN / BE-CO-HT
+--
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
+--
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
+--
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+--
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author          Description
+-- 2016-08-01  1.0      greg.d          Created
+-------------------------------------------------------------------------------
 library IEEE;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.wr_fabric_pkg.all;
---use work.gencores_pkg.all;
 
 entity nic_bw_throttling is
-  generic (
-    g_true_random : boolean := false);
   port (
     clk_sys_i   : in  std_logic;
     rst_n_i     : in  std_logic;
@@ -20,88 +56,99 @@ entity nic_bw_throttling is
     src_o   : out t_wrf_source_out;
     src_i   : in  t_wrf_source_in;
 
-    bw_o    : out std_logic_vector(31 downto 0);
-    rnd_o   : out std_logic_vector(31 downto 0));
+    new_limit_i  : in std_logic;
+    bwmax_kbps_i : in  unsigned(15 downto 0);
+    bw_bps_o     : out std_logic_vector(31 downto 0));
 end nic_bw_throttling;
 
 architecture behav of nic_bw_throttling is
 
-  signal bw_cnt : unsigned(31 downto 0);
-  signal bw_reg : unsigned(31 downto 0);
-  signal is_data : std_logic;
+  signal bw_bps_cnt : unsigned(31 downto 0);
+  signal is_data    : std_logic;
+  signal src_out    : t_wrf_source_out;
 
   signal drop_frame : std_logic;
   type t_fwd_fsm is (WAIT_FRAME, FLUSH, PASS, DROP);
   signal state_fwd : t_fwd_fsm;
-  signal wrf_reg : t_wrf_sink_in;
+  signal wrf_reg   : t_wrf_sink_in;
 
-  signal ring_out : std_logic_vector(31 downto 0);
-  signal rnd_reg  : std_logic_vector(31 downto 0);
-  --attribute keep : string;
-  --attribute keep of ring_out : signal is "true";
-  --attribute keep_hierarchy : string;
-  --attribute keep_hierarchy of behav : architecture is "true";
-  attribute S : string;
-  attribute S of ring_out : signal is "true";
+  signal rnd_reg  : unsigned(7 downto 0);
 
-  constant c_LFSR_START : std_logic_vector := x"A5A5";
+  constant c_LFSR_START   : unsigned(7 downto 0) := x"A5";
+  constant c_DROP_STEP    : unsigned(7 downto 0) := x"20"; --32
+  constant c_DROP_THR_MAX : unsigned(8 downto 0) := to_unsigned(256, 9);
+  signal drop_thr   : unsigned(8 downto 0); -- 1 more bit than rnd_reg
+  -- so that we can have drop_thr larger than any random number and drop the
+  -- whole traffic.
+  signal bwmin_kbps    : unsigned(15 downto 0);
+  signal bwcur_kbps    : unsigned(31 downto 0);
+  signal last_thr_kbps : unsigned(31 downto 0);
+  signal thr_step_kbps : unsigned(15 downto 0);
+
 begin
 
   -------------------------------------------------
-  --          Random number generation           --
+  --      Pseudo-random number generation        --
+  --   based on LSFR x^8 + x^6 + x^5 + x^4 + 1   --
   -------------------------------------------------
-  GEN_RND: if g_true_random generate
-    -- based on Generalized Ring Oscillator
-    ring_out(0) <= ring_out(31) xnor ring_out(0) xnor ring_out(1);
-    GEN_RND: for I in 1 to 30 generate
-      ring_out(I) <= ring_out(I-1) xor ring_out(I) xor ring_out(I+1);
-    end generate;
-    ring_out(31) <= ring_out(30) xor ring_out(31) xor ring_out(0);
-
-    --GEN_ANTI_META: for J in 0 to 31 generate
-    --  SYNC_FFS: gc_sync_ffs
-    --    port map (
-    --      clk_i    => clk_sys_i,
-    --      rst_n_i  => rst_n_i,
-    --      data_i   => ring_out(J),
-    --      synced_o => rnd_reg(J));
-    --end generate;
-    process(clk_sys_i)
-    begin
-      if rising_edge(clk_sys_i) then
-        if rst_n_i = '0' then
-          rnd_reg <= (others=>'0');
-        else
-          rnd_reg <= ring_out;
-        end if;
+  process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' then
+        rnd_reg(7 downto 0) <= c_LFSR_START;
+      else
+        rnd_reg(0) <= rnd_reg(7) xor rnd_reg(5) xor rnd_reg(4) xor rnd_reg(3);
+        rnd_reg(7 downto 1) <= rnd_reg(6 downto 0);
       end if;
-    end process;
-  end generate;
+    end if;
+  end process;
 
-  GEN_PSEUDO_RND: if not g_true_random generate
-    -- based on LSFR x^16 + x^15 + x^13 + x^4 + 1
-    process(clk_sys_i)
-    begin
-      if rising_edge(clk_sys_i) then
-        if rst_n_i = '0' then
-          rnd_reg(31 downto 0) <= (others=>'0');
-          rnd_reg(15 downto 0) <= c_LFSR_START;
-        else
-          rnd_reg(0) <= rnd_reg(15) xor rnd_reg(14) xor rnd_reg(12) xor rnd_reg(3);
-          rnd_reg(15 downto 1) <= rnd_reg(14 downto 0);
+
+  -------------------------------------------------
+  -- Monitoring b/w and generating drop decisions--
+  -------------------------------------------------
+  drop_frame <= '1' when (rnd_reg < drop_thr) else
+                '0';
+
+  -- set min b/w from which we start the throttling
+  -- set it to half of the required max b/w
+  bwmin_kbps <= shift_right(bwmax_kbps_i, 1);
+
+  -- convert current b/w to KBps
+  -- it's bw_bps_cnt divided by 1024 (2^10)
+  bwcur_kbps <= shift_right(bw_bps_cnt, 10);
+  
+  process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' or new_limit_i = '1' then
+        drop_thr      <= (others=>'0');
+        last_thr_kbps <= x"0000" & bwmin_kbps;
+        thr_step_kbps <= shift_right(bwmax_kbps_i - bwmin_kbps, 3);
+      -- both max and min b/w we divide by 8 (because we want 8 steps like with
+      -- c_DROP_STEP = 64 for range 0-255)
+      else
+        if (bwcur_kbps > last_thr_kbps and drop_thr < c_DROP_THR_MAX) then
+        -- current b/w is larger than the last crossed threshold
+        -- we increase the probability of drop
+          drop_thr      <= drop_thr + c_DROP_STEP;
+          last_thr_kbps <= last_thr_kbps + thr_step_kbps;
+
+        elsif (bwcur_kbps + thr_step_kbps < last_thr_kbps and drop_thr > 0) then
+        -- current b/w has dropped below the last crossed threshold,
+        -- we decrease the probability of drop
+          drop_thr      <= drop_thr - c_DROP_STEP;
+          last_thr_kbps <= last_thr_kbps - thr_step_kbps;
         end if;
+
       end if;
-    end process;
+    end if;
+  end process;
 
-  end generate;
-
-  rnd_o <= rnd_reg;
 
   -------------------------------------------------
   --        Forwarding or dropping frames        --
   -------------------------------------------------
-  drop_frame <= '0';
-
   process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
@@ -109,15 +156,15 @@ begin
         state_fwd <= WAIT_FRAME;
         wrf_reg <= c_dummy_snk_in;
 
-        snk_o <= c_dummy_src_in;
-        src_o <= c_dummy_snk_in;
+        snk_o   <= c_dummy_src_in;
+        src_out <= c_dummy_snk_in;
       else
         case state_fwd is
           when WAIT_FRAME =>
             snk_o.ack   <= '0';
             snk_o.err   <= '0';
             snk_o.rty   <= '0';
-            src_o       <= c_dummy_snk_in;
+            src_out     <= c_dummy_snk_in;
             if (snk_i.cyc='1' and snk_i.stb='1') then
               -- new frame is transmitted
               snk_o.stall <= '1';
@@ -136,14 +183,17 @@ begin
             -- flush wrf_reg stored on stall or in WAIT_FRAME
             snk_o <= src_i;
             if (src_i.stall = '0') then
-              src_o     <= wrf_reg;
+              src_out   <= wrf_reg;
               state_fwd <= PASS;
             end if;
 
           when PASS =>
             snk_o <= src_i;
             if (src_i.stall = '0') then
-              src_o <= snk_i;
+              src_out <= snk_i;
+              if (snk_i.cyc='0' and snk_i.stb='0') then
+                state_fwd <= WAIT_FRAME;
+              end if;
             else
               wrf_reg   <= snk_i;
               state_fwd <= FLUSH;
@@ -154,7 +204,7 @@ begin
             snk_o.stall <= '0';
             snk_o.err   <= '0';
             snk_o.rty   <= '0';
-            src_o       <= c_dummy_snk_in;
+            src_out     <= c_dummy_snk_in;
             if (snk_i.stb='1') then
               snk_o.ack <= '1';
             else
@@ -169,36 +219,35 @@ begin
     end if;
   end process;
 
+  src_o <= src_out;
 
   -------------------------------------------------
   -- Calculating bandwidth actually going to ARM --
   -------------------------------------------------
 
-  is_data <= '1' when (snk_i.adr=c_WRF_DATA and snk_i.cyc='1' and snk_i.stb='1') else
+  is_data <= '1' when (src_out.adr=c_WRF_DATA and src_out.cyc='1' and src_out.stb='1' and src_i.stall='0') else
              '0';
 
   process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' or pps_valid_i = '0' then
-        bw_cnt <= (others=>'0');
-        bw_reg <= (others=>'0');
+        bw_bps_cnt   <= (others=>'0');
+        bw_bps_o <= (others=>'0');
       elsif pps_p_i = '1' then
-        bw_reg <= bw_cnt;
-        bw_cnt <= (others=>'0');
+        bw_bps_cnt   <= (others=>'0');
+        bw_bps_o <= std_logic_vector(bw_bps_cnt);
       elsif is_data = '1' then
         -- we count incoming bytes here
-        if snk_i.sel(0) = '1' then
+        if src_out.sel(0) = '1' then
           -- 16bits carry valid data
-          bw_cnt <= bw_cnt + 2;
-        elsif snk_i.sel(0) = '0' then
+          bw_bps_cnt <= bw_bps_cnt + 2;
+        elsif src_out.sel(0) = '0' then
           -- only 8bits carry valid data
-          bw_cnt <= bw_cnt + 1;
+          bw_bps_cnt <= bw_bps_cnt + 1;
         end if;
       end if;
     end if;
   end process;
   
-  bw_o <= std_logic_vector(bw_reg);
-
 end behav;

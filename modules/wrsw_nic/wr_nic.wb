@@ -153,8 +153,8 @@ top = peripheral {
    };
 
    reg {
-      name = "NIC Bandwidth Register";
-      prefix = "BW";
+      name = "NIC Current Rx Bandwidth Register";
+      prefix = "RXBW";
       field {
         name = "Bytes-per-second";
         type = SLV;
@@ -166,14 +166,14 @@ top = peripheral {
    };
 
    reg {
-      name = "NIC Random Register";
-      prefix = "RND";
+      name = "NIC Max Rx Bandwidth Register";
+      prefix = "MAXRXBW";
       field {
-        name = "32-bit random number for throttling";
+        name = "KBytes-per-second";
         type = SLV;
-        size = 32;
-        access_bus = READ_ONLY;
-        access_dev = WRITE_ONLY;
+        size = 16;
+        access_bus = READ_WRITE;
+        access_dev = READ_WRITE;
         load = LOAD_EXT;
       };
    };

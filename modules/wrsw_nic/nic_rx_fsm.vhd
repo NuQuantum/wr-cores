@@ -133,8 +133,9 @@ architecture behavioral of NIC_RX_FSM is
       snk_o   : out t_wrf_sink_out;
       src_o   : out t_wrf_source_out;
       src_i   : in  t_wrf_source_in;
-      bw_o    : out std_logic_vector(31 downto 0);
-      rnd_o   : out std_logic_vector(31 downto 0));
+      new_limit_i  : in  std_logic;
+      bwmax_kbps_i : in  unsigned(15 downto 0);
+      bw_bps_o     : out std_logic_vector(31 downto 0));
   end component;
 
 
@@ -166,6 +167,7 @@ architecture behavioral of NIC_RX_FSM is
 
   signal bw_src_out : t_wrf_source_out;
   signal bw_src_in  : t_wrf_source_in;
+  signal max_bw_reg : std_logic_vector(15 downto 0);
   
 begin
 
@@ -179,8 +181,21 @@ begin
       snk_o       => snk_o,
       src_o       => bw_src_out,
       src_i       => bw_src_in,
-      bw_o        => regs_o.bw_i,
-      rnd_o       => regs_o.rnd_i);
+      new_limit_i  => regs_i.maxrxbw_load_o,
+      bwmax_kbps_i => unsigned(regs_i.maxrxbw_o),
+      bw_bps_o     => regs_o.rxbw_i);
+
+  process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' then
+        max_bw_reg <= (others=>'0');
+      elsif regs_i.maxrxbw_load_o = '1' then
+        max_bw_reg <= regs_i.maxrxbw_o;
+      end if;
+    end if;
+  end process;
+  regs_o.maxrxbw_i <= max_bw_reg;
 
   U_Buffer : nic_elastic_buffer
     generic map (
