@@ -56,6 +56,7 @@ entity nic_bw_throttling is
     src_o   : out t_wrf_source_out;
     src_i   : in  t_wrf_source_in;
 
+    en_i         : in std_logic;
     new_limit_i  : in std_logic;
     bwmax_kbps_i : in  unsigned(15 downto 0);
     bw_bps_o     : out std_logic_vector(31 downto 0));
@@ -127,7 +128,7 @@ begin
         thr_step_kbps <= shift_right(bwmax_kbps_i - bwmin_kbps, 3);
       -- both max and min b/w we divide by 8 (because we want 8 steps like with
       -- c_DROP_STEP = 64 for range 0-255)
-      else
+      elsif en_i = '1' then
         if (bwcur_kbps > last_thr_kbps and drop_thr < c_DROP_THR_MAX) then
         -- current b/w is larger than the last crossed threshold
         -- we increase the probability of drop
@@ -140,6 +141,11 @@ begin
           drop_thr      <= drop_thr - c_DROP_STEP;
           last_thr_kbps <= last_thr_kbps - thr_step_kbps;
         end if;
+
+      else
+        -- If the module is disabled, keep drop_thr at 0 so that we don't drop
+        -- any frames.
+        drop_thr <= (others=>'0');
 
       end if;
     end if;

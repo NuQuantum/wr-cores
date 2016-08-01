@@ -63,6 +63,15 @@ top = peripheral {
 				 access_bus = READ_WRITE;
 				 access_dev = READ_ONLY;
       };
+      field {
+				 name = "Rx bandwidth throttling enable";
+				 description = "Enables bandwidth throttling for received traffic. \
+         This is to prevent blocking ARM CPU with interrupts coming from NIC";
+				 prefix = "rxthr_en";
+				 type = BIT;
+				 access_bus = READ_WRITE;
+				 access_dev = READ_ONLY;
+      };
 
       field {
         name = "Software Reset";

@@ -133,6 +133,7 @@ architecture behavioral of NIC_RX_FSM is
       snk_o   : out t_wrf_sink_out;
       src_o   : out t_wrf_source_out;
       src_i   : in  t_wrf_source_in;
+      en_i         : in  std_logic;
       new_limit_i  : in  std_logic;
       bwmax_kbps_i : in  unsigned(15 downto 0);
       bw_bps_o     : out std_logic_vector(31 downto 0));
@@ -181,6 +182,7 @@ begin
       snk_o       => snk_o,
       src_o       => bw_src_out,
       src_i       => bw_src_in,
+      en_i         => regs_i.cr_rxthr_en_o,
       new_limit_i  => regs_i.maxrxbw_load_o,
       bwmax_kbps_i => unsigned(regs_i.maxrxbw_o),
       bw_bps_o     => regs_o.rxbw_i);
