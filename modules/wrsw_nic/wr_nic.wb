@@ -318,7 +318,7 @@ TX_desc_template =
 				 name = "offset in RAM--in bytes, must be aligned to 32-bit boundary";
 				 prefix = "offset";
 				 type = SLV;
-				 size = 13;
+				 size = 16;
 				 access_bus = READ_WRITE;
 				 access_dev = READ_ONLY;
       };
@@ -327,7 +327,7 @@ TX_desc_template =
 				 name = "Length of buffer--in bytes. Least significant bit must always be 0 (the packet size must be divisible by 2)";
 				 prefix = "len";
 				 type = SLV;
-				 size = 13;
+				 size = 16;
 				 align = 16;
 				 access_bus = READ_WRITE;
 				 access_dev = READ_ONLY;
@@ -418,6 +418,7 @@ RX_desc_template = {
       
       field {
 				 name = "RX_TS_R";
+         prefix = "TS_R";
 				 description = "Value of the RX timestamp (rising edge bits)";
 				 size = 28;
 				 type = SLV;
@@ -427,6 +428,7 @@ RX_desc_template = {
 
       field {
 				 name = "RX_TS_F";
+         prefix = "TS_F";
 				 description = "Value of the RX timestamp (falling edge bits)";
 				 size = 4;
 				 type = SLV;
@@ -443,7 +445,7 @@ RX_desc_template = {
 				 name = "Offset in packet RAM (in bytes, 32-bit aligned)";
 				 prefix = "offset";
 				 type = SLV;
-				 size = 13;
+				 size = 16;
 				 access_bus = READ_WRITE;
 				 access_dev = READ_ONLY;
       },
@@ -452,7 +454,7 @@ RX_desc_template = {
 				 name = "Length of buffer in bytes. After reception of the packet, it's updated with the length of the received packet.";
 				 prefix = "len";
 				 type = SLV;
-				 size = 13;
+				 size = 16;
 				 align = 16;
 				 access_bus = READ_WRITE;
 				 access_dev = READ_WRITE;
@@ -495,6 +497,6 @@ function generate_descriptors(n)
 
 end
 
---generate_descriptors(8);
+--generate_descriptors(1);
 
 
