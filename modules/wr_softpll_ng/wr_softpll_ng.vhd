@@ -70,6 +70,10 @@ entity wr_softpll_ng is
 -- for wideband locking of the local oscillator to an external stable reference
 -- (e.g. GPSDO/Cesium 10 MHz)
     g_with_ext_clock_input : boolean := false;
+	 
+-- When true, an additional DDMTD tagger is instantiated for wideband locking the
+-- local oscillator to the reference provided from the daughterboard
+	 g_with_ext_daughterboard : boolean := true;
 
 -- When true, DDMTD inputs are reversed (so that the DDMTD offset clocks is
 -- being sampled by the measured clock). This is functionally equivalent to
@@ -117,6 +121,9 @@ entity wr_softpll_ng is
     clk_ext_mul_locked_i : in std_logic := '1';
     clk_ext_stopped_i : in std_logic := '0';
     clk_ext_rst_o : out std_logic;
+	 
+-- External 10 MHz reference, multiplied to 62.5 MHz using external AD9516
+    clk_ext_db_i	 : in std_logic;
 
 -- External clock sync/alignment singnal. SoftPLL will align clk_ext_i/clk_fb_i(0)
 -- to match the edges immediately following the rising edge in sync_p_i.
@@ -239,11 +246,29 @@ architecture rtl of wr_softpll_ng is
     return integer is
   begin
     if(g_with_ext_clock_input) then
-      return g_num_ref_inputs + g_num_outputs + 1;
-    else
+		if (g_with_ext_daughterboard) then
+			return g_num_ref_inputs + g_num_outputs + 2;
+		else
+			return g_num_ref_inputs + g_num_outputs + 1;
+		end if;
+	 else
       return g_num_ref_inputs + g_num_outputs;
     end if;
   end f_num_total_channels;
+
+ function f_num_ext_ref_channels
+    return integer is
+  begin
+    if(g_with_ext_clock_input) then
+		if (g_with_ext_daughterboard) then
+			return 2;
+		else
+			return 1;
+		end if;
+	 else
+      return 0;
+    end if;
+  end f_num_ext_ref_channels;
 
   function f_pick (
     cond     : boolean;
@@ -473,7 +498,7 @@ begin  -- rtl
     debug_o(1) <= tags_p(g_num_ref_inputs + g_num_outputs);
     debug_o(2) <= tags_p(g_num_ref_inputs);
     
-    U_DMTD_EXT : dmtd_with_deglitcher
+    U_DMTD_EXT_internal : dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2,
@@ -500,6 +525,39 @@ begin  -- rtl
         deglitch_threshold_i => deglitch_thr_slv,
         dbg_dmtdout_o        => debug_o(3),
         dbg_clk_d3_o         => debug_o(5));
+
+	gen_with_ext_daughterboard: if (g_with_ext_daughterboard) generate
+   U_DMTD_EXT_daughterboard : dmtd_with_deglitcher
+      generic map (
+        g_counter_bits      => g_tag_bits,
+        g_divide_input_by_2 => g_divide_input_by_2,
+				g_reverse	=> g_reverse_dmtds)
+      port map (
+        rst_n_dmtdclk_i => rst_n_i,     -- FIXME!
+        rst_n_sysclk_i  => rst_n_i,
+        clk_dmtd_i      => clk_dmtd_i,
+        clk_dmtd_en_i   => '1',
+
+        clk_sys_i => clk_sys_i,
+        clk_in_i  => clk_ext_db_i,
+
+        resync_done_o    => open,
+        resync_start_p_i => '0',
+        resync_p_a_i     => fb_resync_out(0),
+        resync_p_o       => open,
+
+        tag_o        => tags(g_num_ref_inputs + g_num_outputs + 1),
+        tag_stb_p1_o => tags_p(g_num_ref_inputs + g_num_outputs + 1),
+        shift_en_i   => '0',
+        shift_dir_i  => '0',
+
+        deglitch_threshold_i => deglitch_thr_slv,
+        dbg_dmtdout_o        => open,
+				dbg_clk_d3_o         => open);
+				
+
+	
+	end generate gen_with_ext_daughterboard;
 
     U_Aligner_EXT : spll_aligner
       generic map (
@@ -649,11 +707,25 @@ begin  -- rtl
           end if;
         end loop;  -- i
 
-        if(g_with_ext_clock_input and tags_p(f_num_total_channels-1) = '1') then
-          tags_req(f_num_total_channels-1) <= regs_in.eccr_ext_en_o;
-        elsif(g_with_ext_clock_input and tags_grant(f_num_total_channels-1) = '1') then
+		  if (f_num_ext_ref_channels = 1) then
+			if(tags_p(f_num_total_channels-1) = '1') then
+				tags_req(f_num_total_channels-1) <= regs_in.eccr_ext_en_o;
+			elsif(tags_grant(f_num_total_channels-1) = '1') then
           tags_req(f_num_total_channels-1) <= '0';
-        end if;
+			end if;
+		  end if;
+		  if (f_num_ext_ref_channels = 2) then
+			if(tags_p(f_num_total_channels-2) = '1') then
+				tags_req(f_num_total_channels-2) <= regs_in.eccr_ext_en_o;
+			elsif(tags_grant(f_num_total_channels-1) = '1') then
+          tags_req(f_num_total_channels-2) <= '0';
+			end if;
+			if(tags_p(f_num_total_channels-1) = '1') then
+				tags_req(f_num_total_channels-1) <= regs_in.eccr_ext_en_o;
+			elsif(tags_grant(f_num_total_channels-1) = '1') then
+          tags_req(f_num_total_channels-1) <= '0';
+			end if;
+		  end if;
         
       end if;
     end if;
