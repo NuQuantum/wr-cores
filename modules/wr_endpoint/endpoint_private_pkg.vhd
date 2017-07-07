@@ -137,6 +137,8 @@ package endpoint_private_pkg is
       txpcs_timestamp_trigger_p_a_o : out std_logic;
       link_ok_o                     : out std_logic;
       link_ctr_i                    : in  std_logic := '1';
+      serdes_debug_i                : in  std_logic_vector(15 downto 0);
+      serdes_debug_o                : out std_logic_vector(15 downto 0);
       serdes_rst_o                  : out std_logic;
       serdes_loopen_o               : out std_logic;
       serdes_loopen_vec_o           : out std_logic_vector(2 downto 0);
@@ -356,8 +358,10 @@ package endpoint_private_pkg is
       mdio_ectrl_sfp_tx_fault_i    : in  std_logic;
       mdio_ectrl_sfp_loss_i        : in  std_logic;
       mdio_ectrl_sfp_tx_disable_o  : out std_logic;
-      mdio_ectrl_tx_prbs_sel_o     : out std_logic_vector(2 downto 0));
-  end component;
+      mdio_ectrl_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
+      mdio_dbg0_i                 : in  std_logic_vector(15 downto 0);
+      mdio_dbg1_o                 : out std_logic_vector(15 downto 0));
+  end component ep_pcs_tbi_mdio_wb;
 
   component ep_tx_header_processor
     generic (

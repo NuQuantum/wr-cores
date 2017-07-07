@@ -118,6 +118,8 @@ entity wr_endpoint is
     phy_sfp_los_i        : in  std_logic;
     phy_sfp_tx_disable_o : out std_logic;
     phy_rdy_i            : in  std_logic;
+    phy_debug_i : in std_logic_vector(15 downto 0);
+    phy_debug_o : out std_logic_vector(15 downto 0);
 
     phy_ref_clk_i      : in  std_logic;
     phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
@@ -524,6 +526,8 @@ begin
       serdes_sfp_los_i         => phy_sfp_los_i,
       serdes_sfp_tx_disable_o  => phy_sfp_tx_disable_o,
       serdes_rdy_i             => phy_rdy_i,
+      serdes_debug_i => phy_debug_i,
+      serdes_debug_o => phy_debug_o,
 
       serdes_tx_clk_i       => phy_ref_clk_i,
       serdes_tx_data_o      => phy_tx_data_o,

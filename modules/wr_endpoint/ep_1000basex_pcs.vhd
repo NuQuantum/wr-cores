@@ -146,6 +146,11 @@ entity ep_1000basex_pcs is
     -- 1: serdes is locked and aligned
     serdes_rdy_i    : in  std_logic;
 
+    -- debug/test feature signals to the PHY
+    serdes_debug_i : in std_logic_vector(15 downto 0);
+    serdes_debug_o : out std_logic_vector(15 downto 0);
+    
+
     ---------------------------------------------------------------------------
     -- Serdes TX path (all synchronous to serdes_tx_clk_i)
     ---------------------------------------------------------------------------
@@ -474,6 +479,9 @@ begin  -- rtl
       mdio_ectrl_sfp_tx_disable_o  => serdes_sfp_tx_disable_o,
       mdio_ectrl_tx_prbs_sel_o     => serdes_tx_prbs_sel_o,
 
+      mdio_dbg0_i => serdes_debug_i,
+      mdio_dbg1_o => serdes_debug_o,
+      
       lstat_read_notify_o => lstat_read_notify
       );
 

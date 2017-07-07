@@ -788,5 +788,29 @@ peripheral {
  			 access_dev = READ_ONLY;
 		};
   };
+
+	reg {
+		 name = "MDIO Debug Register 0";
+		 prefix = "DBG0";
+		 field {
+				name = "Debug word 0";
+				size = 16;
+				type = SLV;
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+		 };
+	};
+	reg {
+		 name = "MDIO Debug Register 1";
+		 prefix = "DBG1";
+		 field {
+				name = "Debug word 1";
+				size = 16;
+				type = SLV;
+				access_bus = READ_WRITE;
+				access_dev = READ_ONLY;
+		 };
+	};
+
 };
 

@@ -120,6 +120,8 @@ package endpoint_pkg is
     rdy            : std_logic;
     sfp_tx_fault   : std_logic;
     sfp_los        : std_logic;
+    debug          : std_logic_vector(15 downto 0);
+
   end record;
   type t_phy_16bits_from_wrc is record
     rst            : std_logic;
@@ -129,14 +131,16 @@ package endpoint_pkg is
     loopen_vec     : std_logic_vector(2 downto 0);
     tx_prbs_sel    : std_logic_vector(2 downto 0);
     sfp_tx_disable : std_logic;
+    debug          : std_logic_vector(15 downto 0);
+
   end record;
 
   constant c_dummy_phy16_to_wrc : t_phy_16bits_to_wrc :=
     ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0',
-    (others=>'0'), '0', '0', '0');
+    (others=>'0'), '0', '0', '0', (others => '0'));
   constant c_dummy_phy16_from_wrc : t_phy_16bits_from_wrc :=
     ('0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
-    (others=>'0'), '0');
+    (others=>'0'), '0', (others => '0'));
 
 
   -- debug CS types
@@ -216,6 +220,9 @@ package endpoint_pkg is
       phy_sfp_los_i        : in  std_logic                     := '0';
       phy_sfp_tx_disable_o : out std_logic;
       phy_rdy_i            : in  std_logic;
+      phy_debug_i          : in  std_logic_vector(15 downto 0);
+      phy_debug_o          : out  std_logic_vector(15 downto 0);
+
       phy_ref_clk_i        : in  std_logic                     := '0';
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
       phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
@@ -328,6 +335,9 @@ package endpoint_pkg is
       phy_sfp_los_i        : in  std_logic                     := '0';
       phy_sfp_tx_disable_o : out std_logic;
       phy_rdy_i            : in  std_logic;
+      phy_debug_i          : in  std_logic_vector(15 downto 0);
+      phy_debug_o          : out  std_logic_vector(15 downto 0);
+      
       phy_ref_clk_i        : in  std_logic;
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
       phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
