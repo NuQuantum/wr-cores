@@ -76,6 +76,8 @@ entity xwr_softpll_ng is
     g_ref_clock_rate : integer := 125000000;
     g_ext_clock_rate : integer := 10000000;
 
+    g_use_sampled_ref_clocks : boolean := false;
+
     g_interface_mode      : t_wishbone_interface_mode      := PIPELINED;
     g_address_granularity : t_wishbone_address_granularity := BYTE
     );
@@ -89,6 +91,10 @@ entity xwr_softpll_ng is
 
 -- Reference inputs (i.e. the RX clocks recovered by the PHYs)
     clk_ref_i  : in std_logic_vector(g_num_ref_inputs-1 downto 0);
+
+-- Reference inputs (i.e. the RX clocks recovered by the PHYs), externally sampled
+    clk_ref_sampled_i : in std_logic_vector(g_num_ref_inputs-1 downto 0);
+    
 -- Feedback clocks (i.e. the outputs of the main or aux oscillator)
     clk_fb_i   : in std_logic_vector(g_num_outputs-1 downto 0);
 -- DMTD Offset clock
@@ -146,6 +152,7 @@ architecture wrapper of xwr_softpll_ng is
       g_divide_input_by_2    : boolean;
       g_ref_clock_rate       : integer;
       g_ext_clock_rate       : integer;
+      g_use_sampled_ref_clocks : boolean;
       g_interface_mode       : t_wishbone_interface_mode;
       g_address_granularity  : t_wishbone_address_granularity);
     port (
@@ -199,6 +206,7 @@ begin  -- behavioral
       g_with_debug_fifo      => g_with_debug_fifo,
       g_reverse_dmtds        => g_reverse_dmtds,
       g_divide_input_by_2    => g_divide_input_by_2,
+      g_use_sampled_ref_clocks => g_use_sampled_ref_clocks,
       g_ref_clock_rate  => g_ref_clock_rate,
       g_ext_clock_rate  => g_ext_clock_rate
       )

@@ -82,6 +82,7 @@ entity wr_softpll_ng is
     g_ref_clock_rate : integer := 125000000;
     g_ext_clock_rate : integer := 10000000;
 
+    g_use_sampled_ref_clocks : boolean := false;
 
     g_interface_mode      : t_wishbone_interface_mode      := PIPELINED;
     g_address_granularity : t_wishbone_address_granularity := WORD
@@ -96,6 +97,9 @@ entity wr_softpll_ng is
 
 -- Reference inputs (i.e. the RX clocks recovered by the PHYs)
     clk_ref_i : in std_logic_vector(g_num_ref_inputs-1 downto 0);
+
+-- Reference inputs (i.e. the RX clocks recovered by the PHYs), externally sampled
+    clk_ref_sampled_i : in std_logic_vector(g_num_ref_inputs-1 downto 0);
 
 -- Feedback clocks (i.e. the outputs of the main or auxillary oscillator)
 -- Note: clk_fb_i(0) must be always connected to the primary board's oscillator
@@ -167,30 +171,33 @@ architecture rtl of wr_softpll_ng is
   constant c_DBG_FIFO_COALESCE  : integer := 100;
   constant c_BB_ERROR_BITS      : integer := 16;
 
-  component dmtd_with_deglitcher
+  component dmtd_with_deglitcher is
     generic (
       g_counter_bits      : natural;
+      g_chipscope         : boolean := false;
       g_divide_input_by_2 : boolean;
-			g_reverse           :	boolean);
+      g_reverse           : boolean;
+      g_use_sampled_clock : boolean);
     port (
       rst_n_dmtdclk_i      : in  std_logic;
       rst_n_sysclk_i       : in  std_logic;
       clk_in_i             : in  std_logic;
       clk_dmtd_i           : in  std_logic;
       clk_sys_i            : in  std_logic;
+      clk_sampled_a_i      : in  std_logic := '0';
       resync_p_a_i         : in  std_logic := '0';
       resync_p_o           : out std_logic;
-      resync_start_p_i     : in  std_logic;
+      resync_start_p_i     : in  std_logic := '0';
       resync_done_o        : out std_logic;
-      shift_en_i           : in  std_logic;
-      shift_dir_i          : in  std_logic;
+      shift_en_i           : in  std_logic := '0';
+      shift_dir_i          : in  std_logic := '0';
       clk_dmtd_en_i        : in  std_logic := '1';
       deglitch_threshold_i : in  std_logic_vector(15 downto 0);
       dbg_dmtdout_o        : out std_logic;
       tag_o                : out std_logic_vector(g_counter_bits-1 downto 0);
       tag_stb_p1_o         : out std_logic;
-			dbg_clk_d3_o         : out std_logic);
-  end component;
+      dbg_clk_d3_o         : out std_logic);
+  end component dmtd_with_deglitcher;
 
   component spll_wb_slave
     generic (
@@ -398,7 +405,8 @@ begin  -- rtl
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2,
-        g_reverse	    => g_reverse_dmtds)
+        g_reverse	=> g_reverse_dmtds,
+        g_use_sampled_clock => g_use_sampled_ref_clocks)
       port map (
         rst_n_dmtdclk_i => rst_dmtd_n_i,
         rst_n_sysclk_i  => rst_n_i,
@@ -408,6 +416,7 @@ begin  -- rtl
 
         clk_sys_i => clk_sys_i,
         clk_in_i  => clk_ref_i(i),
+        clk_sampled_a_i => clk_ref_sampled_i(i),
 
         resync_done_o    => open,
         resync_start_p_i => '0',
@@ -430,7 +439,8 @@ begin  -- rtl
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2,
-        g_reverse           => g_reverse_dmtds)
+				g_reverse => g_reverse_dmtds,
+        g_use_sampled_clock => false)
       port map (
         rst_n_dmtdclk_i => rst_dmtd_n_i,
         rst_n_sysclk_i  => rst_n_i,
@@ -467,7 +477,8 @@ begin  -- rtl
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2,
-        g_reverse	    => g_reverse_dmtds)
+				g_reverse	=> g_reverse_dmtds,
+        g_use_sampled_clock => false)
       port map (
         rst_n_dmtdclk_i => rst_dmtd_n_i,
         rst_n_sysclk_i  => rst_n_i,
