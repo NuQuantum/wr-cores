@@ -64,7 +64,9 @@ entity dmtd_with_deglitcher is
     g_divide_input_by_2 : boolean := false;
 
     -- reversed mode: samples clk_dmtd with clk_in.
-    g_reverse : boolean := false
+    g_reverse : boolean := false;
+
+    g_use_sampled_clock : boolean := false
     );
   port (
     -- resets for different clock domains
@@ -79,6 +81,9 @@ entity dmtd_with_deglitcher is
 
     -- system clock
     clk_sys_i : in std_logic;
+
+    -- externally sampled clock.
+    clk_sampled_a_i : in std_logic := '0';
 
     -- async counter resync input: resets only the DDMTD state machine and free
     -- running counter, synchronized to clk_dmtd_i
@@ -126,6 +131,16 @@ end dmtd_with_deglitcher;
 
 architecture rtl of dmtd_with_deglitcher is
 
+  component dmtd_sampler is
+    generic (
+      g_divide_input_by_2 : boolean;
+      g_reverse           : boolean);
+    port (
+      clk_in_i      : in  std_logic;
+      clk_dmtd_i    : in  std_logic;
+      clk_sampled_o : out std_logic);
+  end component dmtd_sampler;
+  
   type t_state is (WAIT_STABLE_0, WAIT_EDGE, GOT_EDGE);
 
   signal state : t_state;
@@ -135,15 +150,7 @@ architecture rtl of dmtd_with_deglitcher is
 
   signal s_one        : std_logic;
 
-  signal clk_in                                           : std_logic;
-  signal clk_i_d0, clk_i_d1, clk_i_d2, clk_i_d3, clk_i_dx : std_logic;
-
-  attribute keep             : string;
-  attribute keep of clk_in   : signal is "true";
-  attribute keep of clk_i_d0 : signal is "true";
-  attribute keep of clk_i_d1 : signal is "true";
-  attribute keep of clk_i_d2 : signal is "true";
-  attribute keep of clk_i_d3 : signal is "true";
+  signal clk_sampled : std_logic;
 
   signal new_edge_sreg : std_logic_vector(5 downto 0);
   signal new_edge_p    : std_logic;
@@ -183,60 +190,22 @@ begin  -- rtl
       data_i   => resync_done_dmtd,
       synced_o => resync_done_o);
 
+  gen_builtin : if(g_use_sampled_clock = false )generate
 
-  gen_straight : if(g_reverse = false) generate
+   U_Sampler: dmtd_sampler
+      generic map (
+        g_divide_input_by_2 => g_divide_input_by_2,
+        g_reverse           => g_reverse)
+      port map (
+        clk_in_i      => clk_in_i,
+        clk_dmtd_i    => clk_dmtd_i,
+        clk_sampled_o => clk_sampled);
     
-    gen_input_div2 : if(g_divide_input_by_2 = true) generate
-      p_divide_input_clock : process(clk_in_i, rst_n_sysclk_i)
-      begin
-        if rst_n_sysclk_i = '0' then
-          clk_in <= '0';
-        elsif rising_edge(clk_in_i) then
-          clk_in <= not clk_in;
-        end if;
-      end process;
-    end generate gen_input_div2;
+  end generate gen_builtin;
 
-    gen_input_straight : if(g_divide_input_by_2 = false) generate
-      clk_in <= clk_in_i;
-    end generate gen_input_straight;
-
-    p_the_dmtd_itself : process(clk_dmtd_i)
-    begin
-      if rising_edge(clk_dmtd_i) then
-        clk_i_d0 <= clk_in;
-        clk_i_d1 <= clk_i_d0;
-        clk_i_d2 <= clk_i_d1;
-        clk_i_d3 <= clk_i_d2;
-      end if;
-    end process;
-
-  end generate gen_straight;
-
-  gen_reverse : if(g_reverse = true) generate
-
-    assert (not g_divide_input_by_2) report "dmtd_with_deglitcher: g_reverse implies g_divide_input_by_2 == false" severity failure;
-
-    clk_in <= clk_in_i;
-
-    p_the_dmtd_itself : process(clk_in)
-    begin
-      if rising_edge(clk_in) then
-        clk_i_d0 <= clk_dmtd_i;
-        clk_i_d1 <= clk_i_d0;
-      end if;
-    end process;
-
-    p_sync : process(clk_dmtd_i)
-    begin
-      if rising_edge(clk_dmtd_i) then
-        clk_i_dx <= clk_i_d1;
-        clk_i_d2 <= not clk_i_dx;
-        clk_i_d3 <= clk_i_d2;
-      end if;
-    end process;
-
-  end generate gen_reverse;
+  gen_externally_sampled : if g_use_sampled_clock generate
+    clk_sampled <= clk_sampled_a_i;
+  end generate gen_externally_sampled;
 
 -- glitchproof DMTD output edge detection
   p_deglitch : process (clk_dmtd_i)
@@ -261,7 +230,7 @@ begin  -- rtl
           when WAIT_STABLE_0 =>         -- out-of-sync
             new_edge_sreg <= '0' & new_edge_sreg(new_edge_sreg'length-1 downto 1);
 
-            if clk_i_d3 /= '0' then
+            if clk_sampled /= '0' then
               stab_cntr <= (others => '0');
             else
               stab_cntr <= stab_cntr + 1;
@@ -273,14 +242,14 @@ begin  -- rtl
             end if;
 
           when WAIT_EDGE =>
-            if (clk_i_d3 /= '0') then   -- got a glitch?
+            if (clk_sampled /= '0') then   -- got a glitch?
               state     <= GOT_EDGE;
               tag_int   <= free_cntr;
               stab_cntr <= (others => '0');
             end if;
 
           when GOT_EDGE =>
-            if (clk_i_d3 = '0') then
+            if (clk_sampled = '0') then
               tag_int <= tag_int + 1;
             end if;
 
@@ -289,7 +258,7 @@ begin  -- rtl
               tag_o         <= std_logic_vector(tag_int);
               new_edge_sreg <= (others => '1');
               stab_cntr     <= (others => '0');
-            elsif (clk_i_d3 = '0') then
+            elsif (clk_sampled = '0') then
               stab_cntr <= (others => '0');
             else
               stab_cntr <= stab_cntr + 1;
@@ -349,6 +318,6 @@ begin  -- rtl
       pulse_i    => new_edge_p,
       extended_o => dbg_dmtdout_o);
 
-	dbg_clk_d3_o <= clk_i_d3;
+  dbg_clk_d3_o <= clk_sampled;
 
 end rtl;
