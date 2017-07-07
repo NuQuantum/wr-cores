@@ -109,7 +109,7 @@ entity xwr_softpll_ng is
     clk_ext_mul_locked_i : in std_logic := '1';
     clk_ext_stopped_i    : in std_logic := '0';
     clk_ext_rst_o        : out std_logic;
-	 
+
 -- External clock sync/alignment singnal. SoftPLL will clk_ext_i/clk_fb_i(0)
 -- to match the edges immediately following the rising edge in sync_p_i.
     pps_csync_p1_i : in std_logic;
