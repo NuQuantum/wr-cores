@@ -81,6 +81,7 @@ entity wr_softpll_ng is
 
     g_ref_clock_rate : integer := 125000000;
     g_ext_clock_rate : integer := 10000000;
+    g_sys_clock_rate: integer := 62500000;
 
     g_use_sampled_ref_clocks : boolean := false;
 
@@ -361,40 +362,40 @@ begin  -- rtl
 
   U_Meas_DMTD_Freq: gc_frequency_meter
     generic map (
-      g_with_internal_timebase => false,
-      g_clk_sys_freq           => 1,
+      g_with_internal_timebase => true,
+      g_clk_sys_freq           => g_sys_clock_rate,
       g_counter_bits           => 28)
     port map (
       clk_sys_i    => clk_sys_i,
       clk_in_i     => clk_dmtd_i,
       rst_n_i      => rst_n_i,
-      pps_p1_i     => pps_ext_a_i,
+      pps_p1_i     => '0',
       freq_o       => regs_out.f_dmtd_freq_i,
       freq_valid_o => open);            -- fixme
 
   U_Meas_REF_Freq: gc_frequency_meter
     generic map (
-      g_with_internal_timebase => false,
-      g_clk_sys_freq           => 1,
+      g_with_internal_timebase => true,
+      g_clk_sys_freq           => g_sys_clock_rate,
       g_counter_bits           => 28)
     port map (
       clk_sys_i    => clk_sys_i,
       clk_in_i     => clk_fb_i(0),
       rst_n_i      => rst_n_i,
-      pps_p1_i     => pps_ext_a_i,
+      pps_p1_i     => '0',
       freq_o       => regs_out.f_ref_freq_i,
       freq_valid_o => open);            -- fixme
 
   U_Meas_EXT_Freq: gc_frequency_meter
     generic map (
-      g_with_internal_timebase => false,
-      g_clk_sys_freq           => 1,
+      g_with_internal_timebase => true,
+      g_clk_sys_freq           => g_sys_clock_rate,
       g_counter_bits           => 28)
     port map (
       clk_sys_i    => clk_sys_i,
       clk_in_i     => clk_ext_i,
       rst_n_i      => rst_n_i,
-      pps_p1_i     => pps_ext_a_i,
+      pps_p1_i     => '0',
       freq_o       => regs_out.f_ext_freq_i,
       freq_valid_o => open);            -- fixme
   
