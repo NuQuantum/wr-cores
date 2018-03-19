@@ -75,6 +75,10 @@ package wr_board_pkg is
     application_size : integer
     ) return integer;
 
+  function f_pick_clk_ref_rate (
+    pcs_16bit_in : boolean
+    ) return integer;
+
   function f_vectorize_diag (
     diag_in          : t_generic_word_array;
     diag_vector_size : integer)
@@ -287,6 +291,18 @@ package body wr_board_pkg is
       return application_size;
     end if;
   end f_pick_diag_size;
+
+  -- guess clk_ref (WR reference Clock) rate based on PCS word width
+  function f_pick_clk_ref_rate (
+    pcs_16bit_in : boolean
+    ) return integer is
+  begin
+    if(pcs_16bit_in = TRUE) then
+      return 62500000;
+    else
+      return 125000000;
+    end if;
+  end f_pick_clk_ref_rate;
 
   function f_vectorize_diag (
     diag_in          : t_generic_word_array;
