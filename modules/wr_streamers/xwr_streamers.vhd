@@ -71,6 +71,10 @@ entity xwr_streamers is
     -- of them. An application that only receives or only transmits might want to use
     -- RX_ONLY or TX_ONLY mode to save resources.
     g_streamers_op_mode        : t_streamers_op_mode  := TX_AND_RX;
+    -- rate fo the White Rabbit referene clock. By default, this clock is
+    -- 125MHz for WR Nodes. There are some WR Nodes that work with 62.5MHz.
+    -- in the future, more frequences might be supported..
+    g_clk_ref_rate             : integer := 125000000;
     -----------------------------------------------------------------------------------------
     -- Transmission/reception parameters
     -----------------------------------------------------------------------------------------
@@ -215,7 +219,8 @@ begin
         g_tx_max_words_per_frame => g_tx_streamer_params.max_words_per_frame,
         g_tx_timeout             => g_tx_streamer_params.timeout,
         g_escape_code_disable    => g_tx_streamer_params.escape_code_disable,
-        g_simulation             => g_simulation)
+        g_simulation             => g_simulation,
+        g_clk_ref_rate           => g_clk_ref_rate)
       port map(
         clk_sys_i                => clk_sys_i,
         rst_n_i                  => rst_n_i,
@@ -251,7 +256,8 @@ begin
         g_data_width             => g_rx_streamer_params.data_width,
         g_buffer_size            => g_rx_streamer_params.buffer_size,
         g_escape_code_disable    => g_rx_streamer_params.escape_code_disable,
-        g_expected_words_number  => g_rx_streamer_params.expected_words_number
+        g_expected_words_number  => g_rx_streamer_params.expected_words_number,
+        g_clk_ref_rate           => g_clk_ref_rate
         )
       port map(
         clk_sys_i                => clk_sys_i,
@@ -290,7 +296,8 @@ begin
     generic map(
       g_streamers_op_mode      => g_streamers_op_mode,
       g_cnt_width              => g_stats_cnt_width,
-      g_acc_width              => g_stats_acc_width
+      g_acc_width              => g_stats_acc_width,
+      g_clk_ref_rate           => g_clk_ref_rate
       )
     port map(
       clk_i                    => clk_sys_i,

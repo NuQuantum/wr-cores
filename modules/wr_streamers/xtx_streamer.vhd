@@ -78,7 +78,12 @@ entity xtx_streamer is
     -- the timer is overriden is set in the second generic 
     g_simulation : integer :=0;
     -- startup counter, used only in simulatin mode (value in 16ns cycles)
-    g_sim_startup_cnt : integer := 6250-- 100us
+    g_sim_startup_cnt : integer := 6250;-- 100us;
+
+    -- rate fo the White Rabbit referene clock. By default, this clock is
+    -- 125MHz for WR Nodes. There are some WR Nodes that work with 62.5MHz.
+    -- in the future, more frequences might be supported..
+    g_clk_ref_rate : integer := 125000000
     );
 
   port (
@@ -290,6 +295,8 @@ begin  -- rtl
   tx_fifo_last     <= tx_fifo_q(g_data_width);
 
   U_Timestamper : pulse_stamper
+    generic map(
+      g_ref_clk_rate  => g_clk_ref_rate)
     port map (
       clk_ref_i       => clk_ref_i,
       clk_sys_i       => clk_sys_i,

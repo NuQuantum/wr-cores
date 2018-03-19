@@ -183,7 +183,8 @@ package streamers_pkg is
       g_tx_timeout             : integer := 1024;
       g_escape_code_disable    : boolean := FALSE;
       g_simulation             : integer := 0;
-      g_sim_startup_cnt        : integer := 6250);--100us
+      g_sim_startup_cnt        : integer := 6250;--100us
+      g_clk_ref_rate           : integer := 125000000);
     port (
       clk_sys_i        : in  std_logic;
       rst_n_i          : in  std_logic;
@@ -209,7 +210,8 @@ package streamers_pkg is
       g_data_width        : integer := 32;
       g_buffer_size       : integer := 256;
       g_escape_code_disable : boolean := FALSE;
-      g_expected_words_number : integer := 0);
+      g_expected_words_number : integer := 0;
+      g_clk_ref_rate      : integer := 125000000);
     port (
       clk_sys_i               : in  std_logic;
       rst_n_i                 : in  std_logic;
@@ -240,6 +242,7 @@ package streamers_pkg is
   component xrtx_streamers_stats is
     generic (
       g_streamers_op_mode    : t_streamers_op_mode  := TX_AND_RX;
+      g_clk_ref_rate         : integer := 125000000;
       g_cnt_width            : integer := 50;
       g_acc_width            : integer := 64
       );
@@ -281,6 +284,7 @@ package streamers_pkg is
   component xwr_streamers is
   generic (
     g_streamers_op_mode        : t_streamers_op_mode  := TX_AND_RX;
+    g_clk_ref_rate             : integer := 125000000;
     --tx/rx
     g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
     g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;

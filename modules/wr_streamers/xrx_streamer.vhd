@@ -71,7 +71,12 @@ entity xrx_streamer is
     -- other than zero, only a fixed number of words is accepted. 
     -- In combination with the g_escape_code_disable generic set to TRUE, the behaviour of
     -- the "Btrain streamers" can be recreated.
-    g_expected_words_number : integer := 0
+    g_expected_words_number : integer := 0;
+
+    -- rate fo the White Rabbit referene clock. By default, this clock is
+    -- 125MHz for WR Nodes. There are some WR Nodes that work with 62.5MHz.
+    -- in the future, more frequences might be supported..
+    g_clk_ref_rate : integer := 125000000
     );
 
   port (
@@ -275,6 +280,8 @@ begin  -- rtl
   rx_last_p1_o  <= fifo_dout(g_data_width);
 
   U_RX_Timestamper : pulse_stamper
+    generic map(
+      g_ref_clk_rate  => g_clk_ref_rate)
     port map (
       clk_ref_i       => clk_ref_i,
       clk_sys_i       => clk_sys_i,

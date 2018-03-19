@@ -68,7 +68,10 @@ entity xrtx_streamers_stats is
     g_streamers_op_mode    : t_streamers_op_mode  := TX_AND_RX;
     -- Width of frame counters
     g_cnt_width            : integer := 50; -- min:15, max:64, 50 bits should be ok for 50 years
-    g_acc_width            : integer := 64  -- max value 64
+    g_acc_width            : integer := 64;  -- max value 64
+    -- rate fo the White Rabbit referene clock. By default, this clock is
+    -- 125MHz for WR Nodes. There are some WR Nodes that work with 62.5MHz.
+    g_clk_ref_rate         : integer := 125000000
     );
   port (
     clk_i                  : in std_logic;
@@ -184,6 +187,8 @@ begin
   -------------------------------------------------------------------------------------------
   -- process that timestamps the reset so that we can make statistics over time
   U_Reset_Timestamper : pulse_stamper
+    generic map(
+      g_ref_clk_rate  => g_clk_ref_rate)
     port map (
       clk_ref_i       => clk_ref_i,
       clk_sys_i       => clk_i,

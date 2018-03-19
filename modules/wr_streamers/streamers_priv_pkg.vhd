@@ -102,6 +102,8 @@ package streamers_priv_pkg is
 
   -- component from wr-core/modules/timing
   component pulse_stamper
+    generic (
+      g_ref_clk_rate  : integer := 125000000);
     port (
       clk_ref_i       : in  std_logic;
       clk_sys_i       : in  std_logic;
