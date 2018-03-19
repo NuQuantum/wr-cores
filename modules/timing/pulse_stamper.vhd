@@ -84,6 +84,31 @@ architecture rtl of pulse_stamper is
  signal pulse_sys_p1 : std_logic;
  signal pulse_back : std_logic_vector(2 downto 0);
  
+ -- One of two clocks is used in WR for timestamping: 125MHz or 62.5MHz
+ -- This functions translates the cycle count into 125MHz-clock cycles
+ -- in the case when 62.5MHz clock is used. As a result, timestamps are
+ -- always in the same "clock domain". This is important, e.g. for streamers,
+ -- in applicatinos where one WR Node works with 62.5MHz WR clock and
+ -- another in 125MHz.
+ function f_8ns_cycle_cnt (in_cyc: std_logic_vector; ref_clk: integer)
+    return std_logic_vector is
+    variable out_cyc : std_logic_vector(27 downto 0);
+  begin
+
+    if (ref_clk = 125000000) then
+      out_cyc := in_cyc;
+    elsif(ref_clk = 62500000) then
+      out_cyc := in_cyc(26 downto 0) & '0';
+    else
+      assert FALSE report
+      "The only ref_clk_rate supported: 62.5MHz and 125MHz"
+      severity FAILURE;
+    end if;
+
+    return out_cyc;
+
+  end f_8ns_cycle_cnt;
+
 begin  -- architecture rtl
 
  -- Synchronization of external pulse into the clk_ref_i clock domain
@@ -150,7 +175,7 @@ begin  -- architecture rtl
      tag_valid_o <= '0';
     elsif pulse_sys_p1='1' then
      tag_tai_o <= tag_utc_ref;
-     tag_cycles_o <= tag_cycles_ref;
+     tag_cycles_o <= f_8ns_cycle_cnt(tag_cycles_ref,g_ref_clk_rate);
      tag_valid_o <= '1';
     else
      tag_valid_o <='0';
