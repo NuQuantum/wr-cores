@@ -632,7 +632,8 @@ begin
       g_enable_ch1 => 1,
       g_simulation => g_simulation)
     port map (
-      gtp_clk_i => clk_gtp,
+      gtp0_clk_i => '0',
+      gtp1_clk_i => clk_gtp,
 
       ch1_ref_clk_i => clk_ref,
 

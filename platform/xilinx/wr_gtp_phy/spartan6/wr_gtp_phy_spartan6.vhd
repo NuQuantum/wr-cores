@@ -66,7 +66,7 @@ entity wr_gtp_phy_spartan6 is
     -- Port 0
 
     -- dedicated GTP clock input
-    gtp_clk_i : in std_logic;
+    gtp0_clk_i : in std_logic;
 
     -- TX path, synchronous to ch0_ref_clk_i
     ch0_ref_clk_i : in std_logic;
@@ -118,6 +118,9 @@ entity wr_gtp_phy_spartan6 is
     ch0_rdy_o : out std_logic;
 
 -- Port 1
+    -- dedicated GTP clock input
+    gtp1_clk_i    : in std_logic;
+
     ch1_ref_clk_i : in std_logic;
 
     ch1_tx_data_i      : in  std_logic_vector(7 downto 0) := "00000000";
@@ -136,6 +139,10 @@ entity wr_gtp_phy_spartan6 is
     ch1_loopen_vec_i : in std_logic_vector(2 downto 0) := (others=>'0');
     ch1_tx_prbs_sel_i: in std_logic_vector(2 downto 0) := (others=>'0');
     ch1_rdy_o    : out std_logic;
+
+    -- PLL source
+    ch0_ref_sel_pll  : in std_logic_vector(2 downto 0);
+    ch1_ref_sel_pll  : in std_logic_vector(2 downto 0);
 
 -- Serial I/O
 
@@ -183,6 +190,8 @@ architecture rtl of wr_gtp_phy_spartan6 is
       PLLLKDET1_OUT         : out std_logic;
       RESETDONE0_OUT        : out std_logic;
       RESETDONE1_OUT        : out std_logic;
+      REFSELDYPLL0          : in  std_logic_vector(2 downto 0):=(others=>'0');
+      REFSELDYPLL1          : in  std_logic_vector(2 downto 0):=(others=>'0');
       RXCHARISK0_OUT        : out std_logic;
       RXCHARISK1_OUT        : out std_logic;
       RXDISPERR0_OUT        : out std_logic;
@@ -387,8 +396,8 @@ begin  -- rtl
 
     ch0_gtp_reset      <= ch0_rst_synced or std_logic(not ch0_reset_counter(ch0_reset_counter'left));
     ch0_rx_rec_clk_pad <= ch0_gtp_clkout_int(1);
-    ch0_ref_clk_in(0)  <= gtp_clk_i;
-    ch0_ref_clk_in(1)  <= '0';
+    ch0_ref_clk_in(0)  <= gtp0_clk_i;
+    ch0_ref_clk_in(1)  <= gtp1_clk_i;
     -- Near-end PMA loopback or loopback selected with ch1_loopen_vec_i
     ch0_gtp_loopback <= "010" when(ch0_loopen_i = '1') else
                         ch0_loopen_vec_i;
@@ -554,8 +563,8 @@ begin  -- rtl
 
     ch1_gtp_reset      <= ch1_rst_synced or std_logic(not ch1_reset_counter(ch1_reset_counter'left));
     ch1_rx_rec_clk_pad <= ch1_gtp_clkout_int(1);
-    ch1_ref_clk_in(0)  <= gtp_clk_i;
-    ch1_ref_clk_in(1)  <= '0';
+    ch1_ref_clk_in(0)  <= gtp0_clk_i;
+    ch1_ref_clk_in(1)  <= gtp1_clk_i;
     -- Near-end PMA loopback or loopback selected with ch1_loopen_vec_i
     ch1_gtp_loopback <= "010" when(ch1_loopen_i = '1') else
                         ch1_loopen_vec_i;
@@ -740,7 +749,8 @@ begin  -- rtl
       PLLLKDET1_OUT  => ch1_gtp_pll_lockdet,
       RESETDONE0_OUT => ch0_gtp_reset_done,
       RESETDONE1_OUT => ch1_gtp_reset_done,
-
+      REFSELDYPLL0   => ch0_ref_sel_pll,
+      REFSELDYPLL1   => ch1_ref_sel_pll,
       ----------------------- Receive Ports - 8b10b Decoder ----------------------
       RXCHARISK0_OUT    => ch0_rx_k_int,
       RXCHARISK1_OUT    => ch1_rx_k_int,

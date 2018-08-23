@@ -1031,7 +1031,9 @@ begin  -- architecture rtl
 
   gen_phy_spartan6 : if(g_fpga_family = "spartan6") generate
 
-    signal clk_125m_gtp_buf : std_logic;
+    signal clk_125m_gtp_buf  : std_logic;
+    signal clk_125m_gtp1_buf : std_logic;
+    signal clk_125m_gtp0_buf : std_logic;
 
     signal ch0_phy8_out, ch1_phy8_out : t_phy_8bits_to_wrc;
 
@@ -1059,7 +1061,7 @@ begin  -- architecture rtl
         g_enable_ch0 => g_gtp_enable_ch0,
         g_enable_ch1 => g_gtp_enable_ch1)
       port map (
-        gtp_clk_i          => clk_125m_gtp_buf,
+        gtp0_clk_i         => clk_125m_gtp0_buf,
         ch0_ref_clk_i      => clk_125m_pllref_buf,
         ch0_tx_data_i      => phy8_i.tx_data,
         ch0_tx_k_i         => phy8_i.tx_k(0),
@@ -1075,6 +1077,7 @@ begin  -- architecture rtl
         ch0_loopen_vec_i   => phy8_i.loopen_vec,
         ch0_tx_prbs_sel_i  => phy8_i.tx_prbs_sel,
         ch0_rdy_o          => ch0_phy8_out.rdy,
+        gtp1_clk_i         => clk_125m_gtp1_buf,
         ch1_ref_clk_i      => clk_125m_pllref_buf,
         ch1_tx_data_i      => phy8_i.tx_data,
         ch1_tx_k_i         => phy8_i.tx_k(0),
@@ -1101,6 +1104,8 @@ begin  -- architecture rtl
         );
 
     gen_gtp_ch0 : if (g_gtp_enable_ch0 = 1 and g_gtp_enable_ch1 = 0) generate
+      clk_125m_gtp0_buf         <= clk_125m_gtp_buf;
+      clk_125m_gtp1_buf         <= '0';
       ch0_phy8_out.ref_clk      <= clk_125m_pllref_buf;
       ch0_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
       ch0_phy8_out.sfp_los      <= sfp_los_i;
@@ -1112,6 +1117,8 @@ begin  -- architecture rtl
     end generate gen_gtp_ch0;
 
     gen_gtp_ch1 : if (g_gtp_enable_ch0 = 0 and g_gtp_enable_ch1 = 1) generate
+      clk_125m_gtp0_buf         <= '0';
+      clk_125m_gtp1_buf         <= clk_125m_gtp_buf;
       ch1_phy8_out.ref_clk      <= clk_125m_pllref_buf;
       ch1_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
       ch1_phy8_out.sfp_los      <= sfp_los_i;

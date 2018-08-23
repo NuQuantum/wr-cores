@@ -116,7 +116,7 @@ package wr_xilinx_pkg is
       g_enable_ch1 : integer := 1;
       g_simulation : integer := 0);
     port (
-      gtp_clk_i          : in  std_logic;
+      gtp0_clk_i         : in  std_logic;
       ch0_ref_clk_i      : in  std_logic                    := '0';
       ch0_tx_data_i      : in  std_logic_vector(7 downto 0) := "00000000";
       ch0_tx_k_i         : in  std_logic                    := '0';
@@ -132,6 +132,7 @@ package wr_xilinx_pkg is
       ch0_loopen_vec_i   : in  std_logic_vector(2 downto 0) := (others => '0');
       ch0_tx_prbs_sel_i  : in  std_logic_vector(2 downto 0) := (others => '0');
       ch0_rdy_o          : out std_logic;
+      gtp1_clk_i         : in  std_logic;
       ch1_ref_clk_i      : in  std_logic;
       ch1_tx_data_i      : in  std_logic_vector(7 downto 0) := "00000000";
       ch1_tx_k_i         : in  std_logic                    := '0';
@@ -147,6 +148,8 @@ package wr_xilinx_pkg is
       ch1_loopen_vec_i   : in  std_logic_vector(2 downto 0) := (others => '0');
       ch1_tx_prbs_sel_i  : in  std_logic_vector(2 downto 0) := (others => '0');
       ch1_rdy_o          : out std_logic;
+      ch0_ref_sel_pll    : in std_logic_vector(2 downto 0)  := (others => '0');
+      ch1_ref_sel_pll    : in std_logic_vector(2 downto 0)  := (others => '0');
       pad_txn0_o         : out std_logic;
       pad_txp0_o         : out std_logic;
       pad_rxn0_i         : in  std_logic                    := '0';
