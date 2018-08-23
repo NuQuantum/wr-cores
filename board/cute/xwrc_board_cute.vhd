@@ -284,6 +284,8 @@ architecture struct of xwrc_board_cute is
   signal sfp_scl_o   : std_logic;
   signal sfp_sda_i   : std_logic;
   signal sfp_sda_o   : std_logic;
+
+  signal tm_time_valid : std_logic;
  
   signal aux_master_out  :  t_wishbone_master_out;
   signal aux_master_in   :  t_wishbone_master_in := cc_dummy_master_in;
@@ -388,18 +390,20 @@ begin  -- architecture struct
       fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
       fc_tx_pause_ready_o  => fc_tx_pause_ready_o,
       tm_link_up_o         => tm_link_up_o,
-      tm_time_valid_o      => tm_time_valid_o,
+      tm_time_valid_o      => tm_time_valid,
       tm_tai_o             => tm_tai_o,
       tm_cycles_o          => tm_cycles_o,
       led_act_o            => led_act_o,
       led_link_o           => led_link_o,
       btn1_i               => btn1_i,
       btn2_i               => btn2_i,
-      pps_valid_o          => pps_valid_o,
       pps_p_o              => pps_p_o,
       pps_csync_o          => pps_csync_o,
       pps_led_o            => pps_led_o,
       link_ok_o            => link_ok_o);
+
+  tm_time_valid_o <= tm_time_valid;
+  pps_valid_o     <= tm_time_valid;
 
   sfp0_rate_select_o <= '1';
   sfp1_rate_select_o <= '1';
