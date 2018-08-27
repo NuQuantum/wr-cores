@@ -97,7 +97,6 @@ entity cute_core_ref_top is
       sfp0_tx_fault_i   : in  std_logic:='0';
       sfp0_tx_disable_o : out std_logic;
       sfp0_los_i        : in  std_logic:='0';
-      sfp0_refclk_sel_i : in std_logic_vector(2 downto 0);
       sfp0_rx_rbclk_o   : out std_logic;
       sfp1_txp_o        : out std_logic;
       sfp1_txn_o        : out std_logic;
@@ -112,7 +111,6 @@ entity cute_core_ref_top is
       sfp1_tx_fault_i   : in  std_logic:='0';
       sfp1_tx_disable_o : out std_logic;
       sfp1_los_i        : in  std_logic:='0';
-      sfp1_refclk_sel_i : in std_logic_vector(2 downto 0);
       sfp1_rx_rbclk_o   : out std_logic;
       
       ---------------------------------------------------------------------------
@@ -202,7 +200,6 @@ begin
     sfp0_tx_fault_i        => sfp0_tx_fault_i,
     sfp0_tx_disable_o      => sfp0_tx_disable_o,
     sfp0_los_i             => sfp0_los_i,
-    sfp0_refclk_sel_i      => sfp0_refclk_sel_i,
     sfp0_rx_rbclk_o        => sfp0_rx_rbclk_o,
     sfp1_txp_o             => sfp1_txp_o,
     sfp1_txn_o             => sfp1_txn_o,
@@ -217,7 +214,6 @@ begin
     sfp1_tx_fault_i        => sfp1_tx_fault_i,
     sfp1_tx_disable_o      => sfp1_tx_disable_o,
     sfp1_los_i             => sfp1_los_i,
-    sfp1_refclk_sel_i      => sfp1_refclk_sel_i,
     sfp1_rx_rbclk_o        => sfp1_rx_rbclk_o,
     eeprom_scl_i           => eeprom_scl_i,
     eeprom_scl_o           => eeprom_scl_o,

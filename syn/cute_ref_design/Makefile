@@ -59,13 +59,14 @@ endif
 
 CWD := $(shell pwd)
 
-FILES := ../../modules/wr_pps_gen/wr_pps_gen.vhd \
+FILES := ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_commit_fifo.vhd \
+../../top/cute_ref_design/cute_wr_ref_top.ucf \
 ../../modules/wr_si57x_interface/xwr_si57x_interface.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_wbm_fifo.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_widen.vhd \
 ../../ip_cores/vme64x-core/hdl/rtl/vme_user_csr.vhd \
 ../../modules/wr_endpoint/ep_sync_detect.vhd \
-../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_commit_fifo.vhd \
+../../modules/wr_pps_gen/wr_pps_gen.vhd \
 ../../ip_cores/general-cores/platform/xilinx/wb_xil_multiboot/multiboot_fsm.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_top.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_master_core/eb_master_slave_wrapper.vhd \
@@ -97,7 +98,7 @@ FILES := ../../modules/wr_pps_gen/wr_pps_gen.vhd \
 ../../ip_cores/vme64x-core/hdl/rtl/vme_irq_controller.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_spi/xwb_spi.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_simple_timer/wb_tics.vhd \
-../../board/cute/wr_cute_pkg.vhd \
+../../modules/wr_softpll_ng/spll_aligner.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_gpio_port/xwb_gpio_port.vhd \
 ../../modules/wr_endpoint/ep_rx_oob_insert.vhd \
 ../../ip_cores/general-cores/modules/common/gc_pulse_synchronizer2.vhd \
@@ -117,9 +118,9 @@ FILES := ../../modules/wr_pps_gen/wr_pps_gen.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_i2c_master/i2c_master_bit_ctrl.vhd \
 ../../modules/wr_eca/eca_channel.vhd \
 ../../modules/wr_eca/wr_eca.vhd \
-run.tcl \
 ../../ip_cores/general-cores/modules/wishbone/wb_gpio_port/wb_gpio_port.vhd \
 ../../modules/wr_eca/eca_offset.vhd \
+../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/l2p_ser.vhd \
 ../../ip_cores/general-cores/platform/xilinx/wb_xilinx_fpga_loader/wb_xilinx_fpga_loader.vhd \
 ../../modules/wr_endpoint/ep_crc32_pkg.vhd \
 ../../modules/wr_endpoint/ep_rx_pcs_8bit.vhd \
@@ -130,9 +131,9 @@ run.tcl \
 ../../ip_cores/vme64x-core/hdl/rtl/vme64x_pkg.vhd \
 ../../modules/fabric/xwrf_loopback/lbk_pkg.vhd \
 ../../ip_cores/general-cores/modules/genrams/common/inferred_async_fifo.vhd \
-../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/l2p_ser.vhd \
+../../ip_cores/general-cores/modules/common/gc_dyn_extend_pulse.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_dma/xwb_dma.vhd \
-../../modules/wr_dacs/cute_serial_dac_arb.vhd \
+../../modules/wr_dacs/spec_serial_dac_arb.vhd \
 ../../modules/wr_streamers/xrx_streamers_stats.vhd \
 ../../ip_cores/general-cores/modules/common/gc_dyn_glitch_filt.vhd \
 ../../modules/wr_eca/eca_auto.vhd \
@@ -141,12 +142,13 @@ run.tcl \
 ../../platform/xilinx/wr_gtp_phy/spartan6/wr_gtp_phy_spartan6.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_rx.vhd \
 ../../modules/wr_tlu/tlu_pkg.vhd \
+../../board/cute/wr_cute_pkg.vhd \
+../../modules/wr_dacs/cute_serial_dac.vhd \
 ../../modules/wr_eca/eca_ac_wbm_auto.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_rx.vhd \
 ../../modules/wr_softpll_ng/xwr_softpll_ng.vhd \
-../../board/cute/cute_reset_gen.vhd \
-../../board/cute/xwrc_board_cute.vhd \
 ../../modules/wr_eca/eca_tlu.vhd \
+cute_wr_ref.xise \
 ../../ip_cores/etherbone-core/hdl/eb_usb_core/ez_usb_pkg.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_usb_core/ez_usb_fifos.vhd \
 ../../modules/wr_mini_nic/minic_wb_slave.vhd \
@@ -168,9 +170,11 @@ run.tcl \
 ../../modules/timing/dmtd_phase_meas.vhd \
 ../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/pulse_sync_rtl.vhd \
 ../../modules/wr_endpoint/ep_rx_pcs_16bit.vhd \
+run.tcl \
 ../../ip_cores/general-cores/modules/genrams/genram_pkg.vhd \
 ../../modules/wr_eca/eca_scubus_channel.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_checksum.vhd \
+../../board/cute/xwrc_board_cute.vhd \
 ../../modules/timing/pulse_stamper.vhd \
 ../../ip_cores/general-cores/modules/genrams/generic/generic_async_fifo.vhd \
 ../../modules/wr_streamers/streamers_pkg.vhd \
@@ -188,7 +192,6 @@ run.tcl \
 ../../ip_cores/general-cores/modules/wishbone/wb_uart/uart_baud_gen.vhd \
 ../../modules/wr_si57x_interface/si570_if_wb.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_irq/irqm_core.vhd \
-../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_cfg_fifo.vhd \
 ../../modules/wr_endpoint/ep_rx_wb_master.vhd \
 ../../ip_cores/vme64x-core/hdl/rtl/vme_bus.vhd \
 ../../modules/wrc_core/wrcore_pkg.vhd \
@@ -201,13 +204,14 @@ run.tcl \
 ../../ip_cores/general-cores/modules/common/gc_single_reset_gen.vhd \
 ../../modules/wr_tlu/tlu.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_clock_crossing/xwb_clock_crossing.vhd \
+../../top/cute_ref_design/cute_wr_ref_top.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_vic/wb_vic.vhd \
 ../../modules/wr_eca/eca_piso_fifo.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_master_core/eb_master_top.vhd \
 ../../modules/wrc_core/wrc_syscon_wb.vhd \
 ../../modules/wrc_core/xwr_core.vhd \
 ../../ip_cores/general-cores/platform/xilinx/wb_xilinx_fpga_loader/xloader_registers_pkg.vhd \
-../../top/cute_ref_design/cute_wr_ref_top.ucf \
+../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_cfg_fifo.vhd \
 ../../ip_cores/general-cores/modules/common/gc_word_packer.vhd \
 ../../modules/wr_eca/eca_rmw.vhd \
 ../../modules/wr_endpoint/ep_tx_pcs_8bit.vhd \
@@ -223,12 +227,12 @@ run.tcl \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_raw_slave.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_vic/xwb_vic.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_simple_pwm/xwb_simple_pwm.vhd \
-../../modules/wr_dacs/cute_serial_dac.vhd \
+../../modules/wr_dacs/spec_serial_dac.vhd \
 ../../modules/wrc_core/wrc_diags_wb.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_i2c_master/wb_i2c_master.vhd \
 ../../modules/wr_pps_gen/xwr_pps_gen.vhd \
 ../../board/common/xwrc_board_common.vhd \
-../../ip_cores/gn4124-core/hdl/cute/ip_cores/l2p_fifo.ngc \
+../../ip_cores/gn4124-core/hdl/spec/ip_cores/l2p_fifo.ngc \
 ../../ip_cores/general-cores/modules/common/gc_async_signals_input_stage.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_ram.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_dpssram.vhd \
@@ -288,11 +292,9 @@ run.tcl \
 ../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/jtag_cores.v \
 ../../modules/wr_endpoint/ep_rx_early_address_match.vhd \
 ../../modules/wr_si57x_interface/wr_si57x_interface.vhd \
-../../modules/wr_softpll_ng/spll_aligner.vhd \
 ../../ip_cores/gn4124-core/hdl/gn4124core/rtl/wbmaster32.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_async_bridge/xwb_async_bridge.vhd \
 ../../ip_cores/vme64x-core/hdl/rtl/vme_funct_match.vhd \
-cute_wr_ref.xise \
 ../../ip_cores/general-cores/platform/xilinx/wb_xilinx_fpga_loader/xloader_wb.vhd \
 ../../modules/wr_endpoint/wr_endpoint.vhd \
 ../../modules/wr_streamers/escape_detector.vhd \
@@ -322,12 +324,14 @@ cute_wr_ref.xise \
 ../../modules/wr_eca/eca_internals_pkg.vhd \
 ../../modules/wr_streamers/xtx_streamer.vhd \
 ../../ip_cores/gn4124-core/hdl/gn4124core/rtl/p2l_dma_master.vhd \
-../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/serdes_1_to_n_clk_pll_s2_diff.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_mc_arithmetic.v \
+../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/serdes_1_to_n_clk_pll_s2_diff.vhd \
+../../modules/wr_dacs/cute_serial_dac_arb.vhd \
+../../ip_cores/general-cores/modules/common/gc_comparator.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_dp_ram.vhd \
-../../modules/fabric/xwrf_loopback/lbk_wishbone_controller.vhd \
-../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_pass_fifo.vhd \
 ../../modules/wr_mini_nic/wr_mini_nic.vhd \
+../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_pass_fifo.vhd \
+../../modules/fabric/xwrf_loopback/lbk_wishbone_controller.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_master_core/eb_commit_len_fifo.vhd \
 ../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/serdes_n_to_1_s2_diff.vhd \
 ../../platform/xilinx/wr_gtp_phy/gtp_bitslide.vhd \
@@ -342,16 +346,18 @@ cute_wr_ref.xise \
 ../../ip_cores/general-cores/modules/common/gc_sync_register.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_register_link.vhd \
 ../../ip_cores/general-cores/platform/xilinx/wb_xilinx_fpga_loader/xwb_xilinx_fpga_loader.vhd \
+../../ip_cores/general-cores/modules/common/gc_ds182x_interface.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_sdb_crossbar.vhd \
 ../../modules/timing/pulse_gen.vhd \
 ../../modules/wr_endpoint/ep_rx_vlan_unit.vhd \
 ../../ip_cores/general-cores/modules/common/gc_big_adder.vhd \
+../../board/cute/cute_reset_gen.vhd \
 ../../modules/wr_softpll_ng/wr_softpll_ng.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_ethernet_slave.vhd \
 ../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/gn4124_core.vhd \
 ../../ip_cores/general-cores/platform/xilinx/wb_xil_multiboot/xwb_xil_multiboot.vhd \
 ../../modules/wr_endpoint/ep_1000basex_pcs.vhd \
-../../board/cute/wrc_board_cute.vhd \
+../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/serdes_1_to_n_data_s2_se.vhd \
 ../../modules/wr_streamers/wr_streamers_wb.vhd \
 ../../modules/wr_streamers/wr_streamers_wbgen2_pkg.vhd \
 ../../ip_cores/general-cores/modules/common/gc_delay_line.vhd \
@@ -363,7 +369,6 @@ cute_wr_ref.xise \
 ../../ip_cores/general-cores/modules/common/gc_bicolor_led_ctrl.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_fsm.vhd \
 ../../ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_sameclock.vhd \
-../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/serdes_1_to_n_data_s2_se.vhd \
 ../../modules/wr_eca/eca_search.vhd \
 ../../modules/wr_eca/eca_queue_auto_pkg.vhd \
 ../../ip_cores/general-cores/modules/common/gc_serial_dac.vhd \
@@ -373,8 +378,6 @@ cute_wr_ref.xise \
 ../../modules/wr_eca/eca_queue_auto.vhd \
 ../../modules/wr_streamers/tx_streamer.vhd \
 ../../ip_cores/gn4124-core/hdl/gn4124core/rtl/dma_controller_wb_slave.vhd \
-../../top/cute_ref_design/cute_core_ref_top.vhd \
-../../top/cute_ref_design/cute_wr_ref_top.vhd \
 ../../modules/wr_eca/eca_wr_time.vhd \
 ../../modules/wr_streamers/xrx_streamer.vhd \
 ../../modules/wr_endpoint/ep_rx_bypass_queue.vhd \

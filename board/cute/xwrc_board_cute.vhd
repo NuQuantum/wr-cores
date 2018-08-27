@@ -4,10 +4,8 @@
 -- URL        : http://www.ohwr.org/projects/wr-cores/wiki/Wrpc_core
 -------------------------------------------------------------------------------
 -- File       : xwrc_board_cute.vhd
--- Author(s)  : Hongming Li <lihm.thu@foxmail.com>
--- Company    : Tsinghua Univ. (DEP)
--- Created    : 2018-07-14
--- Last update: 2018-07-14
+-- Author(s)  : Hongming Li <lihm.thu@foxmail.com>, Greg Daniluk <grzegorz.daniluk@cern.ch>
+-- Company    : Tsinghua Univ. (DEP), CERN
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -77,77 +75,85 @@ entity xwrc_board_cute is
     -- size the generic diag interface
     g_diag_ro_size              : integer              := 0;
     g_diag_rw_size              : integer              := 0;
+    ---------------------------------------------------------------------------
     -- cute special
-    g_sfp0_enable               : boolean:= true;
-    g_sfp1_enable               : boolean:= false;
-    g_multiboot_enable          : boolean:= false
+    ---------------------------------------------------------------------------
+    g_cute_version              : string               := "2.2";
+    g_sfp0_enable               : integer              := 1;
+    g_sfp1_enable               : integer              := 0;
+    g_phy_refclk_sel            : integer              := 0;
+    g_multiboot_enable          : boolean              := false
     );
   port (
     ---------------------------------------------------------------------------
     -- Clocks/resets
     ---------------------------------------------------------------------------
     -- Reset input (active low, can be async)
-    rst_n_i       : in  std_logic;
-    -- Clock input, used to derive the DDMTD clock
-    clk_20m_i     : in std_logic;
-    -- 62.5m dmtd clock, from pll drived by clk_20m_vcxo
-    clk_dmtd_i    : in std_logic;
-    -- 62.5m system clock, from pll drived by clk_125m_pllref
-    clk_sys_i     : in std_logic;    
-    -- 125m reference clock, from pll drived by clk_125m_pllref
-    clk_ref_i     : in std_logic;
-    -- Dedicated clock for the Xilinx GTP transceiver.
-    clk_sfp0_i    : in std_logic :='0';
-    clk_sfp1_i    : in std_logic :='0';
+    areset_n_i          : in  std_logic;
+    -- Optional reset input active low with rising edge detection. Does not
+    -- reset PLLs.
+    areset_edge_n_i     : in  std_logic := '1';
+    -- Clock inputs from the board
+    clk_20m_vcxo_i      : in  std_logic;
+    clk_125m_pllref_p_i : in  std_logic;
+    clk_125m_pllref_n_i : in  std_logic;
+    clk_125m_gtp0_p_i   : in  std_logic :='0';
+    clk_125m_gtp0_n_i   : in  std_logic :='0';
+    clk_125m_gtp1_p_i   : in  std_logic :='0';
+    clk_125m_gtp1_n_i   : in  std_logic :='0';
     -- Aux clocks, which can be disciplined by the WR Core
-    clk_aux_i     : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
+    clk_aux_i           : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
     -- 10MHz ext ref clock input (g_with_external_clock_input = TRUE)
-    clk_10m_ext_i : in  std_logic := '0';
+    clk_10m_ext_i       : in  std_logic                               := '0';
     -- External PPS input (g_with_external_clock_input = TRUE)
-    pps_ext_i     : in  std_logic := '0';
+    pps_ext_i           : in  std_logic                               := '0';
+    -- 62.5MHz sys clock output
+    clk_sys_62m5_o      : out std_logic;
+    -- 125MHz ref clock output
+    clk_ref_125m_o      : out std_logic;
+    -- active low reset outputs, synchronous to 62m5 and 125m clocks
+    rst_sys_62m5_n_o    : out std_logic;
+    rst_ref_125m_n_o    : out std_logic;
 
     ---------------------------------------------------------------------------
-    -- Shared SPI interface to DACs
+    -- SPI interface to DACs
     ---------------------------------------------------------------------------
-    dac_hpll_load_p1_o : out std_logic;
-    dac_hpll_data_o    : out std_logic_vector(15 downto 0);
-    dac_dpll_load_p1_o : out std_logic;
-    dac_dpll_data_o    : out std_logic_vector(15 downto 0);
+    plldac_sclk_o   : out std_logic;
+    plldac_din_o    : out std_logic;
+    plldac_clr_n_o  : out std_logic;
+    plldac_load_n_o : out std_logic;
+    plldac_sync_n_o : out std_logic;
 
     ---------------------------------------------------------------------------
     -- SFP I/O for transceiver and SFP management info
     ---------------------------------------------------------------------------
     sfp0_txp_o         : out std_logic;
     sfp0_txn_o         : out std_logic;
-    sfp0_rxp_i         : in  std_logic;
-    sfp0_rxn_i         : in  std_logic;
+    sfp0_rxp_i         : in  std_logic := '0';
+    sfp0_rxn_i         : in  std_logic := '0';
     sfp0_det_i         : in  std_logic := '1';
-    sfp0_sda_i         : in  std_logic;
+    sfp0_sda_i         : in  std_logic := '1';
     sfp0_sda_o         : out std_logic;
-    sfp0_scl_i         : in  std_logic;
+    sfp0_scl_i         : in  std_logic := '1';
     sfp0_scl_o         : out std_logic;
     sfp0_rate_select_o : out std_logic;
     sfp0_tx_fault_i    : in  std_logic := '0';
     sfp0_tx_disable_o  : out std_logic;
     sfp0_los_i         : in  std_logic := '0';
-    sfp0_refclk_sel_i  : in  std_logic_vector(2 downto 0);
-    sfp0_rx_rbclk_o    : out std_logic;
 
     sfp1_txp_o         : out std_logic;
     sfp1_txn_o         : out std_logic;
-    sfp1_rxp_i         : in  std_logic;
-    sfp1_rxn_i         : in  std_logic;
+    sfp1_rxp_i         : in  std_logic := '0';
+    sfp1_rxn_i         : in  std_logic := '0';
     sfp1_det_i         : in  std_logic := '1';
-    sfp1_sda_i         : in  std_logic;
+    sfp1_sda_i         : in  std_logic := '1';
     sfp1_sda_o         : out std_logic;
-    sfp1_scl_i         : in  std_logic;
+    sfp1_scl_i         : in  std_logic := '1';
     sfp1_scl_o         : out std_logic;
     sfp1_rate_select_o : out std_logic;
     sfp1_tx_fault_i    : in  std_logic := '0';
     sfp1_tx_disable_o  : out std_logic;
     sfp1_los_i         : in  std_logic := '0';
-    sfp1_refclk_sel_i  : in  std_logic_vector(2 downto 0);
-    sfp1_rx_rbclk_o    : out std_logic;
 
     ---------------------------------------------------------------------------
     -- I2C EEPROM
@@ -194,6 +200,21 @@ entity xwrc_board_cute is
     wrf_snk_o : out t_wrf_sink_out;
     wrf_snk_i : in  t_wrf_sink_in   := c_dummy_snk_in;
 
+    ---------------------------------------------------------------------------
+    -- WR streamers (when g_fabric_iface = "streamers")
+    ---------------------------------------------------------------------------
+    wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_params.data_width-1 downto 0) := (others => '0');
+    wrs_tx_valid_i : in  std_logic                                        := '0';
+    wrs_tx_dreq_o  : out std_logic;
+    wrs_tx_last_i  : in  std_logic                                        := '1';
+    wrs_tx_flush_i : in  std_logic                                        := '0';
+    wrs_tx_cfg_i   : in  t_tx_streamer_cfg                                := c_tx_streamer_cfg_default;
+    wrs_rx_first_o : out std_logic;
+    wrs_rx_last_o  : out std_logic;
+    wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
+    wrs_rx_valid_o : out std_logic;
+    wrs_rx_dreq_i  : in  std_logic                                        := '0';
+    wrs_rx_cfg_i   : in t_rx_streamer_cfg                                 := c_rx_streamer_cfg_default;
     ---------------------------------------------------------------------------
     -- Etherbone WB master interface (when g_fabric_iface = "etherbone")
     ---------------------------------------------------------------------------
@@ -259,12 +280,64 @@ entity xwrc_board_cute is
 
 end entity xwrc_board_cute;
 
-
 architecture struct of xwrc_board_cute is
+
+------------------------------------------------------------------------------
+-- components declaration
+------------------------------------------------------------------------------
+  component cute_serial_dac_arb is
+    generic(
+      g_invert_sclk    : boolean;
+      g_num_extra_bits : integer);
+    port(
+      clk_i   : in std_logic;
+      rst_n_i : in std_logic;
+  
+      val1_i  : in std_logic_vector(15 downto 0);
+      load1_i : in std_logic;
+      val2_i  : in std_logic_vector(15 downto 0);
+      load2_i : in std_logic;
+  
+      dac_ldac_n_o : out std_logic;
+      dac_clr_n_o  : out std_logic;
+      dac_sync_n_o : out std_logic;
+      dac_sclk_o   : out std_logic;
+      dac_din_o    : out std_logic);
+  end component cute_serial_dac_arb;
 
   -----------------------------------------------------------------------------
   -- Signals
   -----------------------------------------------------------------------------
+
+  -- IBUFDS
+  signal clk_125m_pllref_buf : std_logic;
+
+  -- PLLs, clocks
+  signal clk_125m_gtp_p : std_logic;
+  signal clk_125m_gtp_n : std_logic;
+  signal clk_pll_62m5 : std_logic;
+  signal clk_pll_125m : std_logic;
+  signal clk_pll_dmtd : std_logic;
+  signal pll_locked   : std_logic;
+  signal clk_10m_ext  : std_logic;
+
+  -- Reset logic
+  signal areset_edge_ppulse : std_logic;
+  signal rst_62m5_n         : std_logic;
+  signal rstlogic_arst_n    : std_logic;
+  signal rstlogic_clk_in    : std_logic_vector(1 downto 0);
+  signal rstlogic_rst_out   : std_logic_vector(1 downto 0);
+
+  -- PLL DAC ARB
+  signal dac_hpll_load_p1 : std_logic;
+  signal dac_hpll_data    : std_logic_vector(15 downto 0);
+  signal dac_dpll_load_p1 : std_logic;
+  signal dac_dpll_data    : std_logic_vector(15 downto 0);
+  signal dac_val1_data    : std_logic_vector(15 downto 0);
+  signal dac_val2_data    : std_logic_vector(15 downto 0);
+  signal dac_val1_load    : std_logic;
+  signal dac_val2_load    : std_logic;
+
   -- OneWire
   signal onewire_in : std_logic_vector(1 downto 0);
   signal onewire_en : std_logic_vector(1 downto 0);
@@ -279,11 +352,19 @@ architecture struct of xwrc_board_cute is
   signal ext_ref_mul_stopped : std_logic;
   signal ext_ref_rst         : std_logic;
 
-  signal sfp_det_i   : std_logic;
-  signal sfp_scl_i   : std_logic;
-  signal sfp_scl_o   : std_logic;
-  signal sfp_sda_i   : std_logic;
-  signal sfp_sda_o   : std_logic;
+  -- CUTE-WR specific stuff
+  signal sfp_txp_out         : std_logic;
+  signal sfp_txn_out         : std_logic;
+  signal sfp_rxp_in          : std_logic;
+  signal sfp_rxn_in          : std_logic;
+  signal sfp_det_in          : std_logic;
+  signal sfp_sda_in          : std_logic;
+  signal sfp_sda_out         : std_logic;
+  signal sfp_scl_in          : std_logic;
+  signal sfp_scl_out         : std_logic;
+  signal sfp_tx_fault_in     : std_logic;
+  signal sfp_tx_disable_out  : std_logic;
+  signal sfp_los_in          : std_logic;
 
   signal tm_time_valid : std_logic;
  
@@ -296,6 +377,176 @@ architecture struct of xwrc_board_cute is
   signal multiboot_slave_in  : t_wishbone_slave_in := cc_dummy_slave_in;
 
 begin  -- architecture struct
+
+  -----------------------------------------------------------------------------
+  -- Platform-dependent part (PHY, PLLs, buffers, etc)
+  -----------------------------------------------------------------------------
+
+  cmp_ibufgds_pllref : IBUFGDS
+    generic map (
+      DIFF_TERM    => TRUE,
+      IBUF_LOW_PWR => TRUE,
+      IOSTANDARD   => "DEFAULT")
+    port map (
+      O  => clk_125m_pllref_buf,
+      I  => clk_125m_pllref_p_i,
+      IB => clk_125m_pllref_n_i);
+
+  cmp_xwrc_platform : xwrc_platform_xilinx
+    generic map (
+      g_fpga_family               => "spartan6",
+      g_with_external_clock_input => g_with_external_clock_input,
+      g_use_default_plls          => TRUE,
+      g_gtp_enable_ch0            => 0,
+      g_gtp_enable_ch1            => 1,
+      g_phy_refclk_sel            => g_phy_refclk_sel,
+      g_simulation                => g_simulation)
+    port map (
+      areset_n_i            => areset_n_i,
+      clk_10m_ext_i         => clk_10m_ext_i,
+      clk_20m_vcxo_i        => clk_20m_vcxo_i,
+      clk_125m_pllref_i     => clk_125m_pllref_buf,
+      clk_125m_gtp_p_i      => clk_125m_gtp_p,
+      clk_125m_gtp_n_i      => clk_125m_gtp_n,
+      sfp_txn_o             => sfp_txn_out,
+      sfp_txp_o             => sfp_txp_out,
+      sfp_rxn_i             => sfp_rxn_in,
+      sfp_rxp_i             => sfp_rxp_in,
+      sfp_tx_fault_i        => sfp_tx_fault_in,
+      sfp_los_i             => sfp_los_in,
+      sfp_tx_disable_o      => sfp_tx_disable_out,
+      clk_62m5_sys_o        => clk_pll_62m5,
+      clk_125m_ref_o        => clk_pll_125m,
+      clk_62m5_dmtd_o       => clk_pll_dmtd,
+      pll_locked_o          => pll_locked,
+      clk_10m_ext_o         => clk_10m_ext,
+      phy8_o                => phy8_to_wrc,
+      phy8_i                => phy8_from_wrc,
+      ext_ref_mul_o         => ext_ref_mul,
+      ext_ref_mul_locked_o  => ext_ref_mul_locked,
+      ext_ref_mul_stopped_o => ext_ref_mul_stopped,
+      ext_ref_rst_i         => ext_ref_rst);
+
+  clk_sys_62m5_o <= clk_pll_62m5;
+  clk_ref_125m_o <= clk_pll_125m;
+
+  -----------------------------------------------------------------------------
+  -- SFP0/1 selection
+  -----------------------------------------------------------------------------
+  
+  GEN_GTP0: if g_sfp0_enable = 1 generate
+    clk_125m_gtp_p  <= clk_125m_gtp0_p_i;
+    clk_125m_gtp_n  <= clk_125m_gtp0_n_i;
+
+    sfp0_txp_o         <= sfp_txp_out;
+    sfp0_txn_o         <= sfp_txn_out;
+    sfp0_sda_o         <= sfp_sda_out;
+    sfp0_scl_o         <= sfp_scl_out;
+    sfp0_tx_disable_o  <= sfp_tx_disable_out;
+    sfp_rxp_in         <= sfp0_rxp_i;
+    sfp_rxn_in         <= sfp0_rxn_i;
+    sfp_det_in         <= sfp0_det_i;
+    sfp_sda_in         <= sfp0_sda_i;
+    sfp_scl_in         <= sfp0_scl_i;
+    sfp_tx_fault_in    <= sfp0_tx_fault_i;
+    sfp_los_in         <= sfp0_los_i;
+  end generate;
+
+  GEN_GTP1: if g_sfp1_enable = 1 generate
+    clk_125m_gtp_p <= clk_125m_gtp1_p_i;
+    clk_125m_gtp_n <= clk_125m_gtp1_n_i;
+
+    sfp1_txp_o         <= sfp_txp_out;
+    sfp1_txn_o         <= sfp_txn_out;
+    sfp1_sda_o         <= sfp_sda_out;
+    sfp1_scl_o         <= sfp_scl_out;
+    sfp1_tx_disable_o  <= sfp_tx_disable_out;
+    sfp_rxp_in         <= sfp1_rxp_i;
+    sfp_rxn_in         <= sfp1_rxn_i;
+    sfp_det_in         <= sfp1_det_i;
+    sfp_sda_in         <= sfp1_sda_i;
+    sfp_scl_in         <= sfp1_scl_i;
+    sfp_tx_fault_in    <= sfp1_tx_fault_i;
+    sfp_los_in         <= sfp1_los_i;
+  end generate;
+
+  sfp0_rate_select_o <= '1';
+  sfp1_rate_select_o <= '1';
+
+  -----------------------------------------------------------------------------
+  -- Reset logic
+  -----------------------------------------------------------------------------
+  -- Detect when areset_edge_n_i goes high (end of reset) and use this edge to
+  -- generate rstlogic_arst_n. This is needed to connect optional reset like PCIe
+  -- reset. When baord runs standalone, we need to ignore PCIe reset being
+  -- constantly low.
+  cmp_arst_edge: gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_pll_62m5,
+      rst_n_i  => '1',
+      data_i   => areset_edge_n_i,
+      ppulse_o => areset_edge_ppulse);
+
+  -- logic AND of all async reset sources (active low)
+  rstlogic_arst_n <= pll_locked and areset_n_i and (not areset_edge_ppulse);
+
+  -- concatenation of all clocks required to have synced resets
+  rstlogic_clk_in(0) <= clk_pll_62m5;
+  rstlogic_clk_in(1) <= clk_pll_125m;
+
+  cmp_rstlogic_reset : gc_reset
+    generic map (
+      g_clocks    => 2,                           -- 62.5MHz, 125MHz
+      g_logdelay  => 4,                           -- 16 clock cycles
+      g_syncdepth => 3)                           -- length of sync chains
+    port map (
+      free_clk_i => clk_125m_pllref_buf,
+      locked_i   => rstlogic_arst_n,
+      clks_i     => rstlogic_clk_in,
+      rstn_o     => rstlogic_rst_out);
+
+  -- distribution of resets (already synchronized to their clock domains)
+  rst_62m5_n <= rstlogic_rst_out(0);
+
+  rst_sys_62m5_n_o <= rst_62m5_n;
+  rst_ref_125m_n_o <= rstlogic_rst_out(1);
+
+  -----------------------------------------------------------------------------
+  -- Double-channel SPI DAC
+  -----------------------------------------------------------------------------
+  GEN_DAC_DEFAULT: if g_cute_version /= "2.1" generate
+    dac_val1_data <= dac_dpll_data;
+    dac_val1_load <= dac_dpll_load_p1;
+    dac_val2_data <= dac_hpll_data;
+    dac_val2_load <= dac_hpll_load_p1;
+  end generate;
+
+  GEN_DAC_CUTE_2_1: if g_cute_version = "2.1" generate
+    -- Cute 2.1 had hpll and dpll DACs swapped
+    dac_val1_data <= dac_hpll_data;
+    dac_val1_load <= dac_hpll_load_p1;
+    dac_val2_data <= dac_dpll_data;
+    dac_val2_load <= dac_dpll_load_p1;
+  end generate;
+
+  cmp_dac_arb: cute_serial_dac_arb
+    generic map (
+      g_invert_sclk    => FALSE,
+      g_num_extra_bits => 8)
+    port map (
+      clk_i         => clk_pll_62m5,
+      rst_n_i       => rst_62m5_n,
+      val1_i        => dac_val1_data,
+      load1_i       => dac_val1_load,
+      val2_i        => dac_val2_data,
+      load2_i       => dac_val2_load,
+      dac_sync_n_o  => plldac_sync_n_o,
+      dac_ldac_n_o  => plldac_load_n_o,
+      dac_clr_n_o   => plldac_clr_n_o,
+      dac_sclk_o    => plldac_sclk_o,
+      dac_din_o     => plldac_din_o);
 
   -----------------------------------------------------------------------------
   -- The WR PTP core with optional fabric interface attached
@@ -331,32 +582,32 @@ begin  -- architecture struct
       g_fabric_iface              => g_fabric_iface
       )
     port map (
-      clk_sys_i            => clk_sys_i,
-      clk_dmtd_i           => clk_dmtd_i,
-      clk_ref_i            => clk_ref_i,
+      clk_sys_i            => clk_pll_62m5,
+      clk_dmtd_i           => clk_pll_dmtd,
+      clk_ref_i            => clk_pll_125m,
       clk_aux_i            => clk_aux_i,
-      clk_10m_ext_i        => clk_10m_ext_i,
+      clk_10m_ext_i        => clk_10m_ext,
       clk_ext_mul_i        => ext_ref_mul,
       clk_ext_mul_locked_i => ext_ref_mul_locked,
       clk_ext_stopped_i    => ext_ref_mul_stopped,
       clk_ext_rst_o        => ext_ref_rst,
       pps_ext_i            => pps_ext_i,
-      rst_n_i              => rst_n_i,
-      dac_hpll_load_p1_o   => dac_hpll_load_p1_o,
-      dac_hpll_data_o      => dac_hpll_data_o,
-      dac_dpll_load_p1_o   => dac_dpll_load_p1_o,
-      dac_dpll_data_o      => dac_dpll_data_o,
+      rst_n_i              => rst_62m5_n,
+      dac_hpll_load_p1_o   => dac_hpll_load_p1,
+      dac_hpll_data_o      => dac_hpll_data,
+      dac_dpll_load_p1_o   => dac_dpll_load_p1,
+      dac_dpll_data_o      => dac_dpll_data,
       phy8_o               => phy8_from_wrc,
       phy8_i               => phy8_to_wrc,
       scl_o                => eeprom_scl_o,
       scl_i                => eeprom_scl_i,
       sda_o                => eeprom_sda_o,
       sda_i                => eeprom_sda_i,
-      sfp_scl_o            => sfp_scl_o,
-      sfp_scl_i            => sfp_scl_i,
-      sfp_sda_o            => sfp_sda_o,
-      sfp_sda_i            => sfp_sda_i,
-      sfp_det_i            => sfp_det_i,
+      sfp_scl_o            => sfp_scl_out,
+      sfp_scl_i            => sfp_scl_in,
+      sfp_sda_o            => sfp_sda_out,
+      sfp_sda_i            => sfp_sda_in,
+      sfp_det_i            => sfp_det_in,
       spi_sclk_o           => flash_sclk_o,
       spi_ncs_o            => flash_ncs_o,
       spi_mosi_o           => flash_mosi_o,
@@ -374,6 +625,18 @@ begin  -- architecture struct
       wrf_src_i            => wrf_src_i,
       wrf_snk_o            => wrf_snk_o,
       wrf_snk_i            => wrf_snk_i,
+      wrs_tx_data_i        => wrs_tx_data_i,
+      wrs_tx_valid_i       => wrs_tx_valid_i,
+      wrs_tx_dreq_o        => wrs_tx_dreq_o,
+      wrs_tx_last_i        => wrs_tx_last_i,
+      wrs_tx_flush_i       => wrs_tx_flush_i,
+      wrs_tx_cfg_i         => wrs_tx_cfg_i,
+      wrs_rx_first_o       => wrs_rx_first_o,
+      wrs_rx_last_o        => wrs_rx_last_o,
+      wrs_rx_data_o        => wrs_rx_data_o,
+      wrs_rx_valid_o       => wrs_rx_valid_o,
+      wrs_rx_dreq_i        => wrs_rx_dreq_i,
+      wrs_rx_cfg_i         => wrs_rx_cfg_i,
       wb_eth_master_o      => wb_eth_master_o,
       wb_eth_master_i      => wb_eth_master_i,
       aux_diag_i           => aux_diag_i,
@@ -405,149 +668,9 @@ begin  -- architecture struct
   tm_time_valid_o <= tm_time_valid;
   pps_valid_o     <= tm_time_valid;
 
-  sfp0_rate_select_o <= '1';
-  sfp1_rate_select_o <= '1';
-
   onewire_oen_o <= onewire_en(0);
   onewire_in(0) <= onewire_i;
   onewire_in(1) <= '1';
-
-U_WRPC_SFP0: if (g_sfp0_enable = true) generate
-
-  phy8_to_wrc.ref_clk        <= clk_ref_i;
-  phy8_to_wrc.sfp_tx_fault   <= sfp0_tx_fault_i;
-  phy8_to_wrc.sfp_los        <= sfp0_los_i;
-  sfp0_tx_disable_o          <= phy8_from_wrc.sfp_tx_disable;
-  sfp_det_i                  <= sfp0_det_i;
-  sfp_scl_i                  <= sfp0_scl_i;
-  sfp0_scl_o                 <= sfp_scl_o;
-  sfp_sda_i                  <= sfp0_sda_i;
-  sfp0_sda_o                 <= sfp_sda_o;
-  sfp0_rx_rbclk_o            <= phy8_to_wrc.rx_clk;
-
-  u_gtp0 : wr_gtp_phy_spartan6
-  generic map (
-    g_enable_ch0 => 0,
-    g_enable_ch1 => 1,
-    g_simulation => g_simulation)
-  port map (
-    gtp1_clk_i         => clk_sfp0_i,
-    ch1_ref_clk_i      => clk_ref_i,
-    ch1_tx_data_i      => phy8_from_wrc.tx_data,
-    ch1_tx_k_i         => phy8_from_wrc.tx_k(0),
-    ch1_tx_disparity_o => phy8_to_wrc.tx_disparity,
-    ch1_tx_enc_err_o   => phy8_to_wrc.tx_enc_err,
-    ch1_rx_rbclk_o     => phy8_to_wrc.rx_clk,
-    ch1_rx_data_o      => phy8_to_wrc.rx_data,
-    ch1_rx_k_o         => phy8_to_wrc.rx_k(0),
-    ch1_rx_enc_err_o   => phy8_to_wrc.rx_enc_err,
-    ch1_rx_bitslide_o  => phy8_to_wrc.rx_bitslide,
-    ch1_rst_i          => phy8_from_wrc.rst,
-    ch1_loopen_i       => phy8_from_wrc.loopen,
-    ch1_loopen_vec_i   => phy8_from_wrc.loopen_vec,
-    ch1_tx_prbs_sel_i  => phy8_from_wrc.tx_prbs_sel,
-    ch1_rdy_o          => phy8_to_wrc.rdy,
-    pad_txn1_o         => sfp0_txn_o,
-    pad_txp1_o         => sfp0_txp_o,
-    pad_rxn1_i         => sfp0_rxn_i,
-    pad_rxp1_i         => sfp0_rxp_i,
-
-    gtp0_clk_i         => '0',
-    ch0_ref_clk_i      => clk_ref_i,
-    ch0_tx_data_i      => x"00",
-    ch0_tx_k_i         => '0',
-    ch0_tx_disparity_o => open,
-    ch0_tx_enc_err_o   => open,
-    ch0_rx_data_o      => open,
-    ch0_rx_rbclk_o     => open,
-    ch0_rx_k_o         => open,
-    ch0_rx_enc_err_o   => open,
-    ch0_rx_bitslide_o  => open,
-    ch0_rst_i          => '1',
-    ch0_loopen_i       => '0',
-    ch0_loopen_vec_i   => (others=>'0'),
-    ch0_tx_prbs_sel_i  => (others=>'0'),
-    ch0_rdy_o          => open,
-
-    ch0_ref_sel_pll    => "100",
-    ch1_ref_sel_pll    => sfp0_refclk_sel_i,
-
-    pad_txn0_o         => open,
-    pad_txp0_o         => open,
-    pad_rxn0_i         => '0',
-    pad_rxp0_i         => '0'
-);
-
-end generate;
-
-U_WRPC_SFP1: if (g_sfp1_enable = true) generate
-  
-  phy8_to_wrc.ref_clk        <= clk_ref_i;
-  phy8_to_wrc.sfp_tx_fault   <= sfp1_tx_fault_i;
-  phy8_to_wrc.sfp_los        <= sfp1_los_i;
-  sfp0_tx_disable_o          <= phy8_from_wrc.sfp_tx_disable;
-
-  sfp_det_i                  <= sfp1_det_i;
-  sfp_scl_i                  <= sfp1_scl_i;
-  sfp1_scl_o                 <= sfp_scl_o;
-  sfp_sda_i                  <= sfp1_sda_i;
-  sfp1_sda_o                 <= sfp_sda_o;
-  sfp1_rx_rbclk_o            <= phy8_to_wrc.rx_clk;
-
-  u_gtp1 : wr_gtp_phy_spartan6
-  generic map (
-    g_enable_ch0 => 0,
-    g_enable_ch1 => 1,
-    g_simulation => g_simulation)
-  port map (
-    gtp1_clk_i         => clk_sfp1_i,
-    ch1_ref_clk_i      => clk_ref_i,
-    ch1_tx_data_i      => phy8_from_wrc.tx_data,
-    ch1_tx_k_i         => phy8_from_wrc.tx_k(0),
-    ch1_tx_disparity_o => phy8_to_wrc.tx_disparity,
-    ch1_tx_enc_err_o   => phy8_to_wrc.tx_enc_err,
-    ch1_rx_rbclk_o     => phy8_to_wrc.rx_clk,
-    ch1_rx_data_o      => phy8_to_wrc.rx_data,
-    ch1_rx_k_o         => phy8_to_wrc.rx_k(0),
-    ch1_rx_enc_err_o   => phy8_to_wrc.rx_enc_err,
-    ch1_rx_bitslide_o  => phy8_to_wrc.rx_bitslide,
-    ch1_rst_i          => phy8_from_wrc.rst,
-    ch1_loopen_i       => phy8_from_wrc.loopen,
-    ch1_loopen_vec_i   => phy8_from_wrc.loopen_vec,
-    ch1_tx_prbs_sel_i  => phy8_from_wrc.tx_prbs_sel,
-    ch1_rdy_o          => phy8_to_wrc.rdy,
-    pad_txn1_o         => sfp1_txn_o,
-    pad_txp1_o         => sfp1_txp_o,
-    pad_rxn1_i         => sfp1_rxn_i,
-    pad_rxp1_i         => sfp1_rxp_i,
-    gtp0_clk_i         => '0',
-    ch0_ref_clk_i      => clk_ref_i,
-    ch0_tx_data_i      => x"00",
-    ch0_tx_k_i         => '0',
-    ch0_tx_disparity_o => open,
-    ch0_tx_enc_err_o   => open,
-    ch0_rx_data_o      => open,
-    ch0_rx_rbclk_o     => open,
-    ch0_rx_k_o         => open,
-    ch0_rx_enc_err_o   => open,
-    ch0_rx_bitslide_o  => open,
-    ch0_rst_i          => '1',
-    ch0_loopen_i       => '0',
-    ch0_loopen_vec_i   => (others=>'0'),
-    ch0_tx_prbs_sel_i  => (others=>'0'),
-    ch0_rdy_o          => open,
-
-    ch0_ref_sel_pll    => "100",
-    ch1_ref_sel_pll    => sfp1_refclk_sel_i,
-
-    pad_txn0_o         => open,
-    pad_txp0_o         => open,
-    pad_rxn0_i         => '0',
-    pad_rxp0_i         => '0'
-  );
-
-end generate;
-  
 
 U_WRPC_MULTIBOOT: if (g_multiboot_enable = true) generate
 
@@ -557,19 +680,19 @@ U_WRPC_MULTIBOOT: if (g_multiboot_enable = true) generate
 
   cmp_clock_crossing: xwb_clock_crossing
     port map (
-      slave_clk_i     => clk_sys_i,
-      slave_rst_n_i   => rst_n_i,
+      slave_clk_i     => clk_pll_62m5,
+      slave_rst_n_i   => rst_62m5_n,
       slave_i         => multiboot_slave_in,
       slave_o         => multiboot_slave_out,
-      master_clk_i    => clk_20m_i,
-      master_rst_n_i  => rst_n_i,
+      master_clk_i    => clk_20m_vcxo_i,
+      master_rst_n_i  => rst_62m5_n,
       master_i        => multiboot_wb_in,
       master_o        => multiboot_wb_out);
 
   u_multiboot: xwb_xil_multiboot
     port map (
-      clk_i   => clk_20m_i,
-      rst_n_i => rst_n_i,
+      clk_i   => clk_20m_vcxo_i,
+      rst_n_i => rst_62m5_n,
       wbs_i   => multiboot_wb_out,
       wbs_o   => multiboot_wb_in,
       spi_cs_n_o => open,

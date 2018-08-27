@@ -15,9 +15,10 @@ config vccaux  = 3.3;
 #net "la29_n" loc = a16;net "la29_n" iostandard = lvds_33;
 #net "la24_p" loc = e14;net "la24_p" iostandard = lvds_33;
 #net "la24_n" loc = d15;net "la24_n" iostandard = lvds_33;
-
-net "fpga_clk_p" loc = f12;net "fpga_clk_p" iostandard = lvds_33;
-net "fpga_clk_n" loc = e12;net "fpga_clk_n" iostandard = lvds_33;
+net "clk_125m_pllref_p_i" loc = f12;
+net "clk_125m_pllref_p_i" iostandard = lvds_33;
+net "clk_125m_pllref_n_i" loc = e12;
+net "clk_125m_pllref_n_i" iostandard = lvds_33;
 
 # bank 1
 net "pps_out" loc = c18;net "pps_out" iostandard = lvcmos33;
@@ -30,7 +31,6 @@ net "usr_led2" loc = d17;net "usr_led2" iostandard = lvcmos33;
 #net "sfp1_scl" loc = g18;net "sfp1_scl" iostandard = lvcmos33;
 #net "sfp1_sda" loc = h17;net "sfp1_sda" iostandard = lvcmos33;
 #net "sfp1_tx_disable" loc = h18;net "sfp1_tx_disable" iostandard = lvcmos33;
-
 net "eeprom_sda" loc = j18;net "eeprom_sda" iostandard = lvcmos33;
 net "eeprom_scl" loc = k17;net "eeprom_scl" iostandard = lvcmos33;
 
@@ -40,7 +40,6 @@ net "eeprom_scl" loc = k17;net "eeprom_scl" iostandard = lvcmos33;
 #net "la33_n" loc = t18;net "la33_n" iostandard = lvds_33;
 #net "la31_p" loc = u17;net "la31_p" iostandard = lvds_33;
 #net "la31_n" loc = u18;net "la31_n" iostandard = lvds_33;
-
 # bank 2
 net "flash_sclk_o" loc = r15;net "flash_sclk_o" iostandard = lvcmos33;
 net "flash_ncs_o" loc = v3;net "flash_ncs_o" iostandard = lvcmos33;
@@ -99,9 +98,8 @@ net "flash_miso_i" loc = r13;net "flash_miso_i" iostandard = lvcmos33;
 #net "la06_n" loc = v4;net "la06_n" iostandard = lvds_33;
 #net "la05_p" loc = n5;net "la05_p" iostandard = lvds_33;
 #net "la05_n" loc = p6;net "la05_n" iostandard = lvds_33;
-
 # bank 3
-net "clk20" loc = h1;net "clk20" iostandard = lvcmos33;
+net "clk20m_vcxo_i" loc = h1;net "clk20m_vcxo_i" iostandard = lvcmos33;
 net "usr_button" loc = h3;net "usr_button" iostandard = lvcmos33;
 net "one_wire" loc = h2;net "one_wire" iostandard = lvcmos33;
 net "uart_rx" loc = j1;net "uart_rx" iostandard = lvcmos33;
@@ -131,35 +129,28 @@ net "sfp0_rx_p" loc = d7;
 net "sfp0_tx_n" loc = a6;
 net "sfp0_tx_p" loc = b6;
 
-net "sfp1_ref_clk_n" loc = e10;net "sfp1_ref_clk_n" iostandard = lvcmos33;
-net "sfp1_ref_clk_p" loc = f10;net "sfp1_ref_clk_p" iostandard = lvcmos33;
+#net "sfp1_ref_clk_n" loc = e10;net "sfp1_ref_clk_n" iostandard = lvcmos33;
+#net "sfp1_ref_clk_p" loc = f10;net "sfp1_ref_clk_p" iostandard = lvcmos33;
 #net "sfp1_rx_n" loc = c13;
 #net "sfp1_rx_p" loc = d13;
 #net "sfp1_tx_n" loc = a14;
 #net "sfp1_tx_p" loc = b14;
-
 #net "mgtrx0_n" loc = c5;
 #net "mgtrx0_p" loc = d5;
 #net "mgttx0_n" loc = a4;
 #net "mgttx0_p" loc = b4;
-
 #---------------------------------------------------------------------------------------------
 # clock period information 
 #---------------------------------------------------------------------------------------------
-net "clk20" tnm_net = "clk20";
-timespec ts_clk20 = period "clk20" 50 ns high 50 %;
-
-net "fpga_clk_i" tnm_net = "fpga_clk_i";
-timespec ts_fpga_clk_i = period "fpga_clk_i" 8 ns high 50 %;
-
-net "clk_sfp*_i" tnm_net = "clk_sfp_i";
-timespec ts_clk_sfp_i = period "clk_sfp_i" 8 ns high 50 %;
-
-net "u_wr_core/cmp_xwrc_board_cute/*u_gtp*/ch*_rx_rbclk_o" tnm_net = "phy_rx_clk";
-timespec ts_phy_rx_clk = period "phy_rx_clk" 8 ns high 50 %;
-
-net "u_wr_core/cmp_xwrc_board_cute/*u_gtp*/ch*_rx_divclk" tnm_net = "ch_rx_divclk";
-timespec ts_ch_rx_divclk = period "ch_rx_divclk" 8 ns high 50 %;
-
-net "u_wr_core/cmp_xwrc_board_cute/*u_gtp*/ch*_gtp_clkout_int[1]" tnm_net = "ch_gtp_clkout_int";
-timespec ts_ch_gtp_clkout_int = period "ch_gtp_clkout_int" 8 ns high 50 %;
+NET "clk20m_vcxo_i" TNM_NET = clk20m_vcxo_i;
+TIMESPEC TS_clk20m_vcxo_i = PERIOD "clk20m_vcxo_i" 50 ns HIGH 50%;
+NET "clk_125m_pllref_p_i" TNM_NET = clk_125m_pllref_p_i;
+TIMESPEC TS_clk_125m_pllref_p_i = PERIOD "clk_125m_pllref_p_i" 8 ns HIGH 50%;
+NET "clk_125m_pllref_n_i" TNM_NET = clk_125m_pllref_n_i;
+TIMESPEC TS_clk_125m_pllref_n_i = PERIOD "clk_125m_pllref_n_i" 8 ns HIGH 50%;
+NET "sfp0_ref_clk_n" TNM_NET = sfp0_ref_clk_n;
+TIMESPEC TS_sfp0_ref_clk_n = PERIOD "sfp0_ref_clk_n" 8 ns HIGH 50%;
+NET "sfp0_ref_clk_p" TNM_NET = sfp0_ref_clk_p;
+TIMESPEC TS_sfp0_ref_clk_p = PERIOD "sfp0_ref_clk_p" 8 ns HIGH 50%;
+NET "u_wr_core/cmp_xwrc_platform/gen_phy_spartan6.cmp_gtp/ch*_gtp_clkout_int<1>" TNM_NET = u_wr_core/cmp_xwrc_platform/gen_phy_spartan6.cmp_gtp/ch*_gtp_clkout_int<1>;
+TIMESPEC TS_u_wr_core_cmp_xwrc_platform_gen_phy_spartan6_cmp_gtp_ch_gtp_clkout_int_1_ = PERIOD "u_wr_core/cmp_xwrc_platform/gen_phy_spartan6.cmp_gtp/ch*_gtp_clkout_int<1>" 8 ns HIGH 50%;

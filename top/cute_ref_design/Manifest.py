@@ -1,7 +1,6 @@
 fetchto = "../../ip_cores"
 
 files = [
-    "cute_core_ref_top.vhd",
     "cute_wr_ref_top.vhd",
     "cute_wr_ref_top.ucf",
 ]
