@@ -371,8 +371,6 @@ architecture struct of xwrc_board_cute is
   signal aux_master_out  :  t_wishbone_master_out;
   signal aux_master_in   :  t_wishbone_master_in := cc_dummy_master_in;
 
-  signal multiboot_wb_out  : t_wishbone_master_out;
-  signal multiboot_wb_in   : t_wishbone_master_in;
   signal multiboot_slave_out : t_wishbone_slave_out;
   signal multiboot_slave_in  : t_wishbone_slave_in := cc_dummy_slave_in;
 
@@ -678,23 +676,12 @@ U_WRPC_MULTIBOOT: if (g_multiboot_enable = true) generate
   aux_master_in        <= multiboot_slave_out;
   aux_master_o         <= cc_dummy_master_out;
 
-  cmp_clock_crossing: xwb_clock_crossing
-    port map (
-      slave_clk_i     => clk_pll_62m5,
-      slave_rst_n_i   => rst_62m5_n,
-      slave_i         => multiboot_slave_in,
-      slave_o         => multiboot_slave_out,
-      master_clk_i    => clk_20m_vcxo_i,
-      master_rst_n_i  => rst_62m5_n,
-      master_i        => multiboot_wb_in,
-      master_o        => multiboot_wb_out);
-
   u_multiboot: xwb_xil_multiboot
     port map (
-      clk_i   => clk_20m_vcxo_i,
+      clk_i   => clk_pll_62m5,
       rst_n_i => rst_62m5_n,
-      wbs_i   => multiboot_wb_out,
-      wbs_o   => multiboot_wb_in,
+      wbs_i   => multiboot_slave_in,
+      wbs_o   => multiboot_slave_out,
       spi_cs_n_o => open,
       spi_sclk_o => open,
       spi_mosi_o => open,
