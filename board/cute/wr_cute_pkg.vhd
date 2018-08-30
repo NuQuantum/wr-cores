@@ -81,6 +81,7 @@ package wr_cute_pkg is
       pps_ext_i           : in  std_logic                               := '0';
       clk_sys_62m5_o      : out std_logic;
       clk_ref_125m_o      : out std_logic;
+      clk_500m_o          : out std_logic;
       rst_sys_62m5_n_o    : out std_logic;
       rst_ref_125m_n_o    : out std_logic;
       plldac_sclk_o       : out std_logic;
@@ -114,9 +115,9 @@ package wr_cute_pkg is
       sfp1_tx_fault_i     : in  std_logic := '0';
       sfp1_tx_disable_o   : out std_logic;
       sfp1_los_i          : in  std_logic := '0';
-      eeprom_sda_i        : in  std_logic;
+      eeprom_sda_i        : in  std_logic := '1';
       eeprom_sda_o        : out std_logic;
-      eeprom_scl_i        : in  std_logic;
+      eeprom_scl_i        : in  std_logic := '1';
       eeprom_scl_o        : out std_logic;
       onewire_i           : in  std_logic;
       onewire_oen_o       : out std_logic;
@@ -125,7 +126,7 @@ package wr_cute_pkg is
       flash_sclk_o        : out std_logic;
       flash_ncs_o         : out std_logic;
       flash_mosi_o        : out std_logic;
-      flash_miso_i        : in  std_logic;
+      flash_miso_i        : in  std_logic := '1';
       wb_slave_o          : out t_wishbone_slave_out;
       wb_slave_i          : in  t_wishbone_slave_in := cc_dummy_slave_in;
       aux_master_o        : out t_wishbone_master_out;
@@ -173,6 +174,7 @@ package wr_cute_pkg is
       pps_p_o              : out std_logic;
       pps_led_o            : out std_logic;
       pps_csync_o          : out std_logic;
+      pll_locked_o         : out std_logic;
       link_ok_o            : out std_logic);
   end component xwrc_board_cute;
 

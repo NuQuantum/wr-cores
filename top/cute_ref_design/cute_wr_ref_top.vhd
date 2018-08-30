@@ -150,7 +150,7 @@ entity cute_wr_ref_top is
     -- user interface
     sfp0_led           : out std_logic;
     sfp1_led           : out std_logic;
-    --ext_clk            : out std_logic;
+    ext_clk            : out std_logic;
     usr_button         : in  std_logic;
     usr_led1           : out std_logic;
     usr_led2           : out std_logic;
@@ -159,10 +159,40 @@ entity cute_wr_ref_top is
 end cute_wr_ref_top;
 
 architecture rtl of cute_wr_ref_top is
+  
+  component oserdes_4_to_1 is
+    generic(
+      sys_w : integer := 1;
+      dev_w : integer := 4); 
+    port(
+      data_out_from_device : in  std_logic_vector(dev_w-1 downto 0); 
+      data_out_to_pins     : out std_logic_vector(sys_w-1 downto 0); 
+
+      delay_reset          : in  std_logic;
+   
+      clk_in     : in std_logic;
+      pll_locked : in std_logic;
+      clk_div_in : in std_logic;
+      io_reset   : in std_logic);
+  end component;
 
   -----------------------------------------------------------------------------
   -- Signals
   -----------------------------------------------------------------------------
+  -- ext 10M clock output
+  constant c_DATA_W   : integer := 4; -- parallel data width going to serdes
+  constant c_HALF     : integer := 25;-- default high/low width for 10MHz
+  signal rst_oserdes  : std_logic;
+  signal pll_locked   : std_logic;
+  signal sd_out       : std_logic_vector(0 downto 0);
+
+  signal sd_data      : std_logic_vector(c_DATA_W-1 downto 0);
+  signal aux_half_high: unsigned(15 downto 0);
+  signal aux_half_low : unsigned(15 downto 0);
+  signal aux_shift    : unsigned(15 downto 0);
+  signal pps_valid_d  : std_logic;
+  signal clk_realign  : std_logic;
+  signal new_freq     : std_logic;
 
   -- I2C EEPROM
   signal eeprom_scl_o      : std_logic;
@@ -185,7 +215,10 @@ architecture rtl of cute_wr_ref_top is
   signal sfp1_sda_o        : std_logic;
   
   signal pps               : std_logic;
-  signal pps_p1            : std_logic;
+  signal pps_csync         : std_logic;
+  attribute maxdelay       : string;
+  attribute maxdelay of pps_csync : signal is "500 ps";
+  signal pps_valid         : std_logic;
   signal tm_tai            : std_logic_vector(39 downto 0);
   signal tm_tai_valid      : std_logic;
   -- Wishbone buse(s) from masters attached to crossbar
@@ -198,6 +231,7 @@ architecture rtl of cute_wr_ref_top is
   -- Not needed now, but useful if application cores are added
   signal clk_sys_62m5   : std_logic;
   signal clk_ref_125m   : std_logic;
+  signal clk_500m       : std_logic;
   signal rst_sys_62m5_n : std_logic;
   signal rst_ref_125m_n : std_logic;
 
@@ -223,6 +257,7 @@ begin
       clk_125m_gtp1_n_i   => sfp1_ref_clk_n,
       clk_sys_62m5_o      => clk_sys_62m5,
       clk_ref_125m_o      => clk_ref_125m,
+      clk_500m_o          => clk_500m,
       rst_sys_62m5_n_o    => rst_sys_62m5_n,
       rst_ref_125m_n_o    => rst_ref_125m_n,
   
@@ -290,7 +325,9 @@ begin
       led_link_o          => sfp1_led,
       pps_p_o             => pps_out,
       pps_led_o           => usr_led1,
-      pps_csync_o         => pps_p1,
+      pps_valid_o         => pps_valid,
+      pps_csync_o         => pps_csync,
+      pll_locked_o        => pll_locked,
       link_ok_o           => usr_led2);
   
   cnx_slave_in <= cnx_master_out;
@@ -316,4 +353,63 @@ begin
   one_wire <= '0' when onewire_oen_o = '1' else 'Z';
   onewire_i  <= one_wire;
   
+  aux_half_high <= to_unsigned(c_HALF, aux_half_high'length);
+  aux_half_low  <= to_unsigned(c_HALF, aux_half_low'length);
+  aux_shift     <= to_unsigned(11, aux_half_low'length);
+  new_freq      <= '0';
+  rst_oserdes <= not pll_locked;
+  ext_clk     <= sd_out(0);
+
+  process(clk_ref_125m)
+  begin
+    if rising_edge(clk_ref_125m) then
+      if(rst_ref_125m_n = '0' or pll_locked = '0') then  -- if new_freq or pll lost lock,
+        pps_valid_d <= '0';
+      elsif(pps_csync = '1') then
+        pps_valid_d <= pps_valid;
+      end if;
+    end if;
+  end process;
+  clk_realign <= (not pps_valid_d) and pps_valid and pps_csync;
+
+  process(clk_ref_125m)
+    variable rest  : integer range 0 to 65535;
+    variable v_bit : std_logic;
+  begin
+    if rising_edge(clk_ref_125m) then
+      if (rst_ref_125m_n='0' or pll_locked='0' or clk_realign='1') then
+          rest := to_integer(aux_half_high - aux_shift);
+          v_bit := '1';
+      else
+        for i in 0 to c_DATA_W-1 loop
+          if(rest /= 0) then
+            sd_data(i) <= v_bit;
+            rest := rest - 1;
+          elsif(v_bit = '1') then
+            sd_data(i) <= '0';
+            v_bit := '0';
+            rest := to_integer(aux_half_low-1); -- because here we already wrote first bit
+                                    -- from this group
+          elsif(v_bit = '0') then
+            sd_data(i) <= '1';
+            v_bit := '1';
+            rest := to_integer(aux_half_high-1);
+          end if;
+        end loop;
+      end if;
+    end if;
+  end process;
+
+  U_10MHZ_SERDES: oserdes_4_to_1
+  generic map(
+    dev_w => c_DATA_W)
+  port map(
+    data_out_from_device => sd_data,
+    data_out_to_pins     => sd_out,
+    delay_reset          => '0',
+    clk_in               => clk_500m,
+    pll_locked           => pll_locked,
+    clk_div_in           => clk_ref_125m,
+    io_reset             => rst_oserdes);
+
 end rtl;

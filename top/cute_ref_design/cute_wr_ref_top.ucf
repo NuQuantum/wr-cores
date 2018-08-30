@@ -111,7 +111,7 @@ net "plldac_sclk" loc = c2;net "plldac_sclk" iostandard = lvcmos33;
 net "plldac_sync_n" loc = d1;net "plldac_sync_n" iostandard = lvcmos33;
 net "plldac_load_n" loc = d2;net "plldac_load_n" iostandard = lvcmos33;
 
-#net "ext_clk"  loc = f2;net "ext_clk" iostandard = lvcmos33;
+net "ext_clk"  loc = f2;net "ext_clk" iostandard = lvcmos33;
 net "sfp1_led" loc = g3;net "sfp1_led" iostandard = lvcmos33;
 net "sfp0_led" loc = k4;net "sfp0_led" iostandard = lvcmos33;
 net "sfp0_los" loc = g1;net "sfp0_los" iostandard = lvcmos33;
