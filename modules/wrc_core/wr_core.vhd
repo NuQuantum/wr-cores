@@ -866,7 +866,7 @@ begin
 
   dpram_wbb_i.cyc <= '0';
   dpram_wbb_i.stb <= '0';
-  dpram_wbb_i.adr <= (c_mnic_memsize_log2-1 downto 0 => '0', others=>'0'); --mnic_mem_addr_o;
+  dpram_wbb_i.adr <= (others=>'0');
   dpram_wbb_i.sel <= "1111";
   dpram_wbb_i.we  <= '0'; --mnic_mem_wr_o;
   dpram_wbb_i.dat <= (others=>'0'); --mnic_mem_data_o;
