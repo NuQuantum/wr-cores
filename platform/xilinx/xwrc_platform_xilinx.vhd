@@ -157,7 +157,7 @@ begin  -- architecture rtl
   -----------------------------------------------------------------------------
   -- Check for unsupported features and/or misconfiguration
   -----------------------------------------------------------------------------
-  gen_unknown_fpga : if (g_fpga_family /= "spartan6" and g_fpga_family /= "kintex7" and g_fpga_family /= "artix7") generate
+  gen_unknown_fpga : if (g_fpga_family /= "spartan6" and g_fpga_family /= "kintex7" and g_fpga_family /= "artix7" and g_fpga_family /= "virtex5") generate
     assert FALSE
       report "Xilinx FPGA family [" & g_fpga_family & "] is not supported"
       severity ERROR;
@@ -363,6 +363,98 @@ begin  -- architecture rtl
       end generate gen_spartan6_ext_ref_pll;
 
     end generate gen_spartan6_default_plls;
+
+    ---------------------------------------------------------------------------
+    --   Virtex 5 PLLs
+    ---------------------------------------------------------------------------
+
+    gen_virtex5_default_plls : if (g_fpga_family = "virtex5") generate
+
+      signal clk_sys          : std_logic;
+      signal clk_sys_out      : std_logic;
+      signal clk_sys_fb       : std_logic;
+      signal pll_sys_locked   : std_logic;
+      signal clk_dmtd         : std_logic;
+      signal clk_dmtd_fb      : std_logic;
+      signal pll_dmtd_locked  : std_logic;
+      signal clk_20m_vcxo_buf : std_logic;
+
+    begin  --gen_virtex5_default_plls
+
+      -- System PLL
+      cmp_sys_clk_pll : PLL_BASE
+        generic map (
+          BANDWIDTH          => "OPTIMIZED",
+          CLK_FEEDBACK       => "CLKFBOUT",
+          COMPENSATION       => "INTERNAL",
+          DIVCLK_DIVIDE      => 1,
+          CLKFBOUT_MULT      => 4,
+          CLKFBOUT_PHASE     => 0.000,
+          CLKOUT0_DIVIDE     => 8,
+          CLKOUT0_PHASE      => 0.000,
+          CLKOUT0_DUTY_CYCLE => 0.500,
+          CLKIN_PERIOD       => 8.0,
+          REF_JITTER         => 0.016)
+        port map (
+          CLKFBOUT => clk_sys_fb,
+          CLKOUT0  => clk_sys,
+          LOCKED   => pll_sys_locked,
+          RST      => pll_arst,
+          CLKFBIN  => clk_sys_fb,
+          CLKIN    => clk_125m_pllref_buf);
+
+      -- System PLL input clock buffer
+      cmp_clk_sys_buf_i : BUFG
+        port map (
+          O => clk_125m_pllref_buf,
+          I => clk_125m_pllref_i);
+
+      -- System PLL output clock buffer
+      cmp_clk_sys_buf_o : BUFG
+        port map (
+          O => clk_sys_out,
+          I => clk_sys);
+
+      clk_62m5_sys_o <= clk_sys_out;
+      clk_125m_ref_o <= clk_125m_pllref_buf;
+      pll_locked_o   <= pll_sys_locked and pll_dmtd_locked;
+      clk_ref_locked_o <= '1';
+
+      -- DMTD PLL
+      cmp_dmtd_clk_pll : PLL_BASE
+        generic map (
+          BANDWIDTH          => "OPTIMIZED",
+          CLK_FEEDBACK       => "CLKFBOUT",
+          COMPENSATION       => "INTERNAL",
+          DIVCLK_DIVIDE      => 1,
+          CLKFBOUT_MULT      => 25,
+          CLKFBOUT_PHASE     => 0.000,
+          CLKOUT0_DIVIDE     => 8,
+          CLKOUT0_PHASE      => 0.000,
+          CLKOUT0_DUTY_CYCLE => 0.500,
+          CLKIN_PERIOD       => 50.0,
+          REF_JITTER         => 0.016)
+        port map (
+          CLKFBOUT => clk_dmtd_fb,
+          CLKOUT0  => clk_dmtd,
+          LOCKED   => pll_dmtd_locked,
+          RST      => pll_arst,
+          CLKFBIN  => clk_dmtd_fb,
+          CLKIN    => clk_20m_vcxo_buf);
+
+      -- DMTD PLL input clock buffer
+      cmp_clk_dmtd_buf_i : BUFG
+        port map (
+          O => clk_20m_vcxo_buf,
+          I => clk_20m_vcxo_i);
+
+      -- DMTD PLL output clock buffer
+      cmp_clk_dmtd_buf_o : BUFG
+        port map (
+          O => clk_62m5_dmtd_o,
+          I => clk_dmtd);
+
+    end generate gen_virtex5_default_plls;
 
     ---------------------------------------------------------------------------
     --   Kintex7 PLLs
@@ -955,6 +1047,104 @@ begin  -- architecture rtl
     phy16_o <= c_dummy_phy16_to_wrc;
 
   end generate gen_phy_spartan6;
+
+  ---------------------------------------------------------------------------
+  --   Virtex5 PHY
+  ---------------------------------------------------------------------------
+
+  gen_phy_virtex5 : if(g_fpga_family = "virtex5") generate
+
+    signal clk_125m_gtp_buf : std_logic;
+
+    signal ch0_phy8_out, ch1_phy8_out : t_phy_8bits_to_wrc;
+
+    signal ch0_sfp_txn, ch0_sfp_txp : std_logic;
+    signal ch1_sfp_txn, ch1_sfp_txp : std_logic;
+    signal ch0_sfp_rxn, ch0_sfp_rxp : std_logic;
+    signal ch1_sfp_rxn, ch1_sfp_rxp : std_logic;
+
+  begin
+
+    cmp_ibufgds_gtp : IBUFGDS
+      generic map (
+        DIFF_TERM    => FALSE,     -- ?: Tom's true, VXS: false
+        IBUF_LOW_PWR => TRUE,      -- ?: Tom's commented out, VXS: true
+        IOSTANDARD   => "DEFAULT") -- OK
+      port map (
+        O  => clk_125m_gtp_buf,
+        I  => clk_125m_gtp_p_i,
+        IB => clk_125m_gtp_n_i);
+
+
+    cmp_gtp : wr_gtp_phy_virtex5
+      generic map (
+        g_simulation => g_simulation,
+        g_enable_ch0 => g_gtp_enable_ch0,
+        g_enable_ch1 => g_gtp_enable_ch1)
+      port map (
+        gtp_clk_i          => clk_125m_gtp_buf,
+        ch01_ref_clk_i     => clk_125m_pllref_buf,
+        ch0_tx_data_i      => phy8_i.tx_data,
+        ch0_tx_k_i         => phy8_i.tx_k(0),
+        ch0_tx_disparity_o => ch0_phy8_out.tx_disparity,
+        ch0_tx_enc_err_o   => ch0_phy8_out.tx_enc_err,
+        ch0_rx_data_o      => ch0_phy8_out.rx_data,
+        ch0_rx_rbclk_o     => ch0_phy8_out.rx_clk,
+        ch0_rx_k_o         => ch0_phy8_out.rx_k(0),
+        ch0_rx_enc_err_o   => ch0_phy8_out.rx_enc_err,
+        ch0_rx_bitslide_o  => ch0_phy8_out.rx_bitslide,
+        ch0_rst_i          => phy8_i.rst,
+        ch0_loopen_i       => phy8_i.loopen,
+        ch0_rdy_o          => ch0_phy8_out.rdy,
+        ch1_tx_data_i      => phy8_i.tx_data,
+        ch1_tx_k_i         => phy8_i.tx_k(0),
+        ch1_tx_disparity_o => ch1_phy8_out.tx_disparity,
+        ch1_tx_enc_err_o   => ch1_phy8_out.tx_enc_err,
+        ch1_rx_data_o      => ch1_phy8_out.rx_data,
+        ch1_rx_rbclk_o     => ch1_phy8_out.rx_clk,
+        ch1_rx_k_o         => ch1_phy8_out.rx_k(0),
+        ch1_rx_enc_err_o   => ch1_phy8_out.rx_enc_err,
+        ch1_rx_bitslide_o  => ch1_phy8_out.rx_bitslide,
+        ch1_rst_i          => phy8_i.rst,
+        ch1_loopen_i       => phy8_i.loopen,
+        ch1_rdy_o          => ch1_phy8_out.rdy,
+        pad_txn0_o         => ch0_sfp_txn,
+        pad_txp0_o         => ch0_sfp_txp,
+        pad_rxn0_i         => ch0_sfp_rxn,
+        pad_rxp0_i         => ch0_sfp_rxp,
+        pad_txn1_o         => ch1_sfp_txn,
+        pad_txp1_o         => ch1_sfp_txp,
+        pad_rxn1_i         => ch1_sfp_rxn,
+        pad_rxp1_i         => ch1_sfp_rxp
+        );
+
+    gen_gtp_ch0 : if (g_gtp_enable_ch0 = 1) generate
+      ch0_phy8_out.ref_clk      <= clk_125m_pllref_buf;
+      ch0_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
+      ch0_phy8_out.sfp_los      <= sfp_los_i;
+      phy8_o                    <= ch0_phy8_out;
+      sfp_txp_o                 <= ch0_sfp_txp;
+      sfp_txn_o                 <= ch0_sfp_txn;
+      ch0_sfp_rxp               <= sfp_rxp_i;
+      ch0_sfp_rxn               <= sfp_rxn_i;
+    end generate gen_gtp_ch0;
+
+    gen_gtp_ch1 : if (g_gtp_enable_ch1 = 1) generate
+      ch1_phy8_out.ref_clk      <= clk_125m_pllref_buf;
+      ch1_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
+      ch1_phy8_out.sfp_los      <= sfp_los_i;
+      phy8_o                    <= ch1_phy8_out;
+      sfp_txp_o                 <= ch1_sfp_txp;
+      sfp_txn_o                 <= ch1_sfp_txn;
+      ch1_sfp_rxp               <= sfp_rxp_i;
+      ch1_sfp_rxn               <= sfp_rxn_i;
+    end generate gen_gtp_ch1;
+
+    sfp_tx_disable_o <= phy8_i.sfp_tx_disable;
+
+    phy16_o <= c_dummy_phy16_to_wrc;
+
+  end generate gen_phy_virtex5;
 
   ---------------------------------------------------------------------------
   --   Kintex7 PHY

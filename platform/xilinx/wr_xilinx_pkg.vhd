@@ -137,6 +137,51 @@ package wr_xilinx_pkg is
       pad_rxp1_i         : in  std_logic                    := '0');
   end component;
 
+  component  wr_gtp_phy_virtex5 is
+    generic (
+      g_simulation      : integer := 0;
+      g_force_disparity : integer := 0;
+      g_enable_ch0      : integer := 1;
+      g_enable_ch1      : integer := 1);
+    port (
+      gtp_clk_i : in std_logic;
+      ch01_ref_clk_i : in std_logic := '0';
+      ch0_tx_data_i : in std_logic_vector(7 downto 0) := "00000000";
+      ch0_tx_k_i : in std_logic := '0';
+      ch0_tx_disparity_o : out std_logic;
+      ch0_tx_enc_err_o : out std_logic;
+      ch0_rx_rbclk_o : out std_logic;
+      ch0_rx_data_o : out std_logic_vector(7 downto 0);
+      ch0_rx_k_o : out std_logic;
+      ch0_rx_enc_err_o : out std_logic;
+      ch0_rx_bitslide_o : out std_logic_vector(3 downto 0);
+      ch0_rst_i : in std_logic := '0';
+      ch0_loopen_i : in std_logic := '0';
+      ch0_rdy_o    : out std_logic;
+      ch1_tx_data_i      : in  std_logic_vector(7 downto 0) := "00000000";
+      ch1_tx_k_i         : in  std_logic                    := '0';
+      ch1_tx_disparity_o : out std_logic;
+      ch1_tx_enc_err_o   : out std_logic;
+      ch1_rx_data_o     : out std_logic_vector(7 downto 0);
+      ch1_rx_rbclk_o    : out std_logic;
+      ch1_rx_k_o        : out std_logic;
+      ch1_rx_enc_err_o  : out std_logic;
+      ch1_rx_bitslide_o : out std_logic_vector(3 downto 0);
+      ch1_rst_i    : in std_logic := '0';
+      ch1_loopen_i : in std_logic := '0';
+      ch1_rdy_o    : out std_logic;
+      pad_txn0_o : out std_logic;
+      pad_txp0_o : out std_logic;
+      pad_rxn0_i : in std_logic := '0';
+      pad_rxp0_i : in std_logic := '0';
+      pad_txn1_o : out std_logic;
+      pad_txp1_o : out std_logic;
+      pad_rxn1_i : in std_logic := '0';
+      pad_rxp1_i : in std_logic := '0';
+      ch1_align_done_o : out std_logic;
+      ch1_rx_synced_o  : out std_logic);
+  end component;
+
   component wr_gtx_phy_family7 is
     generic (
       -- set to non-zero value to speed up the simulation by reducing some delays
