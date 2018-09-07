@@ -3,11 +3,11 @@
 -- Project    : WR PTP Core
 -- URL        : http://www.ohwr.org/projects/wr-cores/wiki/Wrpc_core
 -------------------------------------------------------------------------------
--- File       : xwrc_board_spec.vhd
+-- File       : xwrc_board_vxs.vhd
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
--- needed to operate the core on the SPEC board.
--- http://www.ohwr.org/projects/spec/
+-- needed to operate the core on the VXS board.
+-- http://www.ohwr.org/projects/vxs/
 -------------------------------------------------------------------------------
 -- Copyright (c) 2018 CERN
 -------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ use work.endpoint_pkg.all;
 use work.streamers_pkg.all;
 use work.wr_xilinx_pkg.all;
 use work.wr_board_pkg.all;
-use work.wr_spec_pkg.all;
+use work.wr_vxs_pkg.all;
 
 library unisim;
 use unisim.vcomponents.all;

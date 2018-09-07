@@ -39,7 +39,7 @@ library work;
 use work.gencores_pkg.all;
 use work.wishbone_pkg.all;
 use work.wr_board_pkg.all;
-use work.wr_spec_pkg.all;
+use work.wr_vxs_pkg.all;
 use work.gn4124_core_pkg.all;
 
 library unisim;

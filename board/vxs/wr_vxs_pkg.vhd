@@ -3,11 +3,11 @@
 -- Project    : WR PTP Core
 -- URL        : http://www.ohwr.org/projects/wr-cores/wiki/Wrpc_core
 -------------------------------------------------------------------------------
--- File       : wrc_board_spec.vhd
+-- File       : wrc_board_vxs.vhd
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
--- needed to operate the core on the SPEC board.
--- http://www.ohwr.org/projects/spec/
+-- needed to operate the core on the VXS board.
+-- http://www.ohwr.org/projects/vxs/
 -------------------------------------------------------------------------------
 -- Copyright (c) 2018 CERN
 -------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ use work.endpoint_pkg.all;
 use work.wr_board_pkg.all;
 use work.streamers_pkg.all;
 
-package wr_spec_pkg is
+package wr_vxs_pkg is
 
   component xwrc_board_vxs is
     generic (
@@ -310,4 +310,4 @@ package wr_spec_pkg is
       link_ok_o            : out std_logic);
   end component wrc_board_vxs;
 
-end wr_spec_pkg;
+end wr_vxs_pkg;

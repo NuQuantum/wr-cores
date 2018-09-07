@@ -6,10 +6,10 @@
 -- File       : wrc_board_vxs.vhd
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
--- needed to operate the core on the SPEC board.
+-- needed to operate the core on the VXS board.
 -- Version with no VHDL records on the top-level (mainly for Verilog
 -- instantiation).
--- http://www.ohwr.org/projects/spec/
+-- http://www.ohwr.org/projects/vxs/
 -------------------------------------------------------------------------------
 -- Copyright (c) 2018 CERN
 -------------------------------------------------------------------------------
@@ -46,7 +46,7 @@ use work.endpoint_pkg.all;
 use work.streamers_pkg.all;
 use work.wr_xilinx_pkg.all;
 use work.wr_board_pkg.all;
-use work.wr_spec_pkg.all;
+use work.wr_vxs_pkg.all;
 
 entity wrc_board_vxs is
   generic(
