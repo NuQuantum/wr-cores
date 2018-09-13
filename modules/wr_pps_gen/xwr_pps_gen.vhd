@@ -67,6 +67,7 @@ entity xwr_pps_gen is
     link_ok_i : in std_logic;
 
     pps_in_i : in std_logic;
+    ppsin_term_o : out std_logic;
 
     -- Single-pulse PPS output for synchronizing endpoints to
     pps_csync_o : out std_logic;
@@ -108,6 +109,7 @@ architecture behavioral of xwr_pps_gen is
       wb_stall_o      : out std_logic;
       link_ok_i       : in  std_logic;
       pps_in_i        : in  std_logic;
+      ppsin_term_o    : out std_logic;
       pps_csync_o     : out std_logic;
       pps_out_o       : out std_logic;
       pps_led_o       : out std_logic;
@@ -145,6 +147,7 @@ begin  -- behavioral
       wb_stall_o      => slave_o.stall,
       link_ok_i       => link_ok_i,
       pps_in_i        => pps_in_i,
+      ppsin_term_o    => ppsin_term_o,
       pps_csync_o     => pps_csync_o,
       pps_out_o       => pps_out_o,
       pps_led_o       => pps_led_o,

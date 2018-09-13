@@ -79,7 +79,8 @@ entity wr_pps_gen is
     -- External PPS input. Warning! This signal is treated as synchronous to
     -- the clk_ref_i (or the external 10 MHz reference) to prevent sync chain
     -- delay uncertainities. Setup/hold times must be respected!
-    pps_in_i : in std_logic;
+    pps_in_i     : in std_logic;
+    ppsin_term_o : out std_logic;
 
     -- Single-pulse PPS output for synchronizing endpoints to
     pps_csync_o : out std_logic;
@@ -137,7 +138,8 @@ architecture behavioral of wr_pps_gen is
       ppsg_escr_tm_valid_o   : out std_logic;
       ppsg_escr_sec_set_o    : out std_logic;
       ppsg_escr_nsec_set_o   : out std_logic;
-      ppsg_escr_pps_unmask_o : out std_logic);
+      ppsg_escr_pps_unmask_o : out std_logic;
+      ppsg_escr_pps_in_term_o: out std_logic);
   end component pps_gen_wb;
 
 -- Wisbone slave signals
@@ -495,7 +497,8 @@ begin  -- behavioral
       ppsg_escr_tm_valid_o   => ppsg_escr_tm_valid,
       ppsg_escr_sec_set_o    => ppsg_escr_sec_set,
       ppsg_escr_nsec_set_o   => ppsg_escr_nsec_set,
-      ppsg_escr_pps_unmask_o => ppsg_escr_pps_unmask);
+      ppsg_escr_pps_unmask_o => ppsg_escr_pps_unmask,
+      ppsg_escr_pps_in_term_o=> ppsin_term_o);
 
 -- drive unused signals
   wb_out.rty   <= '0';

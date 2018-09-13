@@ -220,5 +220,17 @@ peripheral {
          type = MONOSTABLE;
          clock = "refclk_i";
       };
+
+      field {
+        name = "Enable PPS_IN 50Ohm termination";
+        description = "write 1: enable 50ohm termination for 1-PPS input \
+                       write 0: disable 50ohm termination for 1-PPS input \
+                       read  1: 50ohm termination for 1-PPS input enabled \
+                       read  0: 50ohm termination for 1-PPS input disabled";
+        prefix = "PPS_IN_TERM";
+        type = BIT;
+        access_bus = READ_WRITE;
+        access_dev = READ_ONLY;
+      };
    };
 };
