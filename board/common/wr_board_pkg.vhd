@@ -118,6 +118,7 @@ package wr_board_pkg is
       g_streamers_op_mode         : t_streamers_op_mode            := TX_AND_RX;
       g_tx_streamer_params        : t_tx_streamer_params           := c_tx_streamer_params_defaut;
       g_rx_streamer_params        : t_rx_streamer_params           := c_rx_streamer_params_defaut;
+      g_sfp_i2c_mux_enable        : boolean                        := FALSE;
       g_fabric_iface              : t_board_fabric_iface           := PLAIN);
     port (
       clk_sys_i            : in  std_logic;
@@ -148,6 +149,12 @@ package wr_board_pkg is
       sfp_sda_o            : out std_logic;
       sfp_sda_i            : in  std_logic                                        := '1';
       sfp_det_i            : in  std_logic;
+      sfp_mux_sel_i        : in std_logic                                         := '0';
+      sfp1_scl_o           : out std_logic;
+      sfp1_scl_i           : in  std_logic                                        := '1';
+      sfp1_sda_o           : out std_logic;
+      sfp1_sda_i           : in  std_logic                                        := '1';
+      sfp1_det_i           : in  std_logic;
       spi_sclk_o           : out std_logic;
       spi_ncs_o            : out std_logic;
       spi_mosi_o           : out std_logic;

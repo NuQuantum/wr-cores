@@ -73,6 +73,9 @@ entity xwrc_board_common is
     g_streamers_op_mode         : t_streamers_op_mode            := TX_AND_RX;
     g_tx_streamer_params        : t_tx_streamer_params           := c_tx_streamer_params_defaut;
     g_rx_streamer_params        : t_rx_streamer_params           := c_rx_streamer_params_defaut;
+    -- if WRPC supports only one SFP but we have two connected that are muxed, 
+    -- mux also the I2C acess to their memory
+    g_sfp_i2c_mux_enable        : boolean                        := FALSE;
     g_fabric_iface              : t_board_fabric_iface           := PLAIN);
   port(
     ---------------------------------------------------------------------------
@@ -131,11 +134,20 @@ entity xwrc_board_common is
     ---------------------------------------------------------------------------
     -- SFP management info
     ---------------------------------------------------------------------------
+    -- ch0
     sfp_scl_o : out std_logic;
     sfp_scl_i : in  std_logic := '1';
     sfp_sda_o : out std_logic;
     sfp_sda_i : in  std_logic := '1';
     sfp_det_i : in  std_logic;
+
+    sfp_mux_sel_i : in std_logic := '0';
+    -- ch1
+    sfp1_scl_o : out std_logic;
+    sfp1_scl_i : in  std_logic := '1';
+    sfp1_sda_o : out std_logic;
+    sfp1_sda_i : in  std_logic := '1';
+    sfp1_det_i : in  std_logic;
 
     ---------------------------------------------------------------------------
     -- Flash memory SPI interface
@@ -321,6 +333,20 @@ architecture struct of xwrc_board_common is
   -- link state
   signal link_ok      : std_logic;
 
+  -- ch0
+  signal sfp_scl_out  : std_logic;
+  signal sfp_scl_in   : std_logic;
+  signal sfp_sda_out  : std_logic;
+  signal sfp_sda_in   : std_logic;
+  signal sfp_det_in   : std_logic;
+
+  -- ch1 - currently unconnected - not supported at the moment (TODO)
+--   signal sfp1_scl_out : std_logic;
+--   signal sfp1_scl_in  : std_logic;
+--   signal sfp1_sda_out : std_logic;
+--   signal sfp1_sda_in  : std_logic;
+--   signal sfp1_det_in  : std_logic;
+
 begin  -- architecture struct
 
   -- Check for unsupported fabric interface type
@@ -404,11 +430,11 @@ begin  -- architecture struct
       scl_i                => scl_i,
       sda_o                => sda_o,
       sda_i                => sda_i,
-      sfp_scl_o            => sfp_scl_o,
-      sfp_scl_i            => sfp_scl_i,
-      sfp_sda_o            => sfp_sda_o,
-      sfp_sda_i            => sfp_sda_i,
-      sfp_det_i            => sfp_det_i,
+      sfp_scl_o            => sfp_scl_out,
+      sfp_scl_i            => sfp_scl_in,
+      sfp_sda_o            => sfp_sda_out,
+      sfp_sda_i            => sfp_sda_in,
+      sfp_det_i            => sfp_det_in,
       btn1_i               => btn1_i,
       btn2_i               => btn2_i,
       spi_sclk_o           => spi_sclk_o,
@@ -565,5 +591,39 @@ begin  -- architecture struct
     aux_diag_o  <= aux_diag_out;
 
   end generate gen_wr_fabric;
+
+  gen_sfp_i2c_mux : if (g_sfp_i2c_mux_enable =  TRUE) generate
+    -- mux one WRPC SFP I2C channel with two channels on the outside
+    -- world
+    sfp_scl_o   <= sfp_scl_out when sfp_mux_sel_i = '0' else '0';
+    sfp1_scl_o  <= sfp_scl_out when sfp_mux_sel_i = '1' else '0';
+
+    sfp_scl_in  <= sfp_scl_i   when sfp_mux_sel_i = '0' else sfp1_scl_i;
+
+    sfp_sda_o   <= sfp_sda_out when sfp_mux_sel_i = '0' else '0';
+    sfp1_sda_o  <= sfp_sda_out when sfp_mux_sel_i = '1' else '0';
+
+    sfp_sda_in  <= sfp_sda_i   when sfp_mux_sel_i = '0' else sfp1_sda_i;
+
+    sfp_det_in  <= sfp_det_i   when sfp_mux_sel_i = '0' else sfp1_det_i;
+
+  end generate gen_sfp_i2c_mux;
+
+  gen_sfp_i2c_dual : if (g_sfp_i2c_mux_enable =  FALSE) generate
+
+    sfp_scl_o  <= sfp_scl_out;
+    sfp_scl_in <= sfp_scl_i;
+    sfp_sda_o  <= sfp_sda_out;
+    sfp_sda_in <= sfp_sda_i;
+    sfp_det_in <= sfp_det_i;
+
+    -- at the moment, only one channel si supported (TODO)
+--     sfp1_scl_o <= sfp1_scl_out;
+--     sfp1_scl_in<= sfp1_scl_i;
+--     sfp1_sda_o <= sfp1_sda_out;
+--     sfp1_sda_in<= sfp1_sda_i;
+--     sfp1_det_in<= sfp1_det_i;
+
+  end generate gen_sfp_i2c_dual;
 
 end architecture struct;
