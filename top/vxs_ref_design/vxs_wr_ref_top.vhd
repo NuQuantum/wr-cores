@@ -47,7 +47,8 @@ use unisim.vcomponents.all;
 
 entity vxs_wr_ref_top is
   generic (
-    g_dpram_initf : string := "../../bin/wrpc/wrc_phy8.bram";
+--     g_dpram_initf : string := "../../bin/wrpc/wrc_phy8.bram";
+    g_dpram_initf : string  := "../../../binaries/wrc-VXS-support-v8.bram";
     -- Simulation-mode enable parameter. Set by default (synthesis) to 0, and
     -- changed to non-zero in the instantiation of the top level DUT in the testbench.
     -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
@@ -88,7 +89,7 @@ entity vxs_wr_ref_top is
         VXS2FPGA2_N       : in std_logic;
         VXS2FPGA2_P       : in std_logic;
         SFP2_LOS          : in std_logic;
---unused        SFP2_TX_DIS       : out std_logic;
+        SFP2_TX_DIS       : out std_logic;
         SFP2_SCL          : inout std_logic;
         SFP2_SDA          : inout std_logic;
         SFP2_PRSNT_N      : in std_logic;
@@ -115,7 +116,7 @@ entity vxs_wr_ref_top is
         -- flash
         FRAMMOSI          : out std_logic;
         FRAMSCLK          : out std_logic;
-        FRAMWPDIS         : in std_logic;
+        FRAMWPDIS         : in std_logic; -- write protect input, use for sfp MUX
         FRAMWP_N          : out std_logic;
         FRAMMISO          : in std_logic;
         FRAMCS_N          : out std_logic;
@@ -250,11 +251,11 @@ architecture top of vxs_wr_ref_top is
   signal eeprom_scl_in  : std_logic;
   signal eeprom_scl_out : std_logic;
 
-  -- SFP
-  signal sfp_sda_in  : std_logic;
-  signal sfp_sda_out : std_logic;
-  signal sfp_scl_in  : std_logic;
-  signal sfp_scl_out : std_logic;
+  -- SFP I2C -> ch0 & ch1
+  signal sfp_sda_in,  sfp1_sda_in  : std_logic;
+  signal sfp_sda_out, sfp1_sda_out : std_logic;
+  signal sfp_scl_in,  sfp1_scl_in  : std_logic;
+  signal sfp_scl_out, sfp1_scl_out : std_logic;
 
   -- OneWire
   signal onewire_data : std_logic;
@@ -274,28 +275,29 @@ architecture top of vxs_wr_ref_top is
 
   -- ChipScope for histogram readout/debugging
 
---   component chipscope_virtex5_icon
---   port (
---     CONTROL0: inout std_logic_vector(35 downto 0));
---   end component;
---
---   component chipscope_virtex5_ila
---   port (
---     CONTROL: inout std_logic_vector(35 downto 0);
---     CLK: in std_logic;
---     TRIG0: in std_logic_vector(31 downto 0);
---     TRIG1: in std_logic_vector(31 downto 0);
---     TRIG2: in std_logic_vector(31 downto 0);
---     TRIG3: in std_logic_vector(31 downto 0));
---   end component;
---
---   signal CONTROL0, CONTROL1, CONTROL2, CONTROL3 : std_logic_vector(35 downto 0);
---   signal TRIG0, TRIG1, TRIG2, TRIG3 : std_logic_vector(31 downto 0);
+  component chipscope_virtex5_icon
+  port (
+    CONTROL0: inout std_logic_vector(35 downto 0));
+  end component;
+
+  component chipscope_virtex5_ila
+  port (
+    CONTROL: inout std_logic_vector(35 downto 0);
+    CLK: in std_logic;
+    TRIG0: in std_logic_vector(31 downto 0);
+    TRIG1: in std_logic_vector(31 downto 0);
+    TRIG2: in std_logic_vector(31 downto 0);
+    TRIG3: in std_logic_vector(31 downto 0));
+  end component;
+
+  signal CONTROL0, CONTROL1, CONTROL2, CONTROL3 : std_logic_vector(35 downto 0);
+  signal TRIG0, TRIG1, TRIG2, TRIG3 : std_logic_vector(31 downto 0);
 
   signal led_link : std_logic;
   signal led_ack  : std_logic;
 
   signal SFP3_TX_DIS_out, SFP3_LOS_in : std_logic;
+  signal sfp_mux_sel: std_logic;
 begin  -- architecture top
 
   -----------------------------------------------------------------------------
@@ -306,6 +308,9 @@ begin  -- architecture top
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => FALSE,
+      g_gtp_enable_ch0            => 1,
+      g_gtp_enable_ch1            => 1,
+      g_gtp_mux_enable            => TRUE,
       g_dpram_initf               => g_dpram_initf)
     port map (
       areset_n_i          => std_logic(not POR), -- Power
@@ -326,19 +331,37 @@ begin  -- architecture top
       pll25dac_cs_n_o     => DAC_PLL125_SYNC_N,
       pll20dac_cs_n_o     => DAC_PLL20_SYNC_N,
 
-      sfp_txp_o           => FPGA2SFP_P,
-      sfp_txn_o           => FPGA2SFP_N,
-      sfp_rxp_i           => SFP2FPGA_P,
-      sfp_rxn_i           => SFP2FPGA_N,
-      sfp_det_i           => SFP3_PRSNT_N,
+      -- ch0 : backup
+      sfp_txp_o           => FPGA2VXS2_P,
+      sfp_txn_o           => FPGA2VXS2_N,
+      sfp_rxp_i           => VXS2FPGA2_P,
+      sfp_rxn_i           => VXS2FPGA2_N,
+      sfp_det_i           => SFP2_PRSNT_N,
       sfp_sda_i           => sfp_sda_in,
       sfp_sda_o           => sfp_sda_out,
       sfp_scl_i           => sfp_scl_in,
       sfp_scl_o           => sfp_scl_out,
       sfp_rate_select_o   => open, -- connect later
       sfp_tx_fault_i      => open,
-      sfp_tx_disable_o    => SFP3_TX_DIS_out,
-      sfp_los_i           => SFP3_LOS_in,
+      sfp_tx_disable_o    => SFP2_TX_DIS,
+      sfp_los_i           => SFP2_LOS,
+
+      sfp_mux_sel_i       => sfp_mux_sel,
+
+      -- ch1 : dedicated to WR
+      sfp1_txp_o           => FPGA2SFP_P,
+      sfp1_txn_o           => FPGA2SFP_N,
+      sfp1_rxp_i           => SFP2FPGA_P,
+      sfp1_rxn_i           => SFP2FPGA_N,
+      sfp1_det_i           => SFP3_PRSNT_N,
+      sfp1_sda_i           => sfp1_sda_in,
+      sfp1_sda_o           => sfp1_sda_out,
+      sfp1_scl_i           => sfp1_scl_in,
+      sfp1_scl_o           => sfp1_scl_out,
+      sfp1_rate_select_o   => open, -- connect later
+      sfp1_tx_fault_i      => open,
+      sfp1_tx_disable_o    => SFP3_TX_DIS_out,
+      sfp1_los_i           => SFP3_LOS_in,
 
       eeprom_sda_i        => '1',
       eeprom_sda_o        => open,
@@ -367,10 +390,16 @@ begin  -- architecture top
   LED_CLK_R               <= led_ack;
 
   -- Tristates for SFP EEPROM
-  SFP3_SCL                <= '0' when sfp_scl_out = '0' else 'Z';
-  SFP3_SDA                <= '0' when sfp_sda_out = '0' else 'Z';
-  sfp_scl_in              <= SFP3_SCL;
-  sfp_sda_in              <= SFP3_SDA;
+  -- ch0 - backup
+  SFP2_SCL                <= '0' when sfp_scl_out = '0' else 'Z';
+  SFP2_SDA                <= '0' when sfp_sda_out = '0' else 'Z';
+  sfp_scl_in              <= SFP2_SCL;
+  sfp_sda_in              <= SFP2_SDA;
+  -- ch1 - dedicated to wr:
+  SFP3_SCL                <= '0' when sfp1_scl_out = '0' else 'Z';
+  SFP3_SDA                <= '0' when sfp1_sda_out = '0' else 'Z';
+  sfp1_scl_in             <= SFP3_SCL;
+  sfp1_sda_in             <= SFP3_SDA;
 
   SFP3_LOS_in             <= SFP3_LOS;
   SFP3_TX_DIS             <= SFP3_TX_DIS_out;
@@ -403,26 +432,38 @@ begin  -- architecture top
   -- FLASH
   FRAMWP_N <= '1'; -- not write protected
 
---
---   CS_ICON : chipscope_virtex5_icon
---     port map (
---       CONTROL0 => CONTROL0);
---   CS_ILA : chipscope_virtex5_ila
---     port map (
---       CONTROL => CONTROL0,
---       CLK     => clk_sys_62m5,
---       TRIG0   => TRIG0,
---       TRIG1   => TRIG1,
---       TRIG2   => TRIG2,
---       TRIG3   => TRIG3);
---
---   trig0(2)           <= onewire_data;
---   trig0(3)           <= led_link;
---   trig0(4)           <= led_ack;
---   trig0(5)           <= SFP3_PRSNT_N;
---   trig0(6)           <= SFP3_LOS;
---   trig0(7)           <= SFP3_TX_DIS_out;
---   trig0(8)           <= wrc_pps_out;
---   trig0(9)           <= wrc_pps_led;
+  U_sync_with_clk : gc_sync_ffs
+    port map (
+      clk_i          => clk_sys_62m5,
+      rst_n_i        => rst_sys_62m5_n,
+      data_i         => FRAMWPDIS,
+      synced_o       => sfp_mux_sel);
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+  CS_ICON : chipscope_virtex5_icon
+    port map (
+      CONTROL0 => CONTROL0);
+  CS_ILA : chipscope_virtex5_ila
+    port map (
+      CONTROL => CONTROL0,
+      CLK     => clk_sys_62m5,
+      TRIG0   => TRIG0,
+      TRIG1   => TRIG1,
+      TRIG2   => TRIG2,
+      TRIG3   => TRIG3);
+
+  trig0(0)           <= SFP2_PRSNT_N;
+  trig0(1)           <= SFP2_LOS;
+  trig0(2)           <= onewire_data;
+  trig0(3)           <= led_link;
+  trig0(4)           <= led_ack;
+  trig0(5)           <= SFP3_PRSNT_N;
+  trig0(6)           <= SFP3_LOS;
+  trig0(7)           <= SFP3_TX_DIS_out;
+  trig0(8)           <= wrc_pps_out;
+  trig0(9)           <= wrc_pps_led;
+  trig0(10)          <= sfp_mux_sel;
+  trig0(11)          <= FRAMWPDIS;
 
 end architecture top;

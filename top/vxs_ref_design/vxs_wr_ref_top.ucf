@@ -57,18 +57,18 @@ NET "VCXO_MHZ20" CLOCK_DEDICATED_ROUTE = FALSE;
 # NET "VXS2FPGA1_P" LOC = AP3;
 
 # Pinning for GTP118 tile (Added for V2)
-#INST "C227/U_GTP_TILE_INST/gtp_dual_i" LOC = GTP_DUAL_X0Y1;
-#INST "GTP118_CLK_IBUFGDS/IBUFGDS_inst" LOC = BUFDS_X0Y1;
+INST "cmp_xwrc_board_vxs/cmp_xwrc_platform/gen_phy_virtex5.cmp_gtp/U_GTP_TILE_INST/gtp_dual_i" LOC = GTP_DUAL_X0Y1;
+INST "cmp_xwrc_board_vxs/cmp_xwrc_platform/gen_phy_virtex5.cmp_ibufgds_gtp" LOC = BUFDS_X0Y1;
 
 NET "FPGA2SFP_N" IOSTANDARD = LVPECL_25;
 NET "FPGA2SFP_N" LOC = AH2;
 NET "FPGA2SFP_P" IOSTANDARD = LVPECL_25;
 NET "FPGA2SFP_P" LOC = AJ2;
 
-# NET "FPGA2VXS2_N" IOSTANDARD = LVPECL_25;
-# NET "FPGA2VXS2_N" LOC = AE2;
-# NET "FPGA2VXS2_P" IOSTANDARD = LVPECL_25;
-# NET "FPGA2VXS2_P" LOC = AD2;
+NET "FPGA2VXS2_N" IOSTANDARD = LVPECL_25;
+NET "FPGA2VXS2_N" LOC = AE2;
+NET "FPGA2VXS2_P" IOSTANDARD = LVPECL_25;
+NET "FPGA2VXS2_P" LOC = AD2;
 
 NET "GTP118_CLK_N" LOC = AF3;
 NET "GTP118_CLK_P" LOC = AF4;
@@ -79,10 +79,10 @@ NET "SFP2FPGA_N" LOC = AG1;
 NET "SFP2FPGA_P" IOSTANDARD = LVPECL_25;
 NET "SFP2FPGA_P" LOC = AH1;
 
-# NET "VXS2FPGA2_N" IOSTANDARD = LVPECL_25;
-# NET "VXS2FPGA2_N" LOC = AF1;
-# NET "VXS2FPGA2_P" IOSTANDARD = LVPECL_25;
-# NET "VXS2FPGA2_P" LOC = AE1;
+NET "VXS2FPGA2_N" IOSTANDARD = LVPECL_25;
+NET "VXS2FPGA2_N" LOC = AF1;
+NET "VXS2FPGA2_P" IOSTANDARD = LVPECL_25;
+NET "VXS2FPGA2_P" LOC = AE1;
 
 # Clocking
 
@@ -279,8 +279,8 @@ NET "SFP2_SCL" IOSTANDARD = LVCMOS33;
 NET "SFP2_SCL" LOC = AE34;
 NET "SFP2_SDA" IOSTANDARD = LVCMOS33;
 NET "SFP2_SDA" LOC = AF34;
-# NET "SFP2_TX_DIS" IOSTANDARD = LVCMOS33;
-# NET "SFP2_TX_DIS" LOC = AE33;
+NET "SFP2_TX_DIS" IOSTANDARD = LVCMOS33;
+NET "SFP2_TX_DIS" LOC = AE33;
 NET "SFP3_LOS" IOSTANDARD = LVCMOS33;
 NET "SFP3_LOS" LOC = AD34;
 NET "SFP3_PRSNT_N" IOSTANDARD = LVCMOS33;
@@ -525,8 +525,12 @@ NET "GTP118_CLK_P" TNM_NET = GTP118_CLK_P;
 #TIMESPEC TS_GTP118_CLK_P = PERIOD "GTP118_CLK_P" 132 MHz HIGH 50%;
 TIMESPEC TS_GTP118_CLK_P = PERIOD "GTP118_CLK_P" 8 ns HIGH 50%;
 
+NET "cmp_xwrc_board_vxs/cmp_xwrc_platform/gen_phy_virtex5.cmp_gtp/ch0_rx_rec_clk_pad" TNM_NET = cmp_xwrc_board_vxs/cmp_xwrc_platform/gen_phy_virtex5.cmp_gtp/ch0_rx_rec_clk_pad;
+TIMESPEC TS_cmp_xwrc_board_vxs_cmp_xwrc_platform_gen_phy_virtex5_cmp_gtp_ch0_rx_rec_clk_pad = PERIOD "cmp_xwrc_board_vxs/cmp_xwrc_platform/gen_phy_virtex5.cmp_gtp/ch0_rx_rec_clk_pad" 8 ns HIGH 50%;
+
 NET "cmp_xwrc_board_vxs/cmp_xwrc_platform/gen_phy_virtex5.cmp_gtp/ch1_rx_rec_clk_pad" TNM_NET = cmp_xwrc_board_vxs/cmp_xwrc_platform/gen_phy_virtex5.cmp_gtp/ch1_rx_rec_clk_pad;
 TIMESPEC TS_cmp_xwrc_board_vxs_cmp_xwrc_platform_gen_phy_virtex5_cmp_gtp_ch1_rx_rec_clk_pad = PERIOD "cmp_xwrc_board_vxs/cmp_xwrc_platform/gen_phy_virtex5.cmp_gtp/ch1_rx_rec_clk_pad" 8 ns HIGH 50%;
+
 
 INST "*/U_SOFTPLL/U_Wrapped_Softpll/gen_feedback_dmtds*/clk_in" TNM = skew_limit;
 INST "*/U_SOFTPLL/U_Wrapped_Softpll/gen_ref_dmtds*/clk_in" TNM = skew_limit;
