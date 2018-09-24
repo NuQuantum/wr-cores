@@ -71,8 +71,8 @@ entity xwrc_board_vxs is
     g_diag_id                   : integer              := 0;
     g_diag_ver                  : integer              := 0;
     -- Select GTP channel to use 
-    g_gtp_enable_ch0            : integer := 1;
-    g_gtp_enable_ch1            : integer := 0;
+    g_gtp_enable_ch0            : integer := 0;
+    g_gtp_enable_ch1            : integer := 1;
     g_gtp_mux_enable            : boolean := FALSE;
     -- size the generic diag interface
     g_diag_ro_size              : integer              := 0;
@@ -142,12 +142,12 @@ entity xwrc_board_vxs is
     ---------------------------------------------------------------------------
     sfp1_txp_o         : out std_logic;
     sfp1_txn_o         : out std_logic;
-    sfp1_rxp_i         : in  std_logic;
-    sfp1_rxn_i         : in  std_logic;
+    sfp1_rxp_i         : in  std_logic := '0';
+    sfp1_rxn_i         : in  std_logic := '0';
     sfp1_det_i         : in  std_logic := '1';
-    sfp1_sda_i         : in  std_logic;
+    sfp1_sda_i         : in  std_logic := '0';
     sfp1_sda_o         : out std_logic;
-    sfp1_scl_i         : in  std_logic;
+    sfp1_scl_i         : in  std_logic := '0';
     sfp1_scl_o         : out std_logic;
     sfp1_rate_select_o : out std_logic;
     sfp1_tx_fault_i    : in  std_logic := '0';
@@ -457,8 +457,8 @@ begin  -- architecture struct
       g_simulation                => g_simulation,
       g_with_external_clock_input => g_with_external_clock_input,
       g_board_name                => "VXS ",
-      g_flash_secsz_kb            => 64,         -- sector size for M25P32
-      g_flash_sdbfs_baddr         => 16#2e0000#, -- sdbfs after multiboot bitstream
+      g_flash_secsz_kb            => 0,        -- 0 (FRAM, no sectors)
+      g_flash_sdbfs_baddr         => 16#6000#, -- size is 0x7FFF
       g_phys_uart                 => TRUE,
       g_virtual_uart              => TRUE,
       g_aux_clks                  => g_aux_clks,

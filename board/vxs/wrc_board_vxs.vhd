@@ -135,12 +135,12 @@ entity wrc_board_vxs is
     ---------------------------------------------------------------------------
     sfp1_txp_o         : out std_logic;
     sfp1_txn_o         : out std_logic;
-    sfp1_rxp_i         : in  std_logic;
-    sfp1_rxn_i         : in  std_logic;
+    sfp1_rxp_i         : in  std_logic := '0';
+    sfp1_rxn_i         : in  std_logic := '0';
     sfp1_det_i         : in  std_logic := '1';
-    sfp1_sda_i         : in  std_logic;
+    sfp1_sda_i         : in  std_logic := '0';
     sfp1_sda_o         : out std_logic;
-    sfp1_scl_i         : in  std_logic;
+    sfp1_scl_i         : in  std_logic := '0';
     sfp1_scl_o         : out std_logic;
     sfp1_rate_select_o : out std_logic;
     sfp1_tx_fault_i    : in  std_logic := '0';
