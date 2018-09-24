@@ -124,6 +124,28 @@ entity wrc_board_vxs is
     sfp_tx_fault_i    : in  std_logic := '0';
     sfp_tx_disable_o  : out std_logic;
     sfp_los_i         : in  std_logic := '0';
+    ---------------------------------------------------------------------------
+    -- if both SFP channels are enabled and sfp_mux is enabled, 
+    -- this is the bit to switch between them
+    -- '0' - enable  SFP (channel 0) and disable SFP1 (channel 1)
+    -- '1' - disable SFP (channel 0) and enable  SFP1 (channel 1)
+    sfp_mux_sel_i      : in  std_logic              := '0';
+    ---------------------------------------------------------------------------
+    -- SFP CH1 I/O for transceiver and SFP management info
+    ---------------------------------------------------------------------------
+    sfp1_txp_o         : out std_logic;
+    sfp1_txn_o         : out std_logic;
+    sfp1_rxp_i         : in  std_logic;
+    sfp1_rxn_i         : in  std_logic;
+    sfp1_det_i         : in  std_logic := '1';
+    sfp1_sda_i         : in  std_logic;
+    sfp1_sda_o         : out std_logic;
+    sfp1_scl_i         : in  std_logic;
+    sfp1_scl_o         : out std_logic;
+    sfp1_rate_select_o : out std_logic;
+    sfp1_tx_fault_i    : in  std_logic := '0';
+    sfp1_tx_disable_o  : out std_logic;
+    sfp1_los_i         : in  std_logic := '0';
 
     ---------------------------------------------------------------------------
     -- I2C EEPROM
@@ -475,6 +497,20 @@ begin  -- architecture struct
       sfp_rate_select_o    => sfp_rate_select_o,
       sfp_tx_fault_i       => sfp_tx_fault_i,
       sfp_tx_disable_o     => sfp_tx_disable_o,
+      sfp_mux_sel_i        => sfp_mux_sel_i,
+      sfp1_txp_o           => sfp1_txp_o,
+      sfp1_txn_o           => sfp1_txn_o,
+      sfp1_rxp_i           => sfp1_rxp_i,
+      sfp1_rxn_i           => sfp1_rxn_i,
+      sfp1_det_i           => sfp1_det_i,
+      sfp1_sda_i           => sfp1_sda_i,
+      sfp1_sda_o           => sfp1_sda_o,
+      sfp1_scl_i           => sfp1_scl_i,
+      sfp1_scl_o           => sfp1_scl_o,
+      sfp1_rate_select_o   => sfp1_rate_select_o,
+      sfp1_tx_fault_i      => sfp1_tx_fault_i,
+      sfp1_tx_disable_o    => sfp1_tx_disable_o,
+
       sfp_los_i            => sfp_los_i,
       eeprom_sda_i         => eeprom_sda_i,
       eeprom_sda_o         => eeprom_sda_o,

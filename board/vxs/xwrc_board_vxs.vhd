@@ -70,6 +70,10 @@ entity xwrc_board_vxs is
     -- identification (id and ver) of the layout of words in the generic diag interface
     g_diag_id                   : integer              := 0;
     g_diag_ver                  : integer              := 0;
+    -- Select GTP channel to use 
+    g_gtp_enable_ch0            : integer := 1;
+    g_gtp_enable_ch1            : integer := 0;
+    g_gtp_mux_enable            : boolean := FALSE;
     -- size the generic diag interface
     g_diag_ro_size              : integer              := 0;
     g_diag_rw_size              : integer              := 0
@@ -112,7 +116,7 @@ entity xwrc_board_vxs is
     pll20dac_cs_n_o : out std_logic;
 
     ---------------------------------------------------------------------------
-    -- SFP I/O for transceiver and SFP management info
+    -- SFP CH0 I/O for transceiver and SFP management info
     ---------------------------------------------------------------------------
     sfp_txp_o         : out std_logic;
     sfp_txn_o         : out std_logic;
@@ -127,6 +131,28 @@ entity xwrc_board_vxs is
     sfp_tx_fault_i    : in  std_logic := '0';
     sfp_tx_disable_o  : out std_logic;
     sfp_los_i         : in  std_logic := '0';
+    ---------------------------------------------------------------------------
+    -- if both SFP channels are enabled and sfp_mux is enabled, 
+    -- this is the bit to switch between them
+    -- '0' - enable  SFP (channel 0) and disable SFP1 (channel 1)
+    -- '1' - disable SFP (channel 0) and enable  SFP1 (channel 1)
+    sfp_mux_sel_i      : in  std_logic              := '0';
+    ---------------------------------------------------------------------------
+    -- SFP CH1 I/O for transceiver and SFP management info
+    ---------------------------------------------------------------------------
+    sfp1_txp_o         : out std_logic;
+    sfp1_txn_o         : out std_logic;
+    sfp1_rxp_i         : in  std_logic;
+    sfp1_rxn_i         : in  std_logic;
+    sfp1_det_i         : in  std_logic := '1';
+    sfp1_sda_i         : in  std_logic;
+    sfp1_sda_o         : out std_logic;
+    sfp1_scl_i         : in  std_logic;
+    sfp1_scl_o         : out std_logic;
+    sfp1_rate_select_o : out std_logic;
+    sfp1_tx_fault_i    : in  std_logic := '0';
+    sfp1_tx_disable_o  : out std_logic;
+    sfp1_los_i         : in  std_logic := '0';
 
     ---------------------------------------------------------------------------
     -- I2C EEPROM
@@ -316,6 +342,9 @@ begin  -- architecture struct
       g_fpga_family               => "virtex5",
       g_with_external_clock_input => g_with_external_clock_input,
       g_use_default_plls          => TRUE,
+      g_gtp_enable_ch0            => g_gtp_enable_ch0,
+      g_gtp_enable_ch1            => g_gtp_enable_ch1,
+      g_gtp_mux_enable            => g_gtp_mux_enable,
       g_simulation                => g_simulation)
     port map (
       areset_n_i            => areset_n_i,
@@ -324,6 +353,7 @@ begin  -- architecture struct
       clk_125m_pllref_i     => clk_125m_pllref_buf,
       clk_125m_gtp_p_i      => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i      => clk_125m_gtp_n_i,
+      -- ch0
       sfp_txn_o             => sfp_txn_o,
       sfp_txp_o             => sfp_txp_o,
       sfp_rxn_i             => sfp_rxn_i,
@@ -331,6 +361,18 @@ begin  -- architecture struct
       sfp_tx_fault_i        => sfp_tx_fault_i,
       sfp_los_i             => sfp_los_i,
       sfp_tx_disable_o      => sfp_tx_disable_o,
+
+      sfp_mux_sel_i         => sfp_mux_sel_i,
+
+      -- ch1
+      sfp1_txn_o            => sfp1_txn_o,
+      sfp1_txp_o            => sfp1_txp_o,
+      sfp1_rxn_i            => sfp1_rxn_i,
+      sfp1_rxp_i            => sfp1_rxp_i,
+      sfp1_tx_fault_i       => sfp1_tx_fault_i,
+      sfp1_los_i            => sfp1_los_i,
+      sfp1_tx_disable_o     => sfp1_tx_disable_o,
+
       clk_62m5_sys_o        => clk_pll_62m5,
       clk_125m_ref_o        => clk_pll_125m,
       clk_62m5_dmtd_o       => clk_pll_dmtd,
@@ -437,6 +479,7 @@ begin  -- architecture struct
       g_streamers_op_mode         => g_streamers_op_mode,
       g_tx_streamer_params        => g_tx_streamer_params,
       g_rx_streamer_params        => g_rx_streamer_params,
+      g_sfp_i2c_mux_enable        => g_gtp_mux_enable,
       g_fabric_iface              => g_fabric_iface
       )
     port map (
@@ -461,11 +504,21 @@ begin  -- architecture struct
       scl_i                => eeprom_scl_i,
       sda_o                => eeprom_sda_o,
       sda_i                => eeprom_sda_i,
+
       sfp_scl_o            => sfp_scl_o,
       sfp_scl_i            => sfp_scl_i,
       sfp_sda_o            => sfp_sda_o,
       sfp_sda_i            => sfp_sda_i,
       sfp_det_i            => sfp_det_i,
+
+      sfp_mux_sel_i        => sfp_mux_sel_i,
+
+      sfp1_scl_o           => sfp1_scl_o,
+      sfp1_scl_i           => sfp1_scl_i,
+      sfp1_sda_o           => sfp1_sda_o,
+      sfp1_sda_i           => sfp1_sda_i,
+      sfp1_det_i           => sfp1_det_i,
+
       spi_sclk_o           => flash_sclk_o,
       spi_ncs_o            => flash_ncs_o,
       spi_mosi_o           => flash_mosi_o,
@@ -522,7 +575,8 @@ begin  -- architecture struct
       pps_led_o            => pps_led_o,
       link_ok_o            => link_ok_o);
 
-  sfp_rate_select_o <= '1';
+  sfp_rate_select_o  <= '1';
+  sfp1_rate_select_o <= '1';
 
   onewire_oen_o <= onewire_en(0);
   onewire_in(0) <= onewire_i;
