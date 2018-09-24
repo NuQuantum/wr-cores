@@ -60,9 +60,10 @@ entity xwrc_platform_xilinx is
       g_with_external_clock_input : boolean := FALSE;
       -- Set to FALSE if you want to instantiate your own PLLs
       g_use_default_plls          : boolean := TRUE;
-      -- Select GTP channel to use (only one can be active)
+      -- Select GTP channel to use 
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
+      g_gtp_mux_enable            : boolean := FALSE;
       -- Set to TRUE will speed up some initialization processes
       g_simulation                : integer := 0;
       g_ddr_clock_divider : integer := 3
@@ -109,7 +110,7 @@ entity xwrc_platform_xilinx is
     clk_ext_stopped_i     : in  std_logic             := '0';
     clk_ext_rst_o         : out std_logic;
     ---------------------------------------------------------------------------
-    -- SFP
+    -- SFP - channel 0
     ---------------------------------------------------------------------------
     sfp_txn_o             : out std_logic;
     sfp_txp_o             : out std_logic;
@@ -118,6 +119,23 @@ entity xwrc_platform_xilinx is
     sfp_tx_fault_i        : in  std_logic             := '0';
     sfp_los_i             : in  std_logic             := '0';
     sfp_tx_disable_o      : out std_logic;
+    ---------------------------------------------------------------------------
+    -- if both SFP channels are enabled and sfp_mux is enabled, 
+    -- this is the bit to switch between them
+    -- '0' - enable  SFP (channel 0) and disable SFP1 (channel 1)
+    -- '1' - disable SFP (channel 0) and enable  SFP1 (channel 1)
+    sfp_mux_sel_i         : in  std_logic              := '0';
+    ---------------------------------------------------------------------------
+    -- SFP - channel 1
+    ---------------------------------------------------------------------------
+    sfp1_txn_o            : out std_logic;
+    sfp1_txp_o            : out std_logic;
+    sfp1_rxn_i            : in  std_logic;
+    sfp1_rxp_i            : in  std_logic;
+    sfp1_tx_fault_i       : in  std_logic             := '0';
+    sfp1_los_i            : in  std_logic             := '0';
+    sfp1_tx_disable_o     : out std_logic;
+
     ---------------------------------------------------------------------------
     --Interface to WR PTP Core (WRPC)
     ---------------------------------------------------------------------------
@@ -129,11 +147,12 @@ entity xwrc_platform_xilinx is
     clk_ddr_o : out std_logic;
     pll_locked_o          : out std_logic;
     clk_10m_ext_o         : out std_logic;
-    -- PHY
+    -- PHY - CH0
     phy8_o                : out t_phy_8bits_to_wrc;
     phy8_i                : in  t_phy_8bits_from_wrc  := c_dummy_phy8_from_wrc;
     phy16_o               : out t_phy_16bits_to_wrc;
     phy16_i               : in  t_phy_16bits_from_wrc := c_dummy_phy16_from_wrc;
+
     -- External reference
     ext_ref_mul_o         : out std_logic;
     ext_ref_mul_locked_o  : out std_logic;
@@ -163,13 +182,35 @@ begin  -- architecture rtl
       severity ERROR;
   end generate gen_unknown_fpga;
 
-  gen_single_gtp_channel : if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
+  gen_no_gtp_channel : if (g_gtp_enable_ch0 = 0 and g_gtp_enable_ch1 = 0)
   generate
     assert FALSE
-      report "Cannot enable both GTP channels simultaneously"
+      report "At least one GTP channels must be enabled"
       severity ERROR;
-  end generate gen_single_gtp_channel;
+  end generate gen_no_gtp_channel;
 
+  gen_mux_when_single_ch: if ((g_gtp_enable_ch0 = 0 or g_gtp_enable_ch1 = 0) 
+                          and g_gtp_mux_enable =  TRUE) 
+  generate
+    assert FALSE
+      report "GTP/SFP mux is allowed only when both channels are enabled"
+      severity ERROR;
+  end generate gen_mux_when_single_ch;
+
+  gen_mux_support: if (g_gtp_mux_enable =  TRUE and g_fpga_family /= "virtex5") 
+  generate
+    assert FALSE
+      report "GTP/SFP mux is supported only on virtex5"
+      severity ERROR;
+  end generate gen_mux_support;
+  
+  gen_dual_SFP_support: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0 and
+                    g_gtp_mux_enable =  FALSE)
+  generate
+    assert FALSE
+      report "Dual GTP/SFP is not supported yet (TODO) !"
+      severity ERROR;
+  end generate gen_dual_SFP_support;
   -----------------------------------------------------------------------------
   -- Clock PLLs
   -----------------------------------------------------------------------------
@@ -1020,7 +1061,7 @@ begin  -- architecture rtl
         pad_rxp1_i         => ch1_sfp_rxp
         );
 
-    gen_gtp_ch0 : if (g_gtp_enable_ch0 = 1) generate
+    gen_gtp_ch0 : if (g_gtp_enable_ch0 = 1 and g_gtp_enable_ch1 = 0) generate
       ch0_phy8_out.ref_clk      <= clk_125m_pllref_buf;
       ch0_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
       ch0_phy8_out.sfp_los      <= sfp_los_i;
@@ -1031,7 +1072,7 @@ begin  -- architecture rtl
       ch0_sfp_rxn               <= sfp_rxn_i;
     end generate gen_gtp_ch0;
 
-    gen_gtp_ch1 : if (g_gtp_enable_ch1 = 1) generate
+    gen_gtp_ch1 : if (g_gtp_enable_ch0 = 0 and g_gtp_enable_ch1 = 1) generate
       ch1_phy8_out.ref_clk      <= clk_125m_pllref_buf;
       ch1_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
       ch1_phy8_out.sfp_los      <= sfp_los_i;
@@ -1042,9 +1083,17 @@ begin  -- architecture rtl
       ch1_sfp_rxn               <= sfp_rxn_i;
     end generate gen_gtp_ch1;
 
-    sfp_tx_disable_o <= phy8_i.sfp_tx_disable;
+    sfp_tx_disable_o  <= phy8_i.sfp_tx_disable;
+    sfp1_tx_disable_o <= '1';
 
     phy16_o <= c_dummy_phy16_to_wrc;
+
+    gen_gtp_ch_dual: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
+    generate 
+      assert FALSE
+        report "Cannot enable both GTP channels simultaneously on SPARTAN 6"
+        severity ERROR;
+    end generate gen_gtp_ch_dual;
 
   end generate gen_phy_spartan6;
 
@@ -1118,7 +1167,7 @@ begin  -- architecture rtl
         pad_rxp1_i         => ch1_sfp_rxp
         );
 
-    gen_gtp_ch0 : if (g_gtp_enable_ch0 = 1) generate
+    gen_gtp_ch0 : if (g_gtp_enable_ch0 = 1 and g_gtp_enable_ch1 = 0) generate
       ch0_phy8_out.ref_clk      <= clk_125m_pllref_buf;
       ch0_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
       ch0_phy8_out.sfp_los      <= sfp_los_i;
@@ -1127,9 +1176,11 @@ begin  -- architecture rtl
       sfp_txn_o                 <= ch0_sfp_txn;
       ch0_sfp_rxp               <= sfp_rxp_i;
       ch0_sfp_rxn               <= sfp_rxn_i;
+      sfp_tx_disable_o          <= phy8_i.sfp_tx_disable;
+      sfp1_tx_disable_o         <= '1';
     end generate gen_gtp_ch0;
 
-    gen_gtp_ch1 : if (g_gtp_enable_ch1 = 1) generate
+    gen_gtp_ch1 : if (g_gtp_enable_ch0 = 0 and g_gtp_enable_ch1 = 1) generate
       ch1_phy8_out.ref_clk      <= clk_125m_pllref_buf;
       ch1_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
       ch1_phy8_out.sfp_los      <= sfp_los_i;
@@ -1138,9 +1189,60 @@ begin  -- architecture rtl
       sfp_txn_o                 <= ch1_sfp_txn;
       ch1_sfp_rxp               <= sfp_rxp_i;
       ch1_sfp_rxn               <= sfp_rxn_i;
+      sfp_tx_disable_o          <= phy8_i.sfp_tx_disable;
+      sfp1_tx_disable_o         <= '1';
     end generate gen_gtp_ch1;
 
-    sfp_tx_disable_o <= phy8_i.sfp_tx_disable;
+    gen_gtp_ch01 : if (g_gtp_enable_ch0 = 1 and g_gtp_enable_ch1 = 1) generate
+
+      -- SFP ch0:
+      ch0_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
+      ch0_phy8_out.sfp_los      <= sfp_los_i;
+      sfp_txp_o                 <= ch0_sfp_txp;
+      sfp_txn_o                 <= ch0_sfp_txn;
+      ch0_sfp_rxp               <= sfp_rxp_i;
+      ch0_sfp_rxn               <= sfp_rxn_i;
+
+      -- SFP ch1:
+      ch1_phy8_out.sfp_tx_fault <= sfp1_tx_fault_i;
+      ch1_phy8_out.sfp_los      <= sfp1_los_i;
+      sfp1_txp_o                <= ch1_sfp_txp;
+      sfp1_txn_o                <= ch1_sfp_txn;
+      ch1_sfp_rxp               <= sfp1_rxp_i;
+      ch1_sfp_rxn               <= sfp1_rxn_i;
+
+      phy8_o.ref_clk            <= clk_125m_pllref_buf;
+      gen_gtp_mux: if (g_gtp_mux_enable = TRUE) generate
+        -- MUX for WRPC
+        phy8_o.tx_disparity <= ch0_phy8_out.tx_disparity when sfp_mux_sel_i = '0' else ch1_phy8_out.tx_disparity;
+        phy8_o.tx_enc_err   <= ch0_phy8_out.tx_enc_err   when sfp_mux_sel_i = '0' else ch1_phy8_out.tx_enc_err;
+        phy8_o.rx_data      <= ch0_phy8_out.rx_data      when sfp_mux_sel_i = '0' else ch1_phy8_out.rx_data;
+        phy8_o.rx_k         <= ch0_phy8_out.rx_k         when sfp_mux_sel_i = '0' else ch1_phy8_out.rx_k;
+        phy8_o.rx_enc_err   <= ch0_phy8_out.rx_enc_err   when sfp_mux_sel_i = '0' else ch1_phy8_out.rx_enc_err;
+        phy8_o.rx_bitslide  <= ch0_phy8_out.rx_bitslide  when sfp_mux_sel_i = '0' else ch1_phy8_out.rx_bitslide;
+        phy8_o.rdy          <= ch0_phy8_out.rdy          when sfp_mux_sel_i = '0' else ch1_phy8_out.rdy;
+        phy8_o.sfp_tx_fault <= ch0_phy8_out.sfp_tx_fault when sfp_mux_sel_i = '0' else ch1_phy8_out.sfp_tx_fault;
+        phy8_o.sfp_los      <= ch0_phy8_out.sfp_los      when sfp_mux_sel_i = '0' else ch1_phy8_out.sfp_los;
+
+        cmp_bugmux_ctrl: BUFGMUX_CTRL
+          port map (
+            O  => phy8_o.rx_clk,       -- Clock MUX output
+            I0 => ch0_phy8_out.rx_clk, -- Clock0 input
+            I1 => ch1_phy8_out.rx_clk, -- Clock1 input
+            S  => sfp_mux_sel_i        -- Clock select input
+          );
+        -- ch0 is disabled when sfp_mux_sel_i = '1'
+        sfp_tx_disable_o  <= '1' when sfp_mux_sel_i = '1' else phy8_i.sfp_tx_disable;
+        -- ch1 is disabled when sfp_mux_sel_i = '0'
+        sfp1_tx_disable_o <= '1' when sfp_mux_sel_i = '0' else phy8_i.sfp_tx_disable;
+
+      end generate gen_gtp_mux;
+      gen_gtp_dual: if (g_gtp_mux_enable = FALSE) generate
+        assert FALSE
+          report "Dual GTP/SFP is not supported yet (TODO) !"
+          severity ERROR;
+      end generate gen_gtp_dual;
+    end generate gen_gtp_ch01;
 
     phy16_o <= c_dummy_phy16_to_wrc;
 
@@ -1213,6 +1315,13 @@ begin  -- architecture rtl
 
     phy8_o <= c_dummy_phy8_to_wrc;
 
+    gen_gtp_ch_dual: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
+    generate 
+      assert FALSE
+        report "Cannot enable both GTP channels simultaneously on Kintex 7"
+        severity ERROR;
+    end generate gen_gtp_ch_dual;
+
   end generate gen_phy_kintex7;
 
   ---------------------------------------------------------------------------
@@ -1281,6 +1390,14 @@ begin  -- architecture rtl
     sfp_tx_disable_o     <= phy16_i.sfp_tx_disable;
 
     phy8_o <= c_dummy_phy8_to_wrc;
+
+    gen_gtp_ch_dual : if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
+    generate 
+      assert FALSE
+        report "Cannot enable both GTP channels simultaneously on ARTIX 7"
+        severity ERROR;
+    end generate gen_gtp_ch_dual;
+
 
   end generate gen_phy_artix7;
 

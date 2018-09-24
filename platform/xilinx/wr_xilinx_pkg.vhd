@@ -45,8 +45,9 @@ package wr_xilinx_pkg is
       g_use_default_plls          : boolean := TRUE;
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
+      g_gtp_mux_enable            : boolean := FALSE;
       g_simulation                : integer := 0;
-      g_ddr_clock_divider : integer := 3
+      g_ddr_clock_divider         : integer := 3
       );
     port (
       areset_n_i            : in  std_logic             := '1';
@@ -74,6 +75,14 @@ package wr_xilinx_pkg is
       sfp_tx_fault_i        : in  std_logic             := '0';
       sfp_los_i             : in  std_logic             := '0';
       sfp_tx_disable_o      : out std_logic;
+      sfp_mux_sel_i         : in  std_logic              := '0';
+      sfp1_txn_o            : out std_logic;
+      sfp1_txp_o            : out std_logic;
+      sfp1_rxn_i            : in  std_logic;
+      sfp1_rxp_i            : in  std_logic;
+      sfp1_tx_fault_i       : in  std_logic             := '0';
+      sfp1_los_i            : in  std_logic             := '0';
+      sfp1_tx_disable_o     : out std_logic;
       clk_62m5_sys_o        : out std_logic;
       clk_125m_ref_o        : out std_logic;
       clk_ref_locked_o      : out std_logic;
