@@ -184,13 +184,14 @@ package streamers_pkg is
       g_escape_code_disable    : boolean := FALSE;
       g_simulation             : integer := 0;
       g_sim_startup_cnt        : integer := 6250;--100us
-      g_clk_ref_rate           : integer := 125000000);
+      g_clk_ref_rate           : integer := 125000000;
+      g_use_ref_clock_for_data : integer := 0);
     port (
       clk_sys_i        : in  std_logic;
+      clk_ref_i        : in  std_logic                     := '0';
       rst_n_i          : in  std_logic;
       src_i            : in  t_wrf_source_in;
       src_o            : out t_wrf_source_out;
-      clk_ref_i        : in  std_logic                     := '0';
       tm_time_valid_i  : in  std_logic                     := '0';
       tm_tai_i         : in  std_logic_vector(39 downto 0) := x"0000000000";
       tm_cycles_i      : in  std_logic_vector(27 downto 0) := x"0000000";
@@ -294,7 +295,8 @@ package streamers_pkg is
     -- WB i/f
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
     g_slave_granularity        : t_wishbone_address_granularity := BYTE;
-    g_simulation               : integer := 0
+    g_simulation               : integer := 0;
+    g_use_ref_clock_for_data : integer := 0
     );
 
   port (

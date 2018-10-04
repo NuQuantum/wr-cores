@@ -76,11 +76,15 @@ entity xrx_streamer is
     -- rate fo the White Rabbit referene clock. By default, this clock is
     -- 125MHz for WR Nodes. There are some WR Nodes that work with 62.5MHz.
     -- in the future, more frequences might be supported..
-    g_clk_ref_rate : integer := 125000000
+    g_clk_ref_rate : integer := 125000000;
+
+    g_use_ref_clock_for_data : integer := 0
     );
 
   port (
     clk_sys_i : in std_logic;
+    -- White Rabbit reference clock
+    clk_ref_i : in std_logic := '0';
     rst_n_i   : in std_logic;
 
     -- Endpoint/WRC interface 
@@ -92,8 +96,6 @@ entity xrx_streamer is
     -- Caution: uses clk_ref_i clock domain!
     ---------------------------------------------------------------------------
 
-    -- White Rabbit reference clock
-    clk_ref_i : in std_logic := '0';
 
     -- Time valid flag
     tm_time_valid_i : in std_logic := '0';
@@ -161,33 +163,32 @@ architecture rtl of xrx_streamer is
 
   signal fifo_drop, fifo_accept, fifo_accept_d0, fifo_dvalid : std_logic;
   signal fifo_sync, fifo_last, frames_lost, blocks_lost      : std_logic;
-  signal fifo_dout, fifo_din                                 : std_logic_vector(g_data_width + 1 downto 0);
+  signal fifo_dout, fifo_din                                 : std_logic_vector(g_data_width + 1 + 28 + 1 downto 0);
+
+  signal fifo_target_ts_en : std_logic;
+  signal fifo_target_ts    : unsigned(27 downto 0);
 
   signal pending_write, fab_dvalid_pre : std_logic;
 
 
   signal tx_tag_cycles, rx_tag_cycles : std_logic_vector(27 downto 0);
   signal tx_tag_valid, rx_tag_valid   : std_logic;
+  signal rx_tag_valid_stored          : std_logic;
 
   signal got_next_subframe : std_logic;
   signal is_frame_seq_id : std_logic;
   signal word_count                                                        : unsigned(11 downto 0);
   signal sync_seq_no : std_logic;
 
-  -- fixed latency signals
-  type   t_rx_delay_state is (DISABLED, DELAY, ALLOW);
-  signal timestamped        : std_logic;
-  signal delay_cnt          : unsigned(27 downto 0);
-  signal rx_dreq_allow      : std_logic;
   signal rx_latency         : unsigned(27 downto 0);
   signal rx_latency_stored  : unsigned(27 downto 0);
   signal rx_latency_valid   : std_logic;
-  signal delay_state        : t_rx_delay_state;
-  signal rx_dreq            : std_logic;
   signal is_vlan            : std_logic;
 
   constant c_fixed_latency_zero : unsigned(27 downto 0) := (others => '0');
   constant c_timestamper_delay  : unsigned(27 downto 0) := to_unsigned(12, 28); -- cycles
+
+  signal fifo_last_int : std_logic;
   
 begin  -- rtl
 
@@ -253,35 +254,9 @@ begin  -- rtl
   fsm_in.eof <= fab.eof or fab.error;
   fsm_in.sof <= fab.sof;
 
-
-  U_Output_FIFO : dropping_buffer
-    generic map (
-      g_size       => g_buffer_size,
-      g_data_width => g_data_width + 2)
-    port map (
-      clk_i      => clk_sys_i,
-      rst_n_i    => rst_n_i,
-      d_i        => fifo_din,
-      d_req_o    => fsm_in.dreq,
-      d_drop_i   => fifo_drop,
-      d_accept_i => fifo_accept_d0,
-      d_valid_i  => fifo_dvalid,
-      d_o        => fifo_dout,
-      d_valid_o  => rx_valid_o,
-      d_req_i    => rx_dreq);
-
-  fifo_din(g_data_width+1)          <= fifo_sync;
-  fifo_din(g_data_width)            <= fifo_last or 
-                                        ((not pending_write) and is_escape); -- when word is 16 bits
-  fifo_din(g_data_width-1 downto 0) <= fifo_data;
-
-  rx_data_o  <= fifo_dout(g_data_width-1 downto 0);
-  rx_first_p1_o <= fifo_dout(g_data_width+1);
-  rx_last_p1_o  <= fifo_dout(g_data_width);
-
   U_RX_Timestamper : pulse_stamper
     generic map(
-      g_ref_clk_rate  => g_clk_ref_rate)
+      g_ref_clk_rate => g_clk_ref_rate)
     port map (
       clk_ref_i       => clk_ref_i,
       clk_sys_i       => clk_sys_i,
@@ -290,66 +265,84 @@ begin  -- rtl
       tm_time_valid_i => tm_time_valid_i,
       tm_tai_i        => tm_tai_i,
       tm_cycles_i     => tm_cycles_i,
-      tag_cycles_o    => rx_tag_cycles);
+      tag_cycles_o    => rx_tag_cycles,
+      tag_valid_o     => rx_tag_valid);
 
-  -------------------------------------------------------------------------------------------
-  -- fixed latency implementation
-  -------------------------------------------------------------------------------------------
+  fifo_last_int <= fifo_last or ((not pending_write) and is_escape);  -- when word is 16 bit
 
-  -- mask rx_dreq to prevent reception
-  rx_dreq                           <= rx_dreq_i and rx_dreq_allow;
-  -- produce a pulse when SOF is timestamped, this pulse starts counter in clk_sys clock 
-  -- domain
-  U_sync_with_clk : gc_sync_ffs
+  U_FixLatencyDelay : entity work.fixed_latency_delay
+    generic map (
+      g_data_width             => g_data_width,
+      g_buffer_size            => 32,
+      g_use_ref_clock_for_data => g_use_ref_clock_for_data,
+      g_clk_ref_rate => g_clk_ref_rate)
     port map (
-      clk_i          => clk_sys_i,
-      rst_n_i        => rst_n_i,
-      data_i         => fsm_in.sof,
-      synced_o       => timestamped);
+      rst_n_i          => rst_n_i,
+      clk_sys_i        => clk_sys_i,
+      clk_ref_i        => clk_ref_i,
+      tm_time_valid_i  => tm_time_valid_i,
+      tm_tai_i => tm_tai_i,
+      tm_cycles_i      => tm_cycles_i,
+      d_data_i         => fifo_data,
+      d_last_i         => fifo_last_int,
+      d_sync_i         => fifo_sync,
+      d_target_ts_en_i => fifo_target_ts_en,
+      d_target_ts_i    => std_logic_vector(fifo_target_ts),
+      d_valid_i        => fifo_dvalid,
+      d_drop_i         => fifo_drop,
+      d_accept_i       => fifo_accept_d0,
+      d_req_o          => fsm_in.dreq,
+      rx_first_p1_o    => rx_first_p1_o,
+      rx_last_p1_o     => rx_last_p1_o,
+      rx_data_o        => rx_data_o,
+      rx_valid_o       => rx_valid_o,
+      rx_dreq_i        => rx_dreq_i,
+      rx_streamer_cfg_i => rx_streamer_cfg_i);
 
-  -- introduce fixed latency, if configured to do so
-  p_fixed_latency_fsm : process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
-        delay_state        <= DISABLED;
-        rx_latency_stored  <= (others=>'0');
-        rx_dreq_allow      <= '1';
-        delay_cnt          <= c_timestamper_delay;
-      else
-        case delay_state is
-          when DISABLED => 
-            if unsigned(rx_streamer_cfg_i.fixed_latency) /= c_fixed_latency_zero then
-              delay_state        <= ALLOW;
-            end if;
-            rx_latency_stored  <= (others=>'0');
-            delay_cnt          <= c_timestamper_delay;
-            rx_dreq_allow      <= '1';
-          when ALLOW =>
-            if unsigned(rx_streamer_cfg_i.fixed_latency) = c_fixed_latency_zero then
-              delay_state        <= DISABLED;
-            elsif(rx_latency_valid ='1') then
-              rx_dreq_allow     <= '0';
-              rx_latency_stored <= rx_latency;
-              delay_state       <= DELAY;
-            end if;
-            if(timestamped = '1') then
-              delay_cnt         <= c_timestamper_delay;
-            else
-              delay_cnt <= delay_cnt + 2;
-            end if;
-          when DELAY =>
-            if unsigned(rx_streamer_cfg_i.fixed_latency) <= delay_cnt + rx_latency_stored then
-              rx_latency_stored  <= (others=>'0');
-              rx_dreq_allow      <= '1';
-              delay_state        <= ALLOW;
-            else
-              delay_cnt <= delay_cnt + 2;
-            end if;
-        end case;
-      end if;
-    end if;
-  end process;
+-- introduce fixed latency, if configured to do so
+  -- p_fixed_latency_fsm : process(clk_sys_i)
+  -- begin
+  --   if rising_edge(clk_sys_i) then
+  --     if rst_n_i = '0' then
+  --       delay_state       <= DISABLED;
+  --       rx_latency_stored <= (others => '0');
+  --       rx_dreq_allow     <= '1';
+  --       delay_cnt         <= c_timestamper_delay;
+  --     else
+  --       case delay_state is
+  --         when DISABLED =>
+  --           if unsigned(rx_streamer_cfg_i.fixed_latency) /= c_fixed_latency_zero then
+  --             delay_state <= ALLOW;
+  --           end if;
+  --           rx_latency_stored <= (others => '0');
+  --           delay_cnt         <= c_timestamper_delay;
+  --           rx_dreq_allow     <= '1';
+  --         when ALLOW =>
+  --           if unsigned(rx_streamer_cfg_i.fixed_latency) = c_fixed_latency_zero then
+  --             delay_state <= DISABLED;
+  --           elsif(rx_latency_valid = '1') then
+  --             rx_dreq_allow     <= '0';
+  --             rx_latency_stored <= rx_latency;
+  --             delay_state       <= DELAY;
+  --           end if;
+  --           if(timestamped = '1') then
+  --           if(rx_tag_valid= '1') then
+  --             delay_cnt <= c_timestamper_delay;
+  --           else
+  --             delay_cnt <= delay_cnt + 2;
+  --           end if;
+  --         when DELAY =>
+  --           if unsigned(rx_streamer_cfg_i.fixed_latency) <= delay_cnt + rx_latency_stored then
+  --             rx_latency_stored <= (others => '0');
+  --             rx_dreq_allow     <= '1';
+  --             delay_state       <= ALLOW;
+  --           else
+  --             delay_cnt <= delay_cnt + 2;
+  --           end if;
+  --       end case;
+  --     end if;
+  --   end if;
+  -- end process;
 
   -------------------------------------------------------------------------------------------
   -- end of fixed latency implementation
@@ -383,6 +376,7 @@ begin  -- rtl
         blocks_lost            <= '0';
         pack_data              <= (others=>'0');
         is_vlan                <= '0';
+        rx_tag_valid_stored  <= '0';
       else
         case state is
           when IDLE =>
@@ -406,7 +400,7 @@ begin  -- rtl
             rx_latency           <= (others=>'0');
             rx_latency_valid     <= '0';
             is_vlan              <= '0';
-
+            rx_tag_valid_stored  <= '0';
             if(fsm_in.sof = '1') then
               state            <= HEADER;
             end if;
@@ -500,7 +494,18 @@ begin  -- rtl
               ser_count           <= (others => '0');
               word_count          <= word_count + 1; -- count words, increment in advance
               got_next_subframe   <= '1';
-              if(tx_tag_valid = '1') then
+              fifo_target_ts_en <= '0';
+
+
+              fifo_target_ts <= unsigned(tx_tag_cycles);
+              
+              if(tx_tag_valid = '1' and unsigned(rx_streamer_cfg_i.fixed_latency) /= 0) then
+                fifo_target_ts_en <= '1';
+              end if;
+            
+              
+              -- latency measurement
+              if(tx_tag_valid = '1' and rx_tag_valid_stored = '1') then
                 rx_latency_valid <= '1';
                 if(unsigned(tx_tag_cycles) > unsigned(rx_tag_cycles)) then
                   rx_latency <= unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles) + to_unsigned(125000000, 28);
@@ -511,6 +516,8 @@ begin  -- rtl
               else
                 rx_latency_valid <= '0';
               end if;
+              rx_tag_valid_stored <= '0';
+
 
               if(std_logic_vector(seq_no) /= fsm_in.data(14 downto 0)) then
                 seq_no    <= unsigned(fsm_in.data(14 downto 0))+1;
@@ -530,6 +537,10 @@ begin  -- rtl
             end if;
 
           when SUBFRAME_HEADER =>
+            if fifo_dvalid = '1' then
+              fifo_target_ts_en <= '0';
+            end if;
+            
             fifo_drop   <= '0';
             fifo_accept <= '0';
             ser_count <= (others => '0');
@@ -552,6 +563,10 @@ begin  -- rtl
             end if;
 
           when PAYLOAD =>
+            if fifo_dvalid = '1' then
+              fifo_target_ts_en <= '0';
+            end if;
+            
             frames_lost <= '0';
             rx_lost_frames_cnt_o <= (others => '0');
             rx_latency_valid <= '0';

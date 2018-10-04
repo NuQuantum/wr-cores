@@ -83,11 +83,19 @@ entity xtx_streamer is
     -- rate fo the White Rabbit referene clock. By default, this clock is
     -- 125MHz for WR Nodes. There are some WR Nodes that work with 62.5MHz.
     -- in the future, more frequences might be supported..
-    g_clk_ref_rate : integer := 125000000
+    g_clk_ref_rate : integer := 125000000;
+
+    -- when non-zero, the datapath (tx_/rx_ ports) are in the clk_ref_i clock
+    -- domain instead of clk_sys_i. This is a must for fixed latency mode if
+    -- clk_sys_i is asynchronous (i.e. not locked) to the WR timing.
+    g_use_ref_clock_for_data : integer := 0
     );
 
   port (
     clk_sys_i : in std_logic;
+    -- White Rabbit reference clock
+    clk_ref_i : in std_logic := '0';
+
     rst_n_i   : in std_logic;
 
     -- Endpoint/WRC interface - packet source
@@ -99,8 +107,6 @@ entity xtx_streamer is
     -- Caution: uses clk_ref_i clock domain!
     ---------------------------------------------------------------------------
 
-    -- White Rabbit reference clock
-    clk_ref_i : in std_logic := '0';
 
     -- Time valid flag
     tm_time_valid_i : in std_logic := '0';
@@ -126,6 +132,10 @@ entity xtx_streamer is
     -- Synchronous data request: if active, the user may send a data word in
     -- the following clock cycle.
     tx_dreq_o : out std_logic;
+
+    -- sync signal, allowing to align transmission of the frames to the
+    -- least supported WR reference clock frequency. Used in fixed latency mode.
+    tx_sync_o : out std_logic;
 
     -- Last signal. Can be used to indicate the last data word in a larger
     -- block of samples (see documentation for more details).
@@ -155,8 +165,12 @@ architecture rtl of xtx_streamer is
   signal tx_threshold_hit : std_logic;
   signal tx_timeout_hit   : std_logic;
   signal tx_flush_latched : std_logic;
+  signal tx_idle : std_logic;
 
   signal tx_fifo_last, tx_fifo_we, tx_fifo_full, tx_fifo_empty, tx_fifo_rd : std_logic;
+  signal tx_fifo_empty_int, tx_fifo_rd_int, tx_fifo_rd_int_d : std_logic;
+  signal tx_fifo_q_int, tx_fifo_q_reg : std_logic_vector(g_data_width downto 0);
+  signal tx_fifo_q_valid : std_logic;
   signal tx_fifo_q, tx_fifo_d                                              : std_logic_vector(g_data_width downto 0);
   signal state                                                             : t_tx_state;
   signal seq_no, count                                                     : unsigned(14 downto 0);
@@ -176,6 +190,9 @@ architecture rtl of xtx_streamer is
 
   signal tx_almost_empty, tx_almost_full : std_logic;
 
+  signal buf_frame_count_inc_ref : std_logic;
+  signal buf_frame_count_dec_sys : std_logic;
+  
   signal buf_frame_count : unsigned(5 downto 0) := (others => '0');
 
 
@@ -183,6 +200,15 @@ architecture rtl of xtx_streamer is
   signal tag_valid, tag_valid_latched : std_logic;
 
   signal link_ok_delay_cnt         : unsigned(25 downto 0);
+  signal link_ok_delay_expired : std_logic;
+  signal link_ok_delay_expired_ref : std_logic;
+  signal link_ok_ref : std_logic;
+  
+  signal clk_data : std_logic;
+  signal rst_n_ref : std_logic;
+
+  signal stamper_pulse_a : std_logic;
+  
   constant c_link_ok_rst_delay     : unsigned(25 downto 0) := to_unsigned(62500000, 26);-- 1s
   constant c_link_ok_rst_delay_sim : unsigned(25 downto 0) := to_unsigned(g_sim_startup_cnt, 26);
 
@@ -258,7 +284,7 @@ begin  -- rtl
         d_valid_o => fab_src.dvalid,
         d_req_i   => fab_src.dreq);
   end generate gen_escape;
-  gen_no_escape: if (g_escape_code_disable = TRUE) generate
+  gen_no_escape : if (g_escape_code_disable = true) generate
     fab_src.data   <= fsm_out.data;
     fab_src.dvalid <= fsm_out.dvalid;
     fsm_out.dreq   <= fab_src.dreq;
@@ -266,6 +292,8 @@ begin  -- rtl
 
   tx_fifo_we <= tx_valid_i and not tx_fifo_full;
   tx_fifo_d  <= tx_last_p1_i & tx_data_i;
+
+  gen_use_sys_clock_for_data : if g_use_ref_clock_for_data = 0 generate
 
   U_TX_Buffer : generic_sync_fifo
     generic map (
@@ -288,10 +316,102 @@ begin  -- rtl
       almost_empty_o => tx_almost_empty,
       almost_full_o  => tx_almost_full
       );
-  tx_fifo_rd       <= '1' when (state = PAYLOAD    and ser_count = g_data_width/16-1 and 
-                          fsm_out.dreq = '1' and tx_fifo_empty = '0')         else
-                      '0';
-  tx_threshold_hit <= '1' when tx_almost_empty = '0' and (buf_frame_count /= 0) else '0';
+
+    clk_data <= clk_sys_i;
+    stamper_pulse_a <= fsm_out.sof;
+
+  end generate gen_use_sys_clock_for_data;
+
+  gen_use_ref_clock_for_data : if g_use_ref_clock_for_data /= 0 generate
+
+    U_TX_Buffer : generic_async_fifo
+      generic map (
+        g_data_width             => g_data_width + 1,
+        g_size                   => g_tx_buffer_size,
+        g_with_rd_empty => true,
+        g_with_wr_full => true,
+        g_with_wr_almost_full       => true,
+        g_with_rd_almost_empty      => true,
+        g_almost_empty_threshold => g_tx_threshold,
+        g_almost_full_threshold  => g_tx_buffer_size - 2,
+        g_show_ahead             => true)
+      port map (
+        rst_n_i           => rst_n_i,
+        clk_wr_i          => clk_ref_i,
+        clk_rd_i          => clk_sys_i,
+        d_i               => tx_fifo_d,
+        we_i              => tx_fifo_we,
+        q_o               => tx_fifo_q_int,
+        rd_i              => tx_fifo_rd_int,
+        rd_empty_o        => tx_fifo_empty_int,
+        wr_full_o         => tx_fifo_full,
+        rd_almost_empty_o => tx_almost_empty,
+        wr_almost_full_o  => tx_almost_full
+        );
+
+    -- emulate show-ahead mode, not supported by async fifos in the
+    -- general-cores library.
+    
+    tx_fifo_rd_int <= not tx_fifo_empty_int when tx_fifo_q_valid = '0' else tx_fifo_rd;
+    tx_fifo_q <= tx_fifo_q_int when tx_fifo_rd_int_d = '1' else tx_fifo_q_reg;
+      
+    p_show_ahead : process(clk_sys_i)
+    begin
+      if rising_edge(clk_sys_i) then
+        if rst_n_i = '0' then
+          tx_fifo_empty <= '0';
+          tx_fifo_q_valid <= '0';
+        else
+
+          if tx_fifo_rd_int = '1' then
+            tx_fifo_q_valid <= '1';
+            tx_fifo_empty <= '0';
+          elsif tx_fifo_rd = '1' then
+            tx_fifo_q_valid <= not tx_fifo_empty_int;
+            tx_fifo_empty <= not tx_fifo_q_valid;
+          end if;
+          
+          if tx_fifo_rd_int_d = '1' then
+            tx_fifo_q_reg <= tx_fifo_q;
+          end if;
+
+          tx_fifo_rd_int_d <= tx_fifo_rd_int;
+        end if;
+      end if;
+      
+    end process;
+    
+
+    clk_data <= clk_ref_i;
+
+    p_detect_sof : process(clk_ref_i)
+    begin
+      if rising_edge(clk_ref_i) then
+        if rst_n_ref = '0' then
+          tx_idle <= '1';
+          stamper_pulse_a <= '0';
+        else
+          if tx_last_p1_i = '1' and tx_valid_i = '1' then
+            tx_idle <= '1';
+          elsif tx_valid_i = '1' then
+            tx_idle <= '0';
+          end if;
+
+          stamper_pulse_a <= tx_valid_i and tx_idle;
+        end if;
+      end if;
+    end process;
+
+  end generate gen_use_ref_clock_for_data;
+
+  -- sys clock domain
+  tx_fifo_rd <= '1' when (state = PAYLOAD and ser_count = g_data_width/16-1 and
+                          fsm_out.dreq = '1' and tx_fifo_empty = '0') else
+                '0';
+
+  -- sys clock domain
+  tx_threshold_hit <= '1' when tx_almost_empty = '0' and (signed(buf_frame_count) > 0) else '0';
+  
   tx_fifo_last     <= tx_fifo_q(g_data_width);
 
   U_Timestamper : pulse_stamper
@@ -301,7 +421,7 @@ begin  -- rtl
       clk_ref_i       => clk_ref_i,
       clk_sys_i       => clk_sys_i,
       rst_n_i         => rst_n_i,
-      pulse_a_i       => fsm_out.sof,
+      pulse_a_i       => stamper_pulse_a,
       tm_time_valid_i => tm_time_valid_i,
       tm_tai_i        => tm_tai_i,
       tm_cycles_i     => tm_cycles_i,
@@ -309,20 +429,21 @@ begin  -- rtl
       tag_cycles_o    => tag_cycles,
       tag_valid_o     => tag_valid);
 
-  p_frame_counter : process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
-        buf_frame_count <= (others => '0');
-      else
-        if(tx_fifo_we = '1' and tx_last_p1_i = '1' and (tx_fifo_rd = '0' or tx_fifo_last = '0')) then
-          buf_frame_count <= buf_frame_count+ 1;
-        elsif((tx_fifo_we = '0' or tx_last_p1_i = '0') and (tx_fifo_rd = '1' and tx_fifo_last = '1')) then
-          buf_frame_count <= buf_frame_count - 1;
-        end if;
-      end if;
-    end if;
-  end process;
+  buf_frame_count_inc_ref <= tx_fifo_we and tx_last_p1_i;
+  buf_frame_count_dec_sys <= tx_fifo_rd and tx_fifo_last;
+
+  U_FrameCounter: gc_async_counter_diff
+    generic map (
+      g_bits         => 5,
+      g_output_clock => "dec")
+    port map (
+      rst_n_i   => rst_n_i,
+      clk_inc_i => clk_data,
+      clk_dec_i => clk_sys_i,
+      inc_i     => buf_frame_count_inc_ref,
+      dec_i     => buf_frame_count_dec_sys,
+      counter_o => buf_frame_count);
+  
 
   p_tx_timeout : process(clk_sys_i)
   begin
@@ -346,6 +467,18 @@ begin  -- rtl
     end if;
   end process;
 
+  p_latch_timestamp : process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i)    then
+      if rst_n_i = '0' or state = IDLE then
+        tag_valid_latched <= '0';
+      elsif tag_valid = '1' then
+        tag_valid_latched <= '1';
+      end if;
+    end if;
+  end process;
+  
+  
   p_fsm : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
@@ -401,6 +534,8 @@ begin  -- rtl
 
           when ETH_HEADER =>
             if(fsm_out.dreq = '1') then
+              fsm_out.dvalid <= '1';
+
               case count(7 downto 0) is
                 when x"00" =>
                   fsm_out.data <= tx_streamer_cfg_i.mac_target(47 downto 32);
@@ -429,11 +564,18 @@ begin  -- rtl
                   count        <= count + 1;
                 when x"07" =>
                   if(tx_streamer_cfg_i.qtag_ena = '0') then
-                    fsm_out.data <= tag_valid_latched & "000" & tag_cycles(27 downto 16);
+
+                    fsm_out.data <= "1000" & tag_cycles(27 downto 16);
+                    if tag_valid_latched = '1' then
+                      count <= count + 1;
+                      fsm_out.dvalid <= '1';
+                    else
+                      fsm_out.dvalid <= '0'; 
+                    end if;
                   else
                     fsm_out.data <= tx_streamer_cfg_i.qtag_prio & '0' & tx_streamer_cfg_i.qtag_vid;
+                    count <= count + 1;
                   end if;
-                  count        <= count + 1;
                 when x"08" =>
                   if(tx_streamer_cfg_i.qtag_ena = '0') then
                     fsm_out.data <= tag_cycles(15 downto 0);
@@ -443,8 +585,13 @@ begin  -- rtl
                   end if;
                   count        <= count + 1;
                 when x"09" =>
-                  fsm_out.data <= tag_valid_latched & "000" & tag_cycles(27 downto 16);
-                  count        <= count + 1;
+                    if tag_valid_latched = '1' then
+                      count <= count + 1;
+                      fsm_out.dvalid <= '1';
+                    else
+                      fsm_out.dvalid <= '0'; 
+                    end if;
+                  fsm_out.data <= "1000" & tag_cycles(27 downto 16);
                 when x"0A" =>
                   fsm_out.data <= tag_cycles(15 downto 0);
                   state        <= FRAME_SEQ_ID;
@@ -453,7 +600,6 @@ begin  -- rtl
                   fsm_out.data <= (others => 'X');
                   count        <= (others => 'X');
               end case;
-              fsm_out.dvalid <= '1';
             else
               fsm_out.dvalid <= '0';
             end if;
@@ -469,7 +615,7 @@ begin  -- rtl
               crc_reset         <= '0';
               state             <= PAYLOAD;
             else
-              fsm_out.dvalid    <= '0';
+              fsm_out.dvalid <= '0';
             end if;
           
           when SUBFRAME_HEADER =>
@@ -589,16 +735,52 @@ begin  -- rtl
           else
             link_ok_delay_cnt     <= c_link_ok_rst_delay;
           end if;
+        link_ok_delay_expired <= '0';
         else
           -- first initial moments of link_ok_i high are ignored
           if(link_ok_i = '1' and link_ok_delay_cnt > 0) then
             link_ok_delay_cnt     <= link_ok_delay_cnt-1;
           end if;
+
+          if link_ok_delay_cnt > 0 then
+            link_ok_delay_expired <= '0';
+          else
+            link_ok_delay_expired <= '1';
+          end if;
         end if;
       end if;
     end process;
 
-  tx_dreq_o <= '0' when (link_ok_delay_cnt > 0) else
-               (not tx_almost_full) and link_ok_i;
+  U_SyncReset_to_RefClk : gc_sync_ffs
+    port map (
+      clk_i    => clk_ref_i,
+      rst_n_i  => '1',
+      data_i   => rst_n_i,
+      synced_o => rst_n_ref);
+
+  U_SyncLinkOK_to_RefClk : gc_sync_ffs
+    port map (
+      clk_i    => clk_ref_i,
+      rst_n_i  => rst_n_ref,
+      data_i   => link_ok_i,
+      synced_o => link_ok_ref);
+
+  U_SyncLinkDelayExpired_to_RefClk : gc_sync_ffs
+    port map (
+      clk_i    => clk_ref_i,
+      rst_n_i  => rst_n_ref,
+      data_i   => link_ok_delay_expired,
+      synced_o => link_ok_delay_expired_ref);
+
+  p_tx_dreq_gen : process(link_ok_delay_expired_ref, tx_almost_full, link_ok_ref)
+  begin
+    if link_ok_delay_expired_ref = '0' then
+      tx_dreq_o <= '0';
+    else
+      tx_dreq_o <= not tx_almost_full and link_ok_ref;
+    end if;
+  end process;
+
+
 
 end rtl;

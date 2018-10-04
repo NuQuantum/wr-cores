@@ -75,6 +75,12 @@ entity xwr_streamers is
     -- 125MHz for WR Nodes. There are some WR Nodes that work with 62.5MHz.
     -- in the future, more frequences might be supported..
     g_clk_ref_rate             : integer := 125000000;
+
+    -- when non-zero, the datapath (tx_/rx_ ports) are in the clk_ref_i clock
+    -- domain instead of clk_sys_i. This is a must for fixed latency mode if
+    -- clk_sys_i is asynchronous (i.e. not locked) to the WR timing.
+    g_use_ref_clock_for_data : integer := 0;
+    
     -----------------------------------------------------------------------------------------
     -- Transmission/reception parameters
     -----------------------------------------------------------------------------------------
@@ -97,11 +103,22 @@ entity xwr_streamers is
     );
 
   port (
+    ---------------------------------------------------------------------------
+    -- Clocks & Resets
+    ---------------------------------------------------------------------------
+
+    -- System clock. Used always for the WR fabric interface (src/snk) and
+    -- for the data path (tx_/rx_ ports) if g_use_ref_clock_for_data = 0.
     clk_sys_i                  : in std_logic;
+
+    -- WR Reference clock, 62.5 or 125 MHz. Frequency must match g_ref_clk_rate
+    -- generic. Used for latency measurement and timestamping (tm_ ports).
+    -- It also clocks Tx_/rx_ interfaces if g_use_ref_clock_for_data != 0.
+    clk_ref_i                  : in std_logic := '0';
     rst_n_i                    : in std_logic;
 
     ---------------------------------------------------------------------------
-    -- WR tx/rx interface
+    -- WR tx/rx interface (clk_sys clock domain)
     ---------------------------------------------------------------------------
     -- Tx
     src_i                      : in  t_wrf_source_in;
@@ -110,8 +127,9 @@ entity xwr_streamers is
     snk_i                      : in  t_wrf_sink_in;
     snk_o                      : out t_wrf_sink_out;
 
+   
     ---------------------------------------------------------------------------
-    -- User tx interface
+    -- User tx interface (clk_data clock domain)
     ---------------------------------------------------------------------------
     -- Data word to be sent.
     tx_data_i                  : in std_logic_vector(g_tx_streamer_params.data_width-1 downto 0);
@@ -146,8 +164,6 @@ entity xwr_streamers is
     -- WRC Timing interface, used for latency measurement
     ---------------------------------------------------------------------------
 
-    -- White Rabbit reference clock
-    clk_ref_i                  : in std_logic := '0';
     -- Time valid flag
     tm_time_valid_i            : in std_logic := '0';
     -- TAI seconds
@@ -220,13 +236,14 @@ begin
         g_tx_timeout             => g_tx_streamer_params.timeout,
         g_escape_code_disable    => g_tx_streamer_params.escape_code_disable,
         g_simulation             => g_simulation,
-        g_clk_ref_rate           => g_clk_ref_rate)
+        g_clk_ref_rate           => g_clk_ref_rate,
+        g_use_ref_clock_for_data => g_use_ref_clock_for_data)
       port map(
         clk_sys_i                => clk_sys_i,
+        clk_ref_i                => clk_ref_i,
         rst_n_i                  => rst_n_i,
         src_i                    => src_i,
         src_o                    => src_o,
-        clk_ref_i                => clk_ref_i,
         tm_time_valid_i          => tm_time_valid_i,
         tm_tai_i                 => tm_tai_i,
         tm_cycles_i              => tm_cycles_i,
