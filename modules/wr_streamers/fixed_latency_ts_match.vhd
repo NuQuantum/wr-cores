@@ -41,15 +41,18 @@ architecture rtl of fixed_latency_ts_match is
   signal armed         : std_logic;
 
   signal tm_cycles_scaled : unsigned(28 downto 0);
+  signal ts_latency_scaled : unsigned(28 downto 0);
   
 begin
 
-  process(tm_cycles_i)
+  process(tm_cycles_i, ts_latency_i)
   begin
     if g_clk_ref_rate = 62500000 then
       tm_cycles_scaled <= unsigned(tm_cycles_i & '0');
+      ts_latency_scaled <= unsigned(ts_latency_i & '0');
     elsif g_clk_ref_rate = 125000000 then
       tm_cycles_scaled <= unsigned('0' & tm_cycles_i);
+      ts_latency_scaled <= unsigned('0' & ts_latency_i);
     else
       report "Unsupported g_clk_ref_rate (62.5 / 125 MHz)" severity failure;
     end if;
