@@ -321,8 +321,22 @@ architecture struct of xwrc_board_vxs is
   signal ext_ref_mul_stopped : std_logic;
   signal ext_ref_rst         : std_logic;
 
+  -- generate reset on change of the multiplexed port
+  signal sfp_mux_sel_d1   : std_logic;
+  signal rst_bc_62m5_d_n  : std_logic_vector(1 downto 0);
+  signal rst_bc_62m5_n    : std_logic;
+  signal sfp_mux_sel      : std_logic;
+
 begin  -- architecture struct
 
+  -- synchronize the sfp_mux_sel_i just in case it comes from different
+  -- clock domain...
+  U_sync_with_clk : gc_sync_ffs
+    port map (
+      clk_i          => clk_pll_62m5,
+      rst_n_i        => rst_62m5_n,
+      data_i         => sfp_mux_sel_i,
+      synced_o       => sfp_mux_sel);
   -----------------------------------------------------------------------------
   -- Platform-dependent part (PHY, PLLs, buffers, etc)
   -----------------------------------------------------------------------------
@@ -362,7 +376,7 @@ begin  -- architecture struct
       sfp_los_i             => sfp_los_i,
       sfp_tx_disable_o      => sfp_tx_disable_o,
 
-      sfp_mux_sel_i         => sfp_mux_sel_i,
+      sfp_mux_sel_i         => sfp_mux_sel,
 
       -- ch1
       sfp1_txn_o            => sfp1_txn_o,
@@ -428,6 +442,20 @@ begin  -- architecture struct
   rst_sys_62m5_n_o <= rst_62m5_n;
   rst_ref_125m_n_o <= rstlogic_rst_out(1);
 
+  -- reset Board Common (BC) with WRPC when switching between SFPs, thus
+  -- regenerate the rst_62m5_n only for the Board Common
+  process(clk_pll_62m5)
+  begin
+    if rising_edge(clk_pll_62m5) then
+      if rst_62m5_n = '0' then
+        rst_bc_62m5_n  <= rst_62m5_n;
+        sfp_mux_sel_d1 <= sfp_mux_sel;
+      else
+        sfp_mux_sel_d1 <= sfp_mux_sel;
+        rst_bc_62m5_n  <= rst_62m5_n and not (sfp_mux_sel xor sfp_mux_sel_d1);
+      end if;
+    end if;
+  end process;
   -----------------------------------------------------------------------------
   -- 2x SPI DAC
   -----------------------------------------------------------------------------
@@ -493,7 +521,7 @@ begin  -- architecture struct
       clk_ext_stopped_i    => ext_ref_mul_stopped,
       clk_ext_rst_o        => ext_ref_rst,
       pps_ext_i            => pps_ext_i,
-      rst_n_i              => rst_62m5_n,
+      rst_n_i              => rst_bc_62m5_n,
       dac_hpll_load_p1_o   => dac_hpll_load_p1,
       dac_hpll_data_o      => dac_hpll_data,
       dac_dpll_load_p1_o   => dac_dpll_load_p1,
@@ -511,7 +539,7 @@ begin  -- architecture struct
       sfp_sda_i            => sfp_sda_i,
       sfp_det_i            => sfp_det_i,
 
-      sfp_mux_sel_i        => sfp_mux_sel_i,
+      sfp_mux_sel_i        => sfp_mux_sel,
 
       sfp1_scl_o           => sfp1_scl_o,
       sfp1_scl_i           => sfp1_scl_i,
