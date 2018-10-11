@@ -119,6 +119,7 @@ entity xtx_streamer is
 
     -- status of the link, in principle the tx can be done only if link is oK
     link_ok_i                  : in std_logic := '1';
+
     ---------------------------------------------------------------------------
     -- User interface
     ---------------------------------------------------------------------------
@@ -334,7 +335,7 @@ begin  -- rtl
         g_with_rd_almost_empty      => true,
         g_almost_empty_threshold => g_tx_threshold,
         g_almost_full_threshold  => g_tx_buffer_size - 2,
-        g_show_ahead             => true)
+        g_show_ahead             => false)
       port map (
         rst_n_i           => rst_n_i,
         clk_wr_i          => clk_ref_i,
@@ -351,37 +352,22 @@ begin  -- rtl
 
     -- emulate show-ahead mode, not supported by async fifos in the
     -- general-cores library.
+
+    U_ShowAheadAdapter : entity work.fifo_showahead_adapter
+      generic map (
+        g_width => g_data_width + 1)
+      port map (
+        clk_i        => clk_sys_i,
+        rst_n_i      => rst_n_i,
+        fifo_q_i     => tx_fifo_q_int,
+        fifo_empty_i => tx_fifo_empty_int,
+        fifo_rd_o    => tx_fifo_rd_int,
+        q_o          => tx_fifo_q,
+        valid_o      => tx_fifo_q_valid,
+        rd_i         => tx_fifo_rd);
+
+    tx_fifo_empty <= not tx_fifo_q_valid;
     
-    tx_fifo_rd_int <= not tx_fifo_empty_int when tx_fifo_q_valid = '0' else tx_fifo_rd;
-    tx_fifo_q <= tx_fifo_q_int when tx_fifo_rd_int_d = '1' else tx_fifo_q_reg;
-      
-    p_show_ahead : process(clk_sys_i)
-    begin
-      if rising_edge(clk_sys_i) then
-        if rst_n_i = '0' then
-          tx_fifo_empty <= '0';
-          tx_fifo_q_valid <= '0';
-        else
-
-          if tx_fifo_rd_int = '1' then
-            tx_fifo_q_valid <= '1';
-            tx_fifo_empty <= '0';
-          elsif tx_fifo_rd = '1' then
-            tx_fifo_q_valid <= not tx_fifo_empty_int;
-            tx_fifo_empty <= not tx_fifo_q_valid;
-          end if;
-          
-          if tx_fifo_rd_int_d = '1' then
-            tx_fifo_q_reg <= tx_fifo_q;
-          end if;
-
-          tx_fifo_rd_int_d <= tx_fifo_rd_int;
-        end if;
-      end if;
-      
-    end process;
-    
-
     clk_data <= clk_ref_i;
 
     p_detect_sof : process(clk_ref_i)
@@ -494,7 +480,6 @@ begin  -- rtl
         crc_en         <= '0';
         crc_reset      <= '1';
         tx_frame_p1_o     <= '0';
-        tag_valid_latched <= '0';
         tx_flush_latched  <= '0';
         fsm_escape_enable <= '0';
         fsm_escape        <= '0';
@@ -503,15 +488,13 @@ begin  -- rtl
         if(tx_reset_seq_i = '1') then
           seq_no <= (others => '0');
         end if;
-        if(tag_valid = '1') then 
-          tag_valid_latched <= '1'; -- overriden in IDLE
+        if(tag_valid = '1') then
         end if;
         tx_flush_latched <= '0';-- overriden in IDLE
 
         case state is
           when IDLE =>
-            tag_valid_latched <= '0';
-            tx_flush_latched  <= tx_flush_p1_i or tx_timeout_hit;
+            tx_flush_latched  <= (tx_flush_p1_i or tx_timeout_hit) and not tx_fifo_empty;
             crc_en         <= '0';
             crc_reset      <= '0';
             fsm_out.eof    <= '0';
