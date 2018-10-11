@@ -379,7 +379,6 @@ begin  -- architecture struct
   wb_err_o   <= wb_slave_out.err;
   wb_rty_o   <= wb_slave_out.rty;
   wb_stall_o <= wb_slave_out.stall;
-  wb_int_o   <= wb_slave_out.int;
   wb_dat_o   <= wb_slave_out.dat;
 
   aux_master_adr_o <= aux_master_out.adr;
@@ -391,7 +390,6 @@ begin  -- architecture struct
 
   aux_master_in.dat   <= aux_master_dat_i;
   aux_master_in.ack   <= aux_master_ack_i;
-  aux_master_in.int   <= aux_master_int_i;
   aux_master_in.err   <= aux_master_err_i;
   aux_master_in.rty   <= aux_master_rty_i;
   aux_master_in.stall <= aux_master_stall_i;
@@ -428,7 +426,6 @@ begin  -- architecture struct
 
   wb_eth_master_in.dat   <= wb_eth_dat_i;
   wb_eth_master_in.ack   <= wb_eth_ack_i;
-  wb_eth_master_in.int   <= wb_eth_int_i;
   wb_eth_master_in.err   <= wb_eth_err_i;
   wb_eth_master_in.rty   <= wb_eth_rty_i;
   wb_eth_master_in.stall <= wb_eth_stall_i;
