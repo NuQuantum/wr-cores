@@ -147,7 +147,7 @@ entity xwrc_board_common is
     sfp1_scl_i : in  std_logic := '1';
     sfp1_sda_o : out std_logic;
     sfp1_sda_i : in  std_logic := '1';
-    sfp1_det_i : in  std_logic;
+    sfp1_det_i : in  std_logic := '0';
 
     ---------------------------------------------------------------------------
     -- Flash memory SPI interface

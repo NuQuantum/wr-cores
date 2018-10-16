@@ -154,7 +154,7 @@ package wr_board_pkg is
       sfp1_scl_i           : in  std_logic                                        := '1';
       sfp1_sda_o           : out std_logic;
       sfp1_sda_i           : in  std_logic                                        := '1';
-      sfp1_det_i           : in  std_logic;
+      sfp1_det_i           : in  std_logic                                        := '1';
       spi_sclk_o           : out std_logic;
       spi_ncs_o            : out std_logic;
       spi_mosi_o           : out std_logic;

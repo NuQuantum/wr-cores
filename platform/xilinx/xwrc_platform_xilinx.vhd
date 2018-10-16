@@ -130,8 +130,8 @@ entity xwrc_platform_xilinx is
     ---------------------------------------------------------------------------
     sfp1_txn_o            : out std_logic;
     sfp1_txp_o            : out std_logic;
-    sfp1_rxn_i            : in  std_logic;
-    sfp1_rxp_i            : in  std_logic;
+    sfp1_rxn_i            : in  std_logic             := '0';
+    sfp1_rxp_i            : in  std_logic             := '0';
     sfp1_tx_fault_i       : in  std_logic             := '0';
     sfp1_los_i            : in  std_logic             := '0';
     sfp1_tx_disable_o     : out std_logic;
