@@ -12,7 +12,9 @@ entity fixed_latency_delay is
     g_data_width             : integer;
     g_buffer_size : integer;
     g_use_ref_clock_for_data : integer;
-    g_clk_ref_rate : integer
+    g_clk_ref_rate           : integer;
+    g_simulation             : integer := 0;
+    g_sim_cycle_counter_range: integer := 125000000
     );
   port(
     rst_n_i : in std_logic;
@@ -54,9 +56,7 @@ architecture rtl of fixed_latency_delay is
   type t_state is (IDLE, TS_SETUP_MATCH, TS_WAIT_MATCH, SEND);
 
   signal State: t_state;
-  
-  signal clk_data           : std_logic;
-  signal rst_n_data : std_logic;
+
   signal rst_n_ref : std_logic;
   signal wr_full            : std_logic;
   constant c_datapath_width : integer := g_data_width + 2 + 28 + 1;
@@ -175,7 +175,7 @@ begin
           when TS_WAIT_MATCH =>
             if delay_miss = '1' or delay_match = '1' then
 
-              if fifo_last = '1' then
+              if fifo_last = '1' and fifo_empty = '0' then
                 state <= TS_SETUP_MATCH;
               else
                 state <= SEND;
@@ -190,7 +190,8 @@ begin
               else
                 state <= TS_SETUP_MATCH;
               end if;
-
+            elsif fifo_empty = '1' then
+              state <= IDLE;
             end if;
         end case;
       end if;
@@ -200,7 +201,9 @@ begin
 
   U_Compare: entity work.fixed_latency_ts_match
     generic map (
-      g_clk_ref_rate => g_clk_ref_rate)
+      g_clk_ref_rate => g_clk_ref_rate,
+      g_sim_cycle_counter_range => g_sim_cycle_counter_range,
+      g_simulation => g_simulation)
     port map (
       clk_i           => clk_ref_i,
       rst_n_i         => rst_n_ref,

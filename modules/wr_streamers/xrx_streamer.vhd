@@ -275,7 +275,9 @@ begin  -- rtl
       g_data_width             => g_data_width,
       g_buffer_size            => 32,
       g_use_ref_clock_for_data => g_use_ref_clock_for_data,
-      g_clk_ref_rate => g_clk_ref_rate)
+      g_clk_ref_rate => g_clk_ref_rate,
+      g_sim_cycle_counter_range => g_sim_cycle_counter_range,
+      g_simulation => g_simulation)
     port map (
       rst_n_i          => rst_n_i,
       clk_sys_i        => clk_sys_i,

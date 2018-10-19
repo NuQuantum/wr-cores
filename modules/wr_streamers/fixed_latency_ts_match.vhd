@@ -4,7 +4,11 @@ use ieee.numeric_std.all;
 
 entity fixed_latency_ts_match is
   generic
-    (g_clk_ref_rate : integer);
+    (g_clk_ref_rate : integer;
+     g_simulation : integer := 0;
+     g_sim_cycle_counter_range : integer := 125000000
+
+     );
   port
     (
       clk_i   : in std_logic;
@@ -32,11 +36,21 @@ end entity;
 
 architecture rtl of fixed_latency_ts_match is
 
-  constant c_unwrap_threshold : integer := 62500000;
+  impure function f_cycles_counter_range return integer is
+  begin
+    if g_simulation = 1 then
+      return g_sim_cycle_counter_range;
+    else
+      return 125000000;
+    end if;
+  end function;
+  
+  constant c_rollover_threshold_lo : integer := f_cycles_counter_range / 4;
+  constant c_rollover_threshold_hi : integer := f_cycles_counter_range * 3 / 4;
+  
 
   signal ts_adjusted   : unsigned(28 downto 0);
   signal target_cycles : unsigned(28 downto 0);
-  signal delta : signed(28 downto 0);
   signal arm_d         : std_logic_vector(2 downto 0);
   signal armed         : std_logic;
 
@@ -64,6 +78,7 @@ begin
   begin
     if rising_edge(clk_i) then
       if rst_n_i = '0' then
+        armed <= '0';
         arm_d  <= (others => '0');
         miss_o <= '0';
       else
@@ -73,17 +88,19 @@ begin
           match_o     <= '0';
           miss_o      <= '0';
           ts_adjusted <= resize(unsigned(ts_origin_i) + unsigned(ts_latency_i), 29);
-          delta       <= signed('0'&ts_origin_i) + signed('0'&ts_latency_i) - signed('0'&tm_cycles_i);
         end if;
 
-        if delta < -c_unwrap_threshold or delta > c_unwrap_threshold then
-          ts_adjusted   <= ts_adjusted + 125000000;
-          target_cycles <= tm_cycles_scaled + 125000000;
-            
+        if ts_adjusted < c_rollover_threshold_lo and tm_cycles_scaled > c_rollover_threshold_hi then
+          target_cycles <= tm_cycles_scaled + f_cycles_counter_range;
+          if arm_d(0) = '1' then
+            ts_adjusted <= ts_adjusted + f_cycles_counter_range;
+          end if;
+          
         else
           target_cycles <= tm_cycles_scaled;
         end if;
-
+        
+          
         if (arm_d(1) = '1') then
           if ts_adjusted < target_cycles then
             miss_o <= '1';
@@ -92,7 +109,7 @@ begin
           end if;
         end if;
 
-        if armed = '1' and ts_adjusted = target_cycles then
+        if armed = '1' and ts_adjusted = tm_cycles_scaled then
           match_o <= '1';
           armed <= '0';
         else
