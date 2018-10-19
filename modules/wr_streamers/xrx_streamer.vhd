@@ -78,6 +78,10 @@ entity xrx_streamer is
     -- in the future, more frequences might be supported..
     g_clk_ref_rate : integer := 125000000;
 
+    g_simulation : integer := 0;
+
+    g_sim_cycle_counter_range : integer := 125000000;
+
     g_use_ref_clock_for_data : integer := 0
     );
 
@@ -189,8 +193,21 @@ architecture rtl of xrx_streamer is
   constant c_timestamper_delay  : unsigned(27 downto 0) := to_unsigned(12, 28); -- cycles
 
   signal fifo_last_int : std_logic;
+
+  signal rst_int_n : std_logic;
   
 begin  -- rtl
+
+  p_software_reset : process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' then
+        rst_int_n <= '0';
+      else
+        rst_int_n <= not rx_streamer_cfg_i.sw_reset;
+      end if;
+    end if;
+  end process;
 
   U_rx_crc_generator : gc_crc_gen
     generic map (
@@ -215,7 +232,7 @@ begin  -- rtl
   U_Fabric_Sink : xwb_fabric_sink
     port map (
       clk_i     => clk_sys_i,
-      rst_n_i   => rst_n_i,
+      rst_n_i   => rst_int_n,
       snk_i     => snk_i,
       snk_o     => snk_o,
       addr_o    => fab.addr,
@@ -235,7 +252,7 @@ begin  -- rtl
         g_escape_code => x"cafe")
       port map (
         clk_i             => clk_sys_i,
-        rst_n_i           => rst_n_i,
+        rst_n_i           => rst_int_n,
         d_i               => fab.data,
         d_detect_enable_i => detect_escapes,
         d_valid_i         => fab.dvalid,
@@ -260,7 +277,7 @@ begin  -- rtl
     port map (
       clk_ref_i       => clk_ref_i,
       clk_sys_i       => clk_sys_i,
-      rst_n_i         => rst_n_i,
+      rst_n_i         => rst_int_n,
       pulse_a_i       => fsm_in.sof,
       tm_time_valid_i => tm_time_valid_i,
       tm_tai_i        => tm_tai_i,
@@ -279,7 +296,7 @@ begin  -- rtl
       g_sim_cycle_counter_range => g_sim_cycle_counter_range,
       g_simulation => g_simulation)
     port map (
-      rst_n_i          => rst_n_i,
+      rst_n_i          => rst_int_n,
       clk_sys_i        => clk_sys_i,
       clk_ref_i        => clk_ref_i,
       tm_time_valid_i  => tm_time_valid_i,
@@ -301,59 +318,11 @@ begin  -- rtl
       rx_dreq_i        => rx_dreq_i,
       rx_streamer_cfg_i => rx_streamer_cfg_i);
 
--- introduce fixed latency, if configured to do so
-  -- p_fixed_latency_fsm : process(clk_sys_i)
-  -- begin
-  --   if rising_edge(clk_sys_i) then
-  --     if rst_n_i = '0' then
-  --       delay_state       <= DISABLED;
-  --       rx_latency_stored <= (others => '0');
-  --       rx_dreq_allow     <= '1';
-  --       delay_cnt         <= c_timestamper_delay;
-  --     else
-  --       case delay_state is
-  --         when DISABLED =>
-  --           if unsigned(rx_streamer_cfg_i.fixed_latency) /= c_fixed_latency_zero then
-  --             delay_state <= ALLOW;
-  --           end if;
-  --           rx_latency_stored <= (others => '0');
-  --           delay_cnt         <= c_timestamper_delay;
-  --           rx_dreq_allow     <= '1';
-  --         when ALLOW =>
-  --           if unsigned(rx_streamer_cfg_i.fixed_latency) = c_fixed_latency_zero then
-  --             delay_state <= DISABLED;
-  --           elsif(rx_latency_valid = '1') then
-  --             rx_dreq_allow     <= '0';
-  --             rx_latency_stored <= rx_latency;
-  --             delay_state       <= DELAY;
-  --           end if;
-  --           if(timestamped = '1') then
-  --           if(rx_tag_valid= '1') then
-  --             delay_cnt <= c_timestamper_delay;
-  --           else
-  --             delay_cnt <= delay_cnt + 2;
-  --           end if;
-  --         when DELAY =>
-  --           if unsigned(rx_streamer_cfg_i.fixed_latency) <= delay_cnt + rx_latency_stored then
-  --             rx_latency_stored <= (others => '0');
-  --             rx_dreq_allow     <= '1';
-  --             delay_state       <= ALLOW;
-  --           else
-  --             delay_cnt <= delay_cnt + 2;
-  --           end if;
-  --       end case;
-  --     end if;
-  --   end if;
-  -- end process;
-
-  -------------------------------------------------------------------------------------------
-  -- end of fixed latency implementation
-  -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   p_fsm : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
+      if rst_int_n = '0' then
         state                  <= IDLE;
         count                  <= (others => '0');
         seq_no                 <= (others => '1');
@@ -696,6 +665,6 @@ begin  -- rtl
   rx_lost_frames_p1_o <= frames_lost;
   rx_latency_o        <= std_logic_vector(rx_latency);
   rx_latency_valid_o  <= rx_latency_valid;
-  crc_restart <= '1' when (state = FRAME_SEQ_ID or (is_escape = '1' and fsm_in.data(15) = '1')) else not rst_n_i;
+  crc_restart <= '1' when (state = FRAME_SEQ_ID or (is_escape = '1' and fsm_in.data(15) = '1')) else not rst_int_n;
 
 end rtl;

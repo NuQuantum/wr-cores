@@ -139,6 +139,8 @@ package streamers_pkg is
     filter_remote          : std_logic;
     -- value in cycles of fixed-latency enforced on data
     fixed_latency          : std_logic_vector(27 downto 0);
+    -- software controlled reset
+    sw_reset : std_logic;
   end record;
 
   type t_tx_streamer_cfg is record
@@ -156,6 +158,8 @@ package streamers_pkg is
     qtag_vid               : std_logic_vector(11 downto 0);
     -- priority used to tag
     qtag_prio              : std_logic_vector(2  downto 0);
+    -- software controlled reset
+    sw_reset : std_logic;
   end record;
 
   constant c_rx_streamer_cfg_default: t_rx_streamer_cfg :=(
@@ -164,7 +168,8 @@ package streamers_pkg is
     ethertype              => x"dbff",
     accept_broadcasts      => '1',
     filter_remote          => '0',
-    fixed_latency          => x"0000000");
+    fixed_latency          => x"0000000",
+    sw_reset => '0');
 
   constant c_tx_streamer_cfg_default: t_tx_streamer_cfg :=(
     mac_local              => x"000000000000",
@@ -172,7 +177,8 @@ package streamers_pkg is
     ethertype              => x"dbff",
     qtag_ena               => '0',
     qtag_vid               => x"000",
-    qtag_prio              => "000");
+    qtag_prio              => "000",
+    sw_reset => '0');
 
   component xtx_streamer
     generic (
