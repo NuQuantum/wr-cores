@@ -194,7 +194,7 @@ architecture rtl of xtx_streamer is
   signal buf_frame_count_inc_ref : std_logic;
   signal buf_frame_count_dec_sys : std_logic;
   
-  signal buf_frame_count : unsigned(5 downto 0) := (others => '0');
+  signal buf_frame_count : std_logic_vector(5 downto 0);
 
 
   signal tag_cycles                   : std_logic_vector(27 downto 0);
@@ -488,19 +488,19 @@ begin  -- rtl
         if(tx_reset_seq_i = '1') then
           seq_no <= (others => '0');
         end if;
-        if(tag_valid = '1') then
+
+        if tx_flush_p1_i = '1' or tx_timeout_hit = '1' then
+          tx_flush_latched  <= '1';
         end if;
-        tx_flush_latched <= '0';-- overriden in IDLE
 
         case state is
           when IDLE =>
-            tx_flush_latched  <= (tx_flush_p1_i or tx_timeout_hit) and not tx_fifo_empty;
             crc_en         <= '0';
             crc_reset      <= '0';
             fsm_out.eof    <= '0';
             tx_frame_p1_o  <= '0';
 
-            if(fsm_out.dreq = '1' and (tx_flush_latched = '1' or tx_flush_p1_i = '1' or tx_threshold_hit = '1')) then
+            if(fsm_out.dreq = '1' and tx_fifo_empty = '0' and ( tx_flush_latched = '1' or tx_threshold_hit = '1')) then
               state       <= SOF;
               fsm_out.sof <= '1';
             end if;
@@ -509,6 +509,8 @@ begin  -- rtl
             fsm_escape        <= '0';
 
           when SOF =>
+            tx_flush_latched <= '0';
+
             fsm_out.sof <= '0';
             ser_count   <= (others => '0');
             state       <= ETH_HEADER;
