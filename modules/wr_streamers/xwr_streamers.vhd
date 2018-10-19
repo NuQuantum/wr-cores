@@ -488,4 +488,9 @@ begin
                                        rx_streamer_cfg_i.filter_remote;
   rx_streamer_cfg.fixed_latency     <= from_wb.rx_cfg5_fixed_latency_o    when (from_wb.cfg_or_rx_fix_lat_o='1') else
                                        rx_streamer_cfg_i.fixed_latency;
+
+
+  rx_streamer_cfg.sw_reset <= from_wb.rstr_rst_sw_o;
+  tx_streamer_cfg.sw_reset <= from_wb.rstr_rst_sw_o;
+
 end rtl;

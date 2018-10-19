@@ -76,7 +76,8 @@ peripheral {
       access_bus = READ_ONLY;
       access_dev = WRITE_ONLY; 
     };
-  };
+	};
+
   reg {
     name = "Statistics status and ctrl register";
     prefix = "SSCR2";
@@ -615,6 +616,7 @@ peripheral {
       access_dev = WRITE_ONLY;
     };
    };
+
   reg {
     name = "Test value";
     prefix = "DUMMY";
@@ -625,6 +627,18 @@ peripheral {
       size = 32;
       access_bus = READ_ONLY;
       access_dev = WRITE_ONLY;
-      };
+		};		
   };
+
+
+  reg {
+    name = "Reset Register";
+    prefix = "RSTR";
+		field {
+			 name = "Software reset streamers";
+			 prefix = "RST_SW";
+			 description = "Writing 1 triggers a full software reset of the streamers.";
+			 type = MONOSTABLE;
+    };
+	};
 };

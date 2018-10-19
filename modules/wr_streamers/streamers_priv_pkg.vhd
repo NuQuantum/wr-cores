@@ -94,6 +94,8 @@ package streamers_priv_pkg is
       wb_stb_i                                 : in     std_logic;
       wb_we_i                                  : in     std_logic;
       wb_ack_o                                 : out    std_logic;
+      wb_err_o                                 : out    std_logic;
+      wb_rty_o                                 : out    std_logic;
       wb_stall_o                               : out    std_logic;
       regs_i                                   : in     t_wr_streamers_in_registers;
       regs_o                                   : out    t_wr_streamers_out_registers
