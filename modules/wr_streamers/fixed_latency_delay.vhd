@@ -214,7 +214,7 @@ begin
       tm_tai_i        => tm_tai_i,
       tm_cycles_i     => tm_cycles_i,
       match_o         => delay_match,
-      miss_o          => delay_miss);
+      late_o          => delay_miss);
 
   p_fsm_comb: process(state, rx_dreq_i, fifo_empty, delay_miss, fifo_last, delay_match, fifo_target_ts_en, fifo_valid)
   begin

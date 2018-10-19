@@ -29,17 +29,26 @@ entity fixed_latency_ts_match is
 
 
       match_o : out std_logic;
-      miss_o  : out std_logic
+      late_o  : out std_logic
+
+
       );
 
 end entity;
 
 architecture rtl of fixed_latency_ts_match is
 
+  type t_state is (IDLE, WRAP_ADJ_TS, CHECK_LATE, WAIT_TRIG);
+
   impure function f_cycles_counter_range return integer is
   begin
     if g_simulation = 1 then
-      return g_sim_cycle_counter_range;
+      if g_clk_ref_rate = 62500000 then
+        return 2*g_sim_cycle_counter_range;
+      else
+        return g_sim_cycle_counter_range;
+      end if;
+      
     else
       return 125000000;
     end if;
@@ -47,16 +56,18 @@ architecture rtl of fixed_latency_ts_match is
   
   constant c_rollover_threshold_lo : integer := f_cycles_counter_range / 4;
   constant c_rollover_threshold_hi : integer := f_cycles_counter_range * 3 / 4;
-  
 
   signal ts_adjusted   : unsigned(28 downto 0);
-  signal target_cycles : unsigned(28 downto 0);
-  signal arm_d         : std_logic_vector(2 downto 0);
   signal armed         : std_logic;
 
   signal tm_cycles_scaled : unsigned(28 downto 0);
   signal ts_latency_scaled : unsigned(28 downto 0);
-  
+
+  signal match : std_logic;
+  signal state : t_state;
+
+  signal ts_adj_next_cycle, roll_lo, roll_hi : std_logic;
+
 begin
 
   process(tm_cycles_i, ts_latency_i)
@@ -71,52 +82,80 @@ begin
       report "Unsupported g_clk_ref_rate (62.5 / 125 MHz)" severity failure;
     end if;
   end process;
-  
-    
-  
+
+
+
   process(clk_i)
   begin
     if rising_edge(clk_i) then
       if rst_n_i = '0' then
         armed <= '0';
-        arm_d  <= (others => '0');
-        miss_o <= '0';
+        late_o <= '0';
+        match  <= '0';
+        State  <= IDLE;
+
       else
-        arm_d <= arm_d(1 downto 0) & arm_i;
 
-        if arm_i = '1' then
-          match_o     <= '0';
-          miss_o      <= '0';
-          ts_adjusted <= resize(unsigned(ts_origin_i) + unsigned(ts_latency_i), 29);
-        end if;
+        case State is
+          when IDLE =>
+            match  <= '0';
+            late_o <= '0';
+            armed  <= '0';
 
-        if ts_adjusted < c_rollover_threshold_lo and tm_cycles_scaled > c_rollover_threshold_hi then
-          target_cycles <= tm_cycles_scaled + f_cycles_counter_range;
-          if arm_d(0) = '1' then
-            ts_adjusted <= ts_adjusted + f_cycles_counter_range;
-          end if;
-          
-        else
-          target_cycles <= tm_cycles_scaled;
-        end if;
-        
-          
-        if (arm_d(1) = '1') then
-          if ts_adjusted < target_cycles then
-            miss_o <= '1';
-          else
-            armed <= '1';
-          end if;
-        end if;
+            if arm_i = '1' then
+              ts_adjusted <= resize(unsigned(ts_origin_i) + unsigned(ts_latency_i), 29);
+              State       <= WRAP_ADJ_TS;
+              armed       <= '1';
+            end if;
 
-        if armed = '1' and ts_adjusted = tm_cycles_scaled then
-          match_o <= '1';
-          armed <= '0';
-        else
-          match_o <= '0';
-        end if;
+          when WRAP_ADJ_TS =>
+
+            ts_adj_next_cycle <= '0';
+            roll_lo           <= '0';
+            roll_hi           <= '0';
+
+
+            if ts_adjusted >= f_cycles_counter_range then
+              ts_adj_next_cycle <= '1';
+              ts_adjusted       <= ts_adjusted - f_cycles_counter_range;
+            end if;
+
+            if ts_adjusted < c_rollover_threshold_lo then
+              roll_lo <= '1';
+            end if;
+
+            if tm_cycles_scaled > c_rollover_threshold_hi then
+              roll_hi <= '1';
+            end if;
+
+          State <= CHECK_LATE;
+
+          when CHECK_LATE =>
+
+            if roll_lo = '1' and roll_hi = '1' then
+              if ts_adj_next_cycle = '0' then
+                late_o <= '1';
+                State  <= IDLE;
+              else
+                State <= WAIT_TRIG;
+              end if;
+            else
+              State <= WAIT_TRIG;
+            end if;
+
+
+
+          when WAIT_TRIG =>
+            if ts_adjusted = tm_cycles_scaled then
+              match <= '1';
+              State <= IDLE;
+            end if;
+
+        end case;
       end if;
     end if;
   end process;
+
+  match_o <= match;
 
 end rtl;
