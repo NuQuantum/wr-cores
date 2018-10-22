@@ -38,5 +38,8 @@ elif (syn_device[0:4].upper()=="XC7V"): # Family 7 GTH (other Virtex7 devices)
                 "whiterabbit_gthe2_channel_wrapper_gtrxreset_seq.vhd",
                 "whiterabbit_gthe2_channel_wrapper_sync_block.vhd" ]);
 elif (syn_device[0:4].upper()=="XCKU"): # Kintex Ultrascale GTH
-	files.extend(["wr_gth_phy_kintex7ultrascale.vhd"]);
-                               
+	files.extend(["family7-gthe3/wr_gthe3_phy_family7.vhd",
+                      "family7-gthe3/wr_gthe3_reset.vhd",
+                      "family7-gthe3/wr_gthe3_rx_buffer_bypass.vhd",
+                      "family7-gthe3/wr_gthe3_tx_buffer_bypass.vhd",
+                      "family7-gthe3/wr_gthe3_wrapper.vhd"]);
