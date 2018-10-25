@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2018-03-08
+-- Last update: 2018-10-25
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -436,7 +436,13 @@ architecture syn of wr_endpoint is
   signal pcs_rmon     : t_rmon_triggers;
   signal rx_path_rmon : t_rmon_triggers;
   signal rmon         : t_rmon_triggers;
- 
+
+-------------------------------------------------------------------------------
+-- Synchronisation for RX path
+-------------------------------------------------------------------------------
+  signal phy_rdy_resync_sys  : std_logic;
+  signal rst_n_rx_resync_sys : std_logic;
+
 -------------------------------------------------------------------------------
 -- chipscope (for desperates)
 -------------------------------------------------------------------------------
@@ -460,7 +466,18 @@ architecture syn of wr_endpoint is
 
 begin
 
+  U_Sync_phy_rdy_sysclk : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_sys_i,
+      rst_n_i  => '1',
+      data_i   => phy_rdy_i,
+      synced_o => phy_rdy_resync_sys);
+
   rst_n_rx  <= rst_rxclk_n_i and phy_rdy_i;
+
+  rst_n_rx_resync_sys <= rst_sys_n_i and phy_rdy_resync_sys;
 
 -------------------------------------------------------------------------------
 -- 1000Base-X PCS
@@ -609,7 +626,7 @@ begin
       clk_sys_i => clk_sys_i,
       clk_rx_i  => phy_rx_clk_i,
 
-      rst_n_sys_i => rst_sys_n_i,
+      rst_n_sys_i => rst_n_rx_resync_sys,
       rst_n_rx_i  => rst_n_rx,
 
       pcs_fab_i             => rxpath_fab,

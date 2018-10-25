@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2012-08-28
+-- Last update: 2018-10-25
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -84,7 +84,7 @@ begin
   f_pack_fifo_contents (fab_i, fifo_in, fifo_we, false);
 
 -- Clock adjustment FIFO
-  U_FIFO : generic_async_fifo
+  U_FIFO : generic_async_fifo_dual_rst
     generic map (
       g_data_width             => 18,
       g_size                   => g_size,
@@ -92,12 +92,13 @@ begin
       g_almost_full_threshold  => g_almostfull_threshold
       )
     port map (
-      rst_n_i           => rst_n_wr_i,
+      rst_wr_n_i        => rst_n_wr_i,
       clk_wr_i          => clk_wr_i,
       d_i               => fifo_in,
       we_i              => fifo_we,
       wr_full_o         => full_o,
       wr_almost_full_o  => almostfull_o,
+      rst_rd_n_i        => rst_n_rd_i,
       clk_rd_i          => clk_rd_i,
       q_o               => fifo_out,
       rd_i              => rx_rdreq,

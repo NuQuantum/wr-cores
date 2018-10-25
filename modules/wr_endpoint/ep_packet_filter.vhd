@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2017-02-02
+-- Last update: 2018-10-25
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -360,12 +360,13 @@ begin  -- behavioral
     end if;
   end process;
 
-  U_Sync_Done : gc_pulse_synchronizer
+  U_Sync_Done : gc_pulse_synchronizer2
     port map (
-      clk_in_i  => clk_rx_i,
-      clk_out_i => clk_sys_i,
-      rst_n_i   => rst_n_rx_i,
-      d_p_i     => done_int,
-      q_p_o     => done_o);
+      clk_in_i    => clk_rx_i,
+      rst_in_n_i  => rst_n_rx_i,
+      clk_out_i   => clk_sys_i,
+      rst_out_n_i => rst_n_sys_i,
+      d_p_i       => done_int,
+      q_p_o       => done_o);
 
 end behavioral;

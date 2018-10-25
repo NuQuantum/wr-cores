@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-02-25
--- Last update: 2014-07-15
+-- Last update: 2018-10-25
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -164,14 +164,15 @@ begin  -- rtl
       data_i   => resync_p_a_i,
       synced_o => resync_p_dmtd);
 
-  U_Sync_Start_Pulse : gc_pulse_synchronizer
+  U_Sync_Start_Pulse : gc_pulse_synchronizer2
     port map (
-      clk_in_i  => clk_sys_i,
-      clk_out_i => clk_dmtd_i,
-      rst_n_i   => rst_n_dmtdclk_i,
-      d_ready_o => open,
-      d_p_i     => resync_start_p_i,
-      q_p_o     => resync_start_p_dmtd);
+      clk_in_i    => clk_sys_i,
+      rst_in_n_i  => rst_n_sysclk_i,
+      clk_out_i   => clk_dmtd_i,
+      rst_out_n_i => rst_n_dmtdclk_i,
+      d_ready_o   => open,
+      d_p_i       => resync_start_p_i,
+      q_p_o       => resync_start_p_dmtd);
 
   U_Sync_Resync_Done : gc_sync_ffs
     generic map (
