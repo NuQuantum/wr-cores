@@ -42,4 +42,5 @@ elif (syn_device[0:4].upper()=="XCKU"): # Kintex Ultrascale GTH
                       "family7-gthe3/wr_gthe3_reset.vhd",
                       "family7-gthe3/wr_gthe3_rx_buffer_bypass.vhd",
                       "family7-gthe3/wr_gthe3_tx_buffer_bypass.vhd",
-                      "family7-gthe3/wr_gthe3_wrapper.vhd"]);
+                      "family7-gthe3/wr_gthe3_wrapper.vhd",
+                      "family7-gthe3/gc_reset_synchronizer.vhd" ]);

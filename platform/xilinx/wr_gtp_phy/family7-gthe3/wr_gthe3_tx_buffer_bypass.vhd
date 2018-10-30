@@ -26,25 +26,27 @@ architecture rtl of wr_gthe3_tx_buffer_bypass is
 
   signal rst_txusrclk2 : std_logic;
 
-  signal TXRESETDONE_clk_free   : std_logic;
-  signal TXSYNCDONE_clk_free_p1 : std_logic;
+  signal TXRESETDONE_clk_txusr   : std_logic;
+  signal TXSYNCDONE_clk_txusr_p1 : std_logic;
+
+  signal TXDLYSRESET_int : std_logic;
 
   signal done_int : std_logic;
-  signal state : t_state;
-  signal rst_n : std_logic;
+  signal state    : t_state;
+  signal rst_n    : std_logic;
 begin
 
   rst_n <= not rst_i;
 
-  U_Sync_Reset : gc_sync_ffs
+  U_Sync_Reset : entity work.gc_reset_synchronizer
+    generic map (
+      g_reset_active_out => '1')
     port map (
       clk_i    => TXUSRCLK2_i,
-      rst_n_i  => rst_n,
-      data_i   => rst_i,
-      synced_o => rst_txusrclk2);
+      rst_n_a_i  => rst_n,
+      rst_synced_o => rst_txusrclk2);
 
-
-    U_Sync_Done : gc_sync_ffs
+  U_Sync_Done : gc_sync_ffs
     port map (
       clk_i    => clk_free_i,
       rst_n_i  => rst_n,
@@ -53,17 +55,17 @@ begin
 
   U_Sync_TXRESETDONE : gc_sync_ffs
     port map (
-      clk_i    => clk_free_i,
+      clk_i    => TXUSRCLK2_i,
       rst_n_i  => rst_n,
       data_i   => TXRESETDONE_i,
-      synced_o => TXRESETDONE_clk_free);
+      synced_o => TXRESETDONE_clk_txusr);
 
   U_Sync_TXSYNCDONE : gc_sync_ffs
     port map (
-      clk_i    => clk_free_i,
+      clk_i    => TXUSRCLK2_i,
       rst_n_i  => rst_n,
       data_i   => TXSYNCDONE_i,
-      ppulse_o => TXSYNCDONE_clk_free_p1);
+      ppulse_o => TXSYNCDONE_clk_txusr_p1);
 
 -- TX dly align procedure:
 -- 
@@ -72,17 +74,23 @@ begin
 -- txdlysreset_out = 0
 -- wait for RE of txsyncdone
 
-  p_tx_buffer_bypass : process(TXUSRCLK2_i)
-  begin
-    if rising_edge(TXUSRCLK2_i) then
-      if rst_txusrclk2 = '1' then
-      state         <= WAIT_RESTART;
-        TXDLYSRESET_o <= '0';
-        done_int      <= '0';
+  p_tx_buffer_bypass : process(TXUSRCLK2_i, rst_txusrclk2)
 
+
+  begin
+    if rst_txusrclk2 = '1' then
+      state           <= WAIT_RESTART;
+      TXDLYSRESET_int <= '0';
+      done_int        <= '0';
+
+    elsif rising_edge(TXUSRCLK2_i) then
+      if rst_txusrclk2 = '1' then
+        state           <= WAIT_RESTART;
+        TXDLYSRESET_int <= '0';
+        done_int        <= '0';
       else
-        TXDLYSRESET_o <= '0';
-        done_int      <= '0';
+        TXDLYSRESET_int <= '0';
+        done_int        <= '0';
 
         case state is
           when WAIT_RESTART =>
@@ -91,13 +99,13 @@ begin
             end if;
 
           when ASSERT_DLY_RESET =>
-            TXDLYSRESET_o <= '1';
-            state <= WAIT_SYNC_DONE;
+            TXDLYSRESET_int <= '1';
+            state           <= WAIT_SYNC_DONE;
 
           when WAIT_SYNC_DONE =>
-            TXDLYSRESET_o <= '0';
+            TXDLYSRESET_int <= '0';
 
-            if TXSYNCDONE_i = '1' then
+            if TXSYNCDONE_clk_txusr_p1 = '1' then
               state <= DONE;
             end if;
 
@@ -112,6 +120,8 @@ begin
       end if;
     end if;
   end process;
+
+  txdlysreset_o <= TXDLYSRESET_int;
 
 end rtl;
 
