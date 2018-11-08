@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2018-03-19
+-- Last update: 2018-11-07
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -93,7 +93,7 @@ entity xwr_softpll_ng is
     clk_ref_i  : in std_logic_vector(g_num_ref_inputs-1 downto 0);
 
 -- Reference inputs (i.e. the RX clocks recovered by the PHYs), externally sampled
-    clk_ref_sampled_i : in std_logic_vector(g_num_ref_inputs-1 downto 0);
+    clk_ref_sampled_i : in std_logic_vector(g_num_ref_inputs-1 downto 0) := (others => '0');
     
 -- Feedback clocks (i.e. the outputs of the main or aux oscillator)
     clk_fb_i   : in std_logic_vector(g_num_outputs-1 downto 0);
@@ -162,6 +162,7 @@ architecture wrapper of xwr_softpll_ng is
       rst_ext_n_i     : in std_logic;
       rst_dmtd_n_i    : in std_logic;
       clk_ref_i       : in  std_logic_vector(g_num_ref_inputs-1 downto 0);
+      clk_ref_sampled_i : in std_logic_vector(g_num_ref_inputs-1 downto 0);
       clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
       clk_dmtd_i      : in  std_logic;
       clk_ext_i       : in  std_logic;
@@ -217,6 +218,7 @@ begin  -- behavioral
       rst_ext_n_i     => rst_ext_n_i,
       rst_dmtd_n_i    => rst_dmtd_n_i,
       clk_ref_i       => clk_ref_i,
+      clk_ref_sampled_i => clk_ref_sampled_i,
       clk_fb_i        => clk_fb_i,
       clk_dmtd_i      => clk_dmtd_i,
       clk_ext_i       => clk_ext_i,
