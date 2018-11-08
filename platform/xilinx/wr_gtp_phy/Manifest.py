@@ -10,7 +10,12 @@ elif (syn_device[0:4].upper()=="XC6V"): # Virtex6
 	files.extend(["virtex6/wr_gtx_phy_virtex6.vhd",
                 "virtex6/whiterabbitgtx_wrapper_gtx.vhd",
                 "virtex6/gtp_phase_align_virtex6.vhd",
-                "virtex6/gtx_reset.vhd"])
+                "virtex6/gtx_reset.vhd",
+		"virtex6-low-phase-drift/gtx_comma_detect_lp.vhd",
+		"virtex6-low-phase-drift/gtx_tx_reset_lp.vhd",
+		"virtex6-low-phase-drift/whiterabbitgtx_wrapper_gtx_lp.vhd",
+		"virtex6-low-phase-drift/wr_gtx_phy_virtex6_lp.vhd"])
+
 elif (syn_device[0:4].upper()=="XC5V"): # Virtex5
 	files.extend(["virtex5/wr_gtp_phy_virtex5.vhd",
                 "virtex5/whiterabbit_gtp_wrapper_tile_virtex5.vhd",
