@@ -63,7 +63,8 @@ entity ep_1000basex_pcs is
     g_simulation : boolean;
     -- PCS datapath width selection: true = 16-bit (Virtex-6), false = 8-bit
     -- (Spartan-6 or TBI).
-    g_16bit      : boolean);
+    g_16bit      : boolean;
+    g_ep_idx     : integer);
 
   port (
 
@@ -195,7 +196,8 @@ entity ep_1000basex_pcs is
     
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
     dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
-    nice_dbg_o                : out t_dbg_ep_pcs);
+    nice_dbg_o                : out t_dbg_ep_pcs;
+    preamble_shrinkage        : in std_logic);
 
 end ep_1000basex_pcs;
 
@@ -295,7 +297,8 @@ begin  -- rtl
 
     U_RX_PCS : ep_rx_pcs_16bit
       generic map (
-        g_simulation => g_simulation)
+        g_simulation => g_simulation,
+        g_ep_idx     => g_ep_idx)
       port map (
         clk_sys_i => clk_sys_i,
         rst_n_i   => pcs_reset_n,
@@ -366,7 +369,8 @@ begin  -- rtl
         phy_tx_data_o      => serdes_tx_data_o(7 downto 0),
         phy_tx_k_o         => serdes_tx_k_o(0),
         phy_tx_disparity_i => serdes_tx_disparity_i,
-        phy_tx_enc_err_i   => serdes_tx_enc_err_i
+        phy_tx_enc_err_i   => serdes_tx_enc_err_i,
+        preamble_shrinkage => preamble_shrinkage
         );
 
     U_RX_PCS : ep_rx_pcs_8bit

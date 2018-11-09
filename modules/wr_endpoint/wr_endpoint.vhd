@@ -74,7 +74,8 @@ entity wr_endpoint is
     g_with_packet_injection : boolean                        := false;
     g_use_new_rxcrc         : boolean                        := false;
     g_use_new_txcrc         : boolean                        := false;
-    g_with_stop_traffic     : boolean                        := false
+    g_with_stop_traffic     : boolean                        := false;
+    g_ep_idx  : integer := 0
     );
   port (
 
@@ -303,7 +304,8 @@ entity wr_endpoint is
 
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
     dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
-    nice_dbg_o  : out t_dbg_ep
+    nice_dbg_o  : out t_dbg_ep;
+    preamble_shrinkage : in std_logic
     );
 
 end wr_endpoint;
@@ -488,7 +490,8 @@ begin
   U_PCS_1000BASEX : ep_1000basex_pcs
     generic map (
       g_simulation => g_simulation,
-      g_16bit      => g_pcs_16bit)
+      g_16bit      => g_pcs_16bit,
+      g_ep_idx     => g_ep_idx)
     port map (
       rst_sys_n_i   => rst_sys_n_i,
       rst_rxclk_n_i => rst_rxclk_n_i,
@@ -544,7 +547,8 @@ begin
       mdio_ready_o => regs_towb_ep.mdio_asr_ready_i,
       dbg_tx_pcs_wr_count_o => dbg_tx_pcs_wr_count_o,
       dbg_tx_pcs_rd_count_o => dbg_tx_pcs_rd_count_o,
-      nice_dbg_o   => nice_dbg_o.pcs);
+      nice_dbg_o   => nice_dbg_o.pcs,
+      preamble_shrinkage => preamble_shrinkage);
 
 
 -------------------------------------------------------------------------------
@@ -628,6 +632,8 @@ begin
 
       rst_n_sys_i => rst_n_rx_resync_sys,
       rst_n_rx_i  => rst_n_rx,
+
+      stop_traffic_i  => stop_traffic_i,
 
       pcs_fab_i             => rxpath_fab,
       pcs_fifo_almostfull_o => rxpcs_fifo_almostfull,

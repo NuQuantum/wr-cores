@@ -52,7 +52,8 @@ use work.endpoint_pkg.all;
 
 entity ep_rx_pcs_16bit is
   generic (
-    g_simulation : boolean);
+    g_simulation : boolean;
+    g_ep_idx     : integer);
   port (
 -- 62.5 MHz refclk divided by 2
     clk_sys_i : in std_logic;
@@ -170,12 +171,23 @@ architecture behavioral of ep_rx_pcs_16bit is
 
   -- 8b10b decoding and postprocessing signals
   signal d_data                                 : std_logic_vector(15 downto 0);
+  signal d_data_shrunk                          : std_logic_vector(15 downto 0);
+  signal d_data_buf                             : std_logic_vector(7 downto 0);
   signal d_err, d_is_idle, d_is_spd_preamble    : std_logic;
   signal d_is_eof_extend, d_is_eof, d_is_extend : std_logic;
   signal d_is_preamble, d_is_preamble_sfd       : std_logic;
   signal d_is_k                                 : std_logic_vector(1 downto 0);
+  signal d_is_k_buf                             : std_logic;
+  signal d_is_k_shrunk                          : std_logic_vector(1 downto 0);
   signal d_is_lcr                               : std_logic;
   signal d_is_cal                               : std_logic;
+  signal phy_rx_data_shrunk     : std_logic_vector(15 downto 0);
+  signal phy_rx_data_muxed      : std_logic_vector(15 downto 0);
+  signal phy_rx_k_shrunk        : std_logic_vector(1 downto 0);
+  signal phy_rx_k_muxed         : std_logic_vector(1 downto 0);
+
+  signal d_is_shrunk : std_logic;
+  signal shrunk_preamble : std_logic;
 
 -- Synchronization detection FSM signals
   signal rx_synced      : std_logic;
@@ -208,6 +220,27 @@ architecture behavioral of ep_rx_pcs_16bit is
 
   signal pcs_valid_int     : std_logic;
   signal timestamp_pending : std_logic_vector(2 downto 0) := "000";
+
+
+  ------------------------
+  component chipscope_icon
+    port (
+      CONTROL0 : inout std_logic_vector(35 downto 0));
+  end component;
+
+  component chipscope_ila
+    port (
+      CONTROL : inout std_logic_vector(35 downto 0);
+      CLK     : in    std_logic;
+      TRIG0   : in    std_logic_vector(31 downto 0);
+      TRIG1   : in    std_logic_vector(31 downto 0);
+      TRIG2   : in    std_logic_vector(31 downto 0);
+      TRIG3   : in    std_logic_vector(31 downto 0));
+  end component;
+  signal control0                   : std_logic_vector(35 downto 0);
+  signal trig0, trig1, trig2, trig3 : std_logic_vector(31 downto 0);
+
+  signal pcs_fab_out  : t_ep_internal_fabric;
   
 begin
 -------------------------------------------------------------------------------
@@ -335,6 +368,11 @@ begin
 -- Clock adjustment FIFO
 -------------------------------------------------------------------------------  
 
+  phy_rx_data_shrunk <= d_data(7 downto 0) & phy_rx_data_i(15 downto 8);
+  phy_rx_data_muxed <= phy_rx_data_i when shrunk_preamble = '0' else
+                       phy_rx_data_shrunk;
+  phy_rx_k_muxed    <= phy_rx_k_i when shrunk_preamble = '0' else
+                       d_is_k(0) & phy_rx_k_i(1);
 
   -- process postprocesses the raw 8b10b decoder output (phy_rx_data_i, phy_rx_k_i, phy_rx_enc_err_ior)
   -- providing 1-bit signals indicating various 8b10b control patterns
@@ -354,10 +392,18 @@ begin
         d_is_eof_extend   <= '0';
         d_is_lcr          <= '0';
         d_err             <= '0';
+        d_data_buf        <= (others=>'0');
+        d_data_shrunk     <= (others=>'0');
+        d_is_shrunk       <= '0';
       else
 
         d_data <= phy_rx_data_i;
         d_is_k <= phy_rx_k_i;
+        d_data_shrunk <= d_data_buf & phy_rx_data_i(15 downto 8); -- 
+        d_data_buf <= phy_rx_data_i(7 downto 0);
+        d_is_k_shrunk <= d_is_k_buf & phy_rx_k_i(1);
+        d_is_k_buf <= phy_rx_k_i(0);
+
 
         if(phy_rx_enc_err_i = '0') then
           d_err <= '0';
@@ -382,19 +428,25 @@ begin
             phy_rx_data_i = c_preamble_char & c_preamble_sfd
             and phy_rx_k_i = "00");
 
+          d_is_shrunk <= f_to_sl(
+                         phy_rx_data_shrunk = c_preamble_char & c_preamble_sfd
+                         and phy_rx_k_muxed = "00");
+
 -- data + EPD
-          d_is_eof <= f_to_sl(
-            phy_rx_data_i(7 downto 0) = c_K29_7
-            and phy_rx_k_i = "01");
+          if (shrunk_preamble = '0') then
+            d_is_eof <= f_to_sl( phy_rx_data_i(7 downto 0) = c_K29_7 and phy_rx_k_i = "01");
+          else
+            d_is_eof <= f_to_sl( phy_rx_data_i(15 downto 8) = c_K29_7 and phy_rx_k_i(1) = '1');
+          end if;
 
           -- EPD + extend
           d_is_eof_extend <= f_to_sl(
-            phy_rx_data_i(15 downto 8) = c_K29_7
-            and phy_rx_data_i(7 downto 0) = c_k23_7
+            phy_rx_data_muxed(15 downto 8) = c_K29_7
+            and phy_rx_data_muxed(7 downto 0) = c_k23_7
             and phy_rx_k_i = "11");
 
           d_is_extend <= f_to_sl(
-            phy_rx_data_i = c_K23_7 & c_K23_7
+            phy_rx_data_muxed = c_K23_7 & c_K23_7
             and phy_rx_k_i = "11");
 
           d_is_lcr <= f_to_sl(
@@ -434,13 +486,13 @@ begin
         rx_state <= RX_NOFRAME;
         rx_busy  <= '0';
 
-        pcs_fab_o.sof    <= '0';
-        pcs_fab_o.eof    <= '0';
-        pcs_fab_o.error  <= '0';
-        pcs_fab_o.dvalid <= '0';
-        pcs_fab_o.bytesel <= '0';
-        pcs_fab_o.has_rx_timestamp <= '0';
-        pcs_fab_o.data <= (others => 'X');
+        pcs_fab_out.sof    <= '0';
+        pcs_fab_out.eof    <= '0';
+        pcs_fab_out.error  <= '0';
+        pcs_fab_out.dvalid <= '0';
+        pcs_fab_out.bytesel <= '0';
+        pcs_fab_out.has_rx_timestamp <= '0';
+        pcs_fab_out.data <= (others => 'X');
 
         lcr_ready         <= '0';
         lcr_cur_val       <= (others => '0');
@@ -454,6 +506,7 @@ begin
         rmon_invalid_code_p_int <= '0';
         timestamp_trigger_p_a_o <= '0';
         timestamp_pending       <= "000";
+        shrunk_preamble         <= '0';
       else                              -- normal PCS operation
 
         -- clear the autogotiation variables if the autonegotiation is disabled
@@ -476,30 +529,32 @@ begin
           when RX_NOFRAME =>
 
             preamble_cntr <= "011";
-            pcs_fab_o.eof   <= '0';
-            pcs_fab_o.error <= '0';
-            pcs_fab_o.bytesel <= '0';
-            pcs_fab_o.has_rx_timestamp <= '0';
+            pcs_fab_out.eof   <= '0';
+            pcs_fab_out.error <= '0';
+            pcs_fab_out.bytesel <= '0';
+            pcs_fab_out.has_rx_timestamp <= '0';
 
             rx_busy           <= '0';
             timestamp_trigger_p_a_o <= '0';
 
+            shrunk_preamble         <= '0';
+
             -- insert the RX timestamp into the FIFO
             if(timestamp_pending /= "000") then
-              pcs_fab_o.dvalid <= '1';
+              pcs_fab_out.dvalid <= '1';
             else
-              pcs_fab_o.dvalid <= '0';
+              pcs_fab_out.dvalid <= '0';
             end if;
 
             if(timestamp_pending(0) = '1')then
-              pcs_fab_o.data <= timestamp_i(31 downto 16);
-              pcs_fab_o.eof  <= '0';
+              pcs_fab_out.data <= timestamp_i(31 downto 16);
+              pcs_fab_out.eof  <= '0';
             elsif(timestamp_pending(1) = '1')then
-              pcs_fab_o.data <= timestamp_i(15 downto 0);
-              pcs_fab_o.eof  <= '0';
+              pcs_fab_out.data <= timestamp_i(15 downto 0);
+              pcs_fab_out.eof  <= '0';
             elsif(timestamp_pending(2) = '1')then
-              pcs_fab_o.data <= (others => 'X');
-              pcs_fab_o.eof  <= '1';
+              pcs_fab_out.data <= (others => 'X');
+              pcs_fab_out.eof  <= '1';
             end if;
 
             timestamp_pending <= timestamp_pending(1 downto 0) & '0';
@@ -550,7 +605,8 @@ begin
             -- values are identical.
 
 -- an error? - abort the reception and go to NOFRAME state.
-            if(d_err = '1' or d_is_k /= "00" or rx_synced = '0') then
+            if(d_err = '1' or (d_is_k /= "00" and shrunk_preamble = '0') or
+            (d_is_k_shrunk /= "00" and shrunk_preamble = '1') or rx_synced = '0') then
               rx_state                <= RX_NOFRAME;
               rmon_invalid_code_p_int <= d_err;
 
@@ -598,7 +654,7 @@ begin
 
               -- keep looking for Ethernet SFD char (0xd5). If it occurs on
               -- the right position, start receiving the frame payload
-              if d_is_preamble_sfd = '1' then
+              if d_is_preamble_sfd = '1' or d_is_shrunk = '1' then
 -- generate the RX timestamp pulse
                 timestamp_trigger_p_a_o <= '1';
 
@@ -607,7 +663,8 @@ begin
 
 -- indicate a start-of-packet condition in the RX FIFO and enable writing to
 -- the FIFO.
-                  pcs_fab_o.sof <= '1';
+                  shrunk_preamble <= d_is_shrunk; -- remember if we're processing normal frame, or there was a shrunk preamble
+                  pcs_fab_out.sof <= '1';
                   rx_state      <= RX_PAYLOAD;
                 end if;
                 
@@ -633,20 +690,25 @@ begin
 
           when RX_PAYLOAD =>
 
-            pcs_fab_o.sof <= '0';
-            pcs_fab_o.eof <= '0';
-            pcs_fab_o.has_rx_timestamp <= '0';
-            pcs_fab_o.data <= d_data;
+            pcs_fab_out.sof <= '0';
+            pcs_fab_out.eof <= '0';
+            pcs_fab_out.has_rx_timestamp <= '0';
+            if (shrunk_preamble = '1') then
+              pcs_fab_out.data <= d_data_shrunk;
+            else
+              pcs_fab_out.data <= d_data;
+            end if;
 
             -- check for errors.
             if (d_err = '1' or rx_synced = '0' or pcs_fifo_almostfull_i = '1'
-                or (d_is_k /= "00" and d_is_eof_extend = '0' and d_is_eof = '0')) then
+                or (d_is_k /= "00" and d_is_eof_extend = '0' and d_is_eof = '0' and shrunk_preamble = '0')
+                or (d_is_k_shrunk /= "00" and d_is_eof_extend = '0' and d_is_eof = '0' and shrunk_preamble = '1') ) then
 
               -- indicate an errorneous termination of the current frame in the
               -- RX FIFO
-              pcs_fab_o.error <= '1';
-              pcs_fab_o.dvalid <= '0';
-              pcs_fab_o.bytesel <= 'X';
+              pcs_fab_out.error <= '1';
+              pcs_fab_out.dvalid <= '0';
+              pcs_fab_out.bytesel <= 'X';
               
               rmon_invalid_code_p_int <= d_err;
               rmon_rx_overrun_p_int   <= pcs_fifo_almostfull_i;
@@ -654,22 +716,22 @@ begin
               rx_state <= RX_NOFRAME;
             elsif d_is_eof = '1' or d_is_eof_extend = '1' then
 
-              pcs_fab_o.error <= '0';
+              pcs_fab_out.error <= '0';
 
               if d_is_eof = '1' then    -- got EPD at even position
-                pcs_fab_o.bytesel <= '1';
-                pcs_fab_o.dvalid  <= '1';
+                pcs_fab_out.bytesel <= '1';
+                pcs_fab_out.dvalid  <= '1';
                 rx_state          <= RX_EXTEND;
               else
-                pcs_fab_o.bytesel <= '0';
-                pcs_fab_o.dvalid  <= '0';
+                pcs_fab_out.bytesel <= '0';
+                pcs_fab_out.dvalid  <= '0';
                 rx_state          <= RX_EXTEND;
               end if;
               
             else
-              pcs_fab_o.bytesel <= '0';
-              pcs_fab_o.error  <= '0';
-              pcs_fab_o.dvalid <= '1';
+              pcs_fab_out.bytesel <= '0';
+              pcs_fab_out.error  <= '0';
+              pcs_fab_out.dvalid <= '1';
             end if;
 
 
@@ -680,24 +742,24 @@ begin
           when RX_EXTEND =>
 
             timestamp_trigger_p_a_o <= '0';
-            pcs_fab_o.dvalid  <= '0';
+            pcs_fab_out.dvalid  <= '0';
 
             if d_is_extend = '1' then   -- got carrier extend. Just keep
                                         -- receiving it.
               rx_state        <= RX_EXTEND;
-              pcs_fab_o.eof   <= '0';
-              pcs_fab_o.error <= '0';
+              pcs_fab_out.eof   <= '0';
+              pcs_fab_out.error <= '0';
             elsif d_is_idle = '1' then  -- got comma, real end-of-frame
               -- indicate the correct ending of the current frame in the RX FIFO
-              pcs_fab_o.eof              <= not timestamp_stb_i;
-              pcs_fab_o.error            <= '0';
-              pcs_fab_o.has_rx_timestamp <= timestamp_stb_i;
+              pcs_fab_out.eof              <= not timestamp_stb_i;
+              pcs_fab_out.error            <= '0';
+              pcs_fab_out.has_rx_timestamp <= timestamp_stb_i;
               timestamp_pending          <= (others => timestamp_stb_i);
 
               rx_state <= RX_NOFRAME;
             else
               -- got anything else than comma (for example, the /V/ code):
-              pcs_fab_o.error         <= '1';
+              pcs_fab_out.error         <= '1';
               rmon_invalid_code_p_int <= '1';
               rx_state                <= RX_NOFRAME;
             end if;
@@ -751,7 +813,7 @@ begin
 -- drive the "RX PCS Sync Lost" event counter
   rmon_rx_sync_lost <= rx_sync_lost_p and (not mdio_mcr_pdown_i);
 
-  pcs_fab_o.rx_timestamp_valid <= timestamp_valid_i;
+  pcs_fab_out.rx_timestamp_valid <= timestamp_valid_i;
 
   nice_dbg_o.fsm <= "000" when (rx_state = RX_NOFRAME) else
                     "001" when (rx_state = RX_CR) else
@@ -759,6 +821,55 @@ begin
                     "011" when (rx_state = RX_PAYLOAD) else
                     "100" when (rx_state = RX_EXTEND) else
                     "111";
+
+
+  ------------------------
+  pcs_fab_o <= pcs_fab_out;
+
+  GEN_CS: if g_ep_idx = 0 generate
+    CS_ICON : chipscope_icon
+     port map (
+      CONTROL0 => CONTROL0);
+    CS_ILA : chipscope_ila
+     port map (
+       CONTROL => CONTROL0,
+       CLK     => phy_rx_clk_i, --phys_i(0).rx_clk,
+       TRIG0   => trig0,
+       TRIG1   => trig1,
+       TRIG2   => trig2,
+       TRIG3   => trig3);
+   end generate;
+
+  trig0(15 downto 0) <= phy_rx_data_i;
+  trig0(17 downto 16)<= phy_rx_k_i;
+  trig0(18) <= d_is_preamble;
+  trig0(19) <= d_is_preamble_sfd;
+  trig0(22 downto 20) <= "000" when (rx_state = RX_NOFRAME) else
+                    "001" when (rx_state = RX_CR) else
+                    "010" when (rx_state = RX_SPD_PREAMBLE) else
+                    "011" when (rx_state = RX_PAYLOAD) else
+                    "100" when (rx_state = RX_EXTEND) else
+                    "111";
+  trig0(23) <= rx_busy;
+  trig0(24) <= rx_synced;
+  trig0(25) <= d_is_spd_preamble;
+  trig0(26) <= d_is_idle;
+  trig0(27) <= d_is_eof;
+  trig0(28) <= d_is_shrunk;
+  trig0(29) <= phy_rdy_i;
+  
+  trig1(15 downto 0) <= pcs_fab_out.data;
+  trig1(16) <= pcs_fab_out.sof;
+  trig1(17) <= pcs_fab_out.eof;
+  trig1(18) <= pcs_fab_out.dvalid;
+  trig1(19) <= pcs_fab_out.error;
+  trig1(20) <= pcs_fab_out.bytesel;
+  trig1(28 downto 21) <= d_data_buf;
+  trig1(31 downto 29) <= std_logic_vector(preamble_cntr);
+  
+  trig2(15 downto 0) <= d_data_shrunk;
+  ------------------------
+  trig2(31 downto 16) <= phy_rx_data_muxed;
 
 end behavioral;
 

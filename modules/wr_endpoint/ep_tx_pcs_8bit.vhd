@@ -119,7 +119,9 @@ entity ep_tx_pcs_8bit is
     phy_tx_data_o      : out std_logic_vector(7 downto 0);
     phy_tx_k_o         : out std_logic;
     phy_tx_disparity_i : in  std_logic;
-    phy_tx_enc_err_i   : in  std_logic
+    phy_tx_enc_err_i   : in  std_logic;
+
+    preamble_shrinkage : in std_logic := '0'
     );
 
 end ep_tx_pcs_8bit;
@@ -161,6 +163,9 @@ architecture behavioral of ep_tx_pcs_8bit is
   signal mdio_mcr_reset_synced : std_logic;
   signal mdio_mcr_pdown_synced : std_logic;
   signal an_tx_en_synced       : std_logic;
+
+  signal s_one : std_logic := '1';
+  signal sh_preamble_sent : std_logic;
 
 begin
 
@@ -280,7 +285,7 @@ begin
         tx_odd_length           <= '0';
         tx_rdreq_toggle         <= '0';
         rmon_tx_underrun        <= '0';
-
+        sh_preamble_sent        <= '0';
       else
 
         case tx_state is
@@ -294,6 +299,7 @@ begin
             tx_state     <= TX_IDLE;
             fifo_rd      <= '0';
             fifo_ready   <= fifo_rd;
+            sh_preamble_sent <= '0';
 
 -------------------------------------------------------------------------------
 -- State IDLE: sends the second code of the /I/ sequence with proper disparity\
@@ -304,6 +310,7 @@ begin
             -- make sure is't long enough to trigger the event counter
             rmon_tx_underrun <= '0';
             tx_error         <= '0';
+            sh_preamble_sent <= '0';
 
 -- endpoint wants to send Config_Reg
             if(an_tx_en_synced = '1') then
@@ -315,7 +322,12 @@ begin
             elsif (fifo_fab.sof = '1' and fifo_ready = '1' and tx_cntr = "0000")then
               fifo_rd  <= '1';
               tx_state <= TX_SPD;
-              tx_cntr  <= "0101";
+              if (preamble_shrinkage = '0') then -- generate preamble shrinkage
+                tx_cntr  <= "0101";
+              else
+                sh_preamble_sent <= '1';
+                tx_cntr  <= "0100";
+              end if;
 
 -- host requested a calibration pattern
             elsif(mdio_wr_spec_tx_cal_i = '1') then
@@ -453,8 +465,13 @@ begin
 
               tx_rdreq_toggle <= not tx_rdreq_toggle;
 
-              -- handle the end of frame both for even- and odd-length frames
-              tx_odd_length <= fifo_fab.bytesel;
+              -- handle the end of frame both for even- and odd-length frames,
+              -- including preamble shrinkage
+              if (sh_preamble_sent = '0') then
+                tx_odd_length <= fifo_fab.bytesel;
+              else
+                tx_odd_length <= not fifo_fab.bytesel;
+              end if;
 
               if (fifo_fab.eof = '1' and (tx_rdreq_toggle = '0' or (tx_rdreq_toggle = '1' and fifo_fab.bytesel = '1'))) then
                 tx_state <= TX_EPD;

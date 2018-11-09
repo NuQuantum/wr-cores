@@ -116,7 +116,8 @@ package endpoint_private_pkg is
   component ep_1000basex_pcs
     generic (
       g_simulation : boolean;
-      g_16bit      : boolean);
+      g_16bit      : boolean;
+      g_ep_idx     : integer);
     port (
       rst_sys_n_i                   : in  std_logic;
       rst_txclk_n_i                 : in  std_logic;
@@ -163,7 +164,8 @@ package endpoint_private_pkg is
       mdio_ready_o                  : out std_logic;
       dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
       dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
-      nice_dbg_o  : out t_dbg_ep_pcs);
+      nice_dbg_o  : out t_dbg_ep_pcs;
+      preamble_shrinkage : in std_logic);
   end component;
 
   component ep_tx_pcs_8bit
@@ -186,7 +188,8 @@ package endpoint_private_pkg is
       phy_tx_data_o           : out std_logic_vector(7 downto 0);
       phy_tx_k_o              : out std_logic;
       phy_tx_disparity_i      : in  std_logic;
-      phy_tx_enc_err_i        : in  std_logic);
+      phy_tx_enc_err_i        : in  std_logic;
+      preamble_shrinkage      : in  std_logic := '0');
   end component;
 
   component ep_tx_pcs_16bit
@@ -250,7 +253,8 @@ package endpoint_private_pkg is
 
   component ep_rx_pcs_16bit
     generic (
-      g_simulation : boolean);
+      g_simulation : boolean;
+      g_ep_idx     : integer);
     port (
       clk_sys_i                  : in  std_logic;
       rst_n_i                    : in  std_logic;
@@ -517,7 +521,8 @@ package endpoint_private_pkg is
       rtu_full_i       : in  std_logic;
       rtu_rq_abort_o   : out std_logic;
       rtu_rq_valid_o   : out std_logic;
-      rxbuf_full_i     : in  std_logic);
+      rxbuf_full_i     : in  std_logic;
+      nice_dbg_o       : out t_dbg_rtu_extract);
   end component;
 
   component ep_rx_early_address_match
@@ -620,6 +625,7 @@ package endpoint_private_pkg is
     port (
       clk_sys_i  : in  std_logic;
       rst_n_i    : in  std_logic;
+      stop_traffic_i : in std_logic := '0';
       snk_fab_i  : in  t_ep_internal_fabric;
       snk_dreq_o : out std_logic;
       src_wb_i   : in  t_wrf_source_in;
@@ -675,6 +681,7 @@ package endpoint_private_pkg is
       clk_rx_i               : in  std_logic;
       rst_n_sys_i            : in  std_logic;
       rst_n_rx_i             : in  std_logic;
+      stop_traffic_i         : in  std_logic;
       pcs_fab_i              : in  t_ep_internal_fabric;
       pcs_fifo_almostfull_o  : out std_logic;
       pcs_busy_i             : in  std_logic;

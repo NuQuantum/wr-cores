@@ -56,6 +56,7 @@ entity ep_rx_wb_master is
     clk_sys_i : in std_logic;
     rst_n_i   : in std_logic;
 
+    stop_traffic_i : in std_logic := '0';
 -- physical coding sublayer (PCS) interface
     snk_fab_i  : in  t_ep_internal_fabric;
     snk_dreq_o : out std_logic;
@@ -157,7 +158,7 @@ begin  -- behavioral
               state <= FLUSH_STALL;
             end if;
 
-            if(snk_fab_i.eof = '1')then
+            if(snk_fab_i.eof = '1' or stop_traffic_i = '1')then
               state <= FINISH_CYCLE;
             end if;
 
