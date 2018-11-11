@@ -315,8 +315,8 @@ module wr_1000basex_phy_model
 
    assign ser_rx = loopen_i ? ser_tx : pad_rxp_i;
 
-   assign pad_txp_o = loopen_i ? 1'bz : ser_tx;
-   assign pad_txn_o = loopen_i ? 1'bz : ~ser_tx;
+   assign pad_txp_o = loopen_i == 1'b1 ? 1'bz : ser_tx;
+   assign pad_txn_o = loopen_i == 1'b1? 1'bz : ~ser_tx;
    
    
 endmodule // wr_1000basex_phy_model
