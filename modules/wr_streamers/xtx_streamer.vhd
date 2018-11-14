@@ -204,8 +204,17 @@ architecture rtl of xtx_streamer is
   signal link_ok_delay_expired : std_logic;
   signal link_ok_delay_expired_ref : std_logic;
   signal link_ok_ref : std_logic;
-  
-  signal clk_data : std_logic;
+
+
+  attribute mark_debug : string;
+
+  attribute mark_debug of link_ok_delay_cnt         : signal is "true";
+  attribute mark_debug of link_ok_delay_expired_ref : signal is "true";
+  attribute mark_debug of link_ok_delay_expired     : signal is "true";
+  attribute mark_debug of link_ok_ref               : signal is "true";
+
+
+  signal clk_data  : std_logic;
   signal rst_n_ref : std_logic;
 
   signal stamper_pulse_a : std_logic;
@@ -413,20 +422,21 @@ begin  -- rtl
   
   tx_fifo_last     <= tx_fifo_q(g_data_width);
 
-  U_Timestamper : pulse_stamper
+  U_Timestamper : entity work.pulse_stamper_sync
     generic map(
       g_ref_clk_rate  => g_clk_ref_rate)
     port map (
       clk_ref_i       => clk_ref_i,
       clk_sys_i       => clk_sys_i,
       rst_n_i         => rst_int_n,
-      pulse_a_i       => stamper_pulse_a,
+      pulse_i       => stamper_pulse_a,
       tm_time_valid_i => tm_time_valid_i,
       tm_tai_i        => tm_tai_i,
       tm_cycles_i     => tm_cycles_i,
       tag_tai_o       => open,
       tag_cycles_o    => tag_cycles,
-      tag_valid_o     => tag_valid);
+      tag_valid_o     => tag_valid,
+      tag_error_o     => tag_error);
 
   buf_frame_count_inc_ref <= tx_fifo_we and tx_last_p1_i;
   buf_frame_count_dec_sys <= tx_fifo_rd and tx_fifo_last;
@@ -563,7 +573,12 @@ begin  -- rtl
                 when x"07" =>
                   if(tx_streamer_cfg_i.qtag_ena = '0') then
 
-                    fsm_out.data <= "1000" & tag_cycles(27 downto 16);
+                    if tag_error = '1' then
+                      fsm_out.data <= x"ffff";
+                    else
+                      fsm_out.data <= "1000" & tag_cycles(27 downto 16);
+                    end if;
+
                     if tag_valid_latched = '1' then
                       count <= count + 1;
                       fsm_out.dvalid <= '1';
@@ -589,7 +604,13 @@ begin  -- rtl
                     else
                       fsm_out.dvalid <= '0'; 
                     end if;
-                  fsm_out.data <= "1000" & tag_cycles(27 downto 16);
+
+                  if tag_error = '1' then
+                    fsm_out.data <= x"ffff";
+                  else
+                    fsm_out.data <= "1000" & tag_cycles(27 downto 16);
+                  end if;
+
                 when x"0A" =>
                   fsm_out.data <= tag_cycles(15 downto 0);
                   state        <= FRAME_SEQ_ID;

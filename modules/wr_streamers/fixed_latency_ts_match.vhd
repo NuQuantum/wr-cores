@@ -15,7 +15,9 @@ entity fixed_latency_ts_match is
       rst_n_i : in std_logic;
 
       arm_i        : in std_logic;
-      ts_origin_i  : in std_logic_vector(27 downto 0);
+
+      ts_tai_i    : in std_logic_vector(39 downto 0);
+      ts_cycles_i : in std_logic_vector(27 downto 0);
       ts_latency_i : in std_logic_vector(27 downto 0);
 
       -- Time valid flag
@@ -53,22 +55,43 @@ architecture rtl of fixed_latency_ts_match is
       return 125000000;
     end if;
   end function;
-  
-  constant c_rollover_threshold_lo : integer := f_cycles_counter_range / 4;
-  constant c_rollover_threshold_hi : integer := f_cycles_counter_range * 3 / 4;
 
-  signal ts_adjusted   : unsigned(28 downto 0);
-  signal armed         : std_logic;
+  signal ts_adjusted_cycles : unsigned(28 downto 0);
+  signal ts_adjusted_tai    : unsigned(39 downto 0);
 
   signal tm_cycles_scaled : unsigned(28 downto 0);
   signal ts_latency_scaled : unsigned(28 downto 0);
 
-  signal match : std_logic;
+  signal tm_cycles_scaled_d  : unsigned(28 downto 0);
+  signal ts_latency_scaled_d : unsigned(28 downto 0);
+  signal ts_adjusted_d       : unsigned(28 downto 0);
+
+  signal match, late : std_logic;
   signal state : t_state;
 
   signal ts_adj_next_cycle, roll_lo, roll_hi : std_logic;
 
+  attribute mark_debug : string;
+
+  attribute mark_debug of ts_adjusted_d       : signal is "TRUE";
+  attribute mark_debug of tm_cycles_scaled_d  : signal is "TRUE";
+  attribute mark_debug of ts_latency_scaled_d : signal is "TRUE";
+  attribute mark_debug of state               : signal is "TRUE";
+  attribute mark_debug of match               : signal is "TRUE";
+  attribute mark_debug of late                : signal is "TRUE";
+
+
 begin
+
+  process(clk_i)
+  begin
+    if rising_edge(clk_i) then
+      ts_adjusted_d       <= ts_adjusted_cycles;
+      tm_cycles_scaled_d  <= tm_cycles_scaled;
+      ts_latency_scaled_d <= ts_latency_scaled;
+    end if;
+  end process;
+
 
   process(tm_cycles_i, ts_latency_i)
   begin
@@ -89,8 +112,7 @@ begin
   begin
     if rising_edge(clk_i) then
       if rst_n_i = '0' then
-        armed <= '0';
-        late_o <= '0';
+        late <= '0';
         match  <= '0';
         State  <= IDLE;
 
@@ -99,54 +121,44 @@ begin
         case State is
           when IDLE =>
             match  <= '0';
-            late_o <= '0';
-            armed  <= '0';
+            late  <= '0';
 
             if arm_i = '1' then
-              ts_adjusted <= resize(unsigned(ts_origin_i) + unsigned(ts_latency_i), 29);
-              State       <= WRAP_ADJ_TS;
-              armed       <= '1';
+              ts_adjusted_cycles <= resize(unsigned(ts_cycles_i) + unsigned(ts_latency_i), 29);
+              ts_adjusted_tai    <= resize(unsigned(ts_tai_i), 40);
+              State              <= WRAP_ADJ_TS;
             end if;
 
           when WRAP_ADJ_TS =>
 
-            ts_adj_next_cycle <= '0';
-            roll_lo           <= '0';
-            roll_hi           <= '0';
 
-
-            if ts_adjusted >= f_cycles_counter_range then
-              ts_adj_next_cycle <= '1';
-              ts_adjusted       <= ts_adjusted - f_cycles_counter_range;
+            if ts_adjusted_cycles >= f_cycles_counter_range then
+              ts_adjusted_cycles <= ts_adjusted_cycles - f_cycles_counter_range;
+              ts_adjusted_tai    <= ts_adjusted_tai + 1;
             end if;
 
-            if ts_adjusted < c_rollover_threshold_lo then
-              roll_lo <= '1';
-            end if;
-
-            if tm_cycles_scaled > c_rollover_threshold_hi then
-              roll_hi <= '1';
-            end if;
-
-          State <= CHECK_LATE;
+            State <= CHECK_LATE;
 
           when CHECK_LATE =>
 
-            if roll_lo = '1' and roll_hi = '1' then
-              if ts_adj_next_cycle = '0' then
-                late_o <= '1';
-                State  <= IDLE;
-              else
-                State <= WAIT_TRIG;
-              end if;
+            if tm_time_valid_i = '0' then
+              late  <= '1';
+              state <= IDLE;
+            end if;
+
+
+            if ts_adjusted_tai < unsigned(tm_tai_i) then
+              late  <= '1';
+              State <= IDLE;
+            elsif ts_adjusted_tai = unsigned(tm_tai_i) and ts_adjusted_cycles <= tm_cycles_scaled then
+              late  <= '1';
+              State <= IDLE;
             else
               State <= WAIT_TRIG;
             end if;
 
-
-
           when WAIT_TRIG =>
-            if ts_adjusted = tm_cycles_scaled then
+            if ts_adjusted_cycles = tm_cycles_scaled and ts_adjusted_tai = unsigned(tm_tai_i) then
               match <= '1';
               State <= IDLE;
             end if;
@@ -157,5 +169,6 @@ begin
   end process;
 
   match_o <= match;
+  late_o  <= late;
 
 end rtl;

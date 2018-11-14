@@ -99,7 +99,8 @@ entity xwr_streamers is
     -----------------------------------------------------------------------------------------
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
     g_slave_granularity        : t_wishbone_address_granularity := BYTE;
-    g_simulation               : integer := 0
+    g_simulation               : integer := 0;
+    g_sim_cycle_counter_range : integer := 125000
     );
 
   port (
@@ -274,7 +275,10 @@ begin
         g_buffer_size            => g_rx_streamer_params.buffer_size,
         g_escape_code_disable    => g_rx_streamer_params.escape_code_disable,
         g_expected_words_number  => g_rx_streamer_params.expected_words_number,
-        g_clk_ref_rate           => g_clk_ref_rate
+        g_clk_ref_rate           => g_clk_ref_rate,
+        g_simulation => g_simulation,
+        g_sim_cycle_counter_range => g_sim_cycle_counter_range,
+        g_use_ref_clock_for_data => g_use_ref_clock_for_data
         )
       port map(
         clk_sys_i                => clk_sys_i,

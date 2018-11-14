@@ -218,7 +218,10 @@ package streamers_pkg is
       g_buffer_size       : integer := 256;
       g_escape_code_disable : boolean := FALSE;
       g_expected_words_number : integer := 0;
-      g_clk_ref_rate      : integer := 125000000);
+      g_clk_ref_rate      : integer := 125000000;
+      g_simulation              : integer := 0;
+      g_sim_cycle_counter_range : integer := 125000000;
+      g_use_ref_clock_for_data  : integer := 0);
     port (
       clk_sys_i               : in  std_logic;
       rst_n_i                 : in  std_logic;
@@ -302,7 +305,8 @@ package streamers_pkg is
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
     g_slave_granularity        : t_wishbone_address_granularity := BYTE;
     g_simulation               : integer := 0;
-    g_use_ref_clock_for_data : integer := 0
+    g_use_ref_clock_for_data   : integer := 0;
+    g_sim_cycle_counter_range  : integer := 125000
     );
 
   port (

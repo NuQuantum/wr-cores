@@ -15,5 +15,6 @@ files = ["streamers_pkg.vhd",
          "xrx_streamers_stats.vhd",
          "fixed_latency_delay.vhd",
          "fixed_latency_ts_match.vhd",
-         "fifo_showahead_adapter.vhd"
+         "fifo_showahead_adapter.vhd",
+         "ts_restore_tai.vhd",
          ];

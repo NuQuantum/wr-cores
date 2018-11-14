@@ -139,6 +139,8 @@ entity xrx_streamer is
     rx_latency_o       : out std_logic_vector(27 downto 0);
     -- 1 when the latency on rx_latency_o is valid.
     rx_latency_valid_o : out std_logic;
+    -- pulse when a frame was dropped due to buffer overflow
+    rx_overflow_p1_o     : out std_logic;
     -- received 	streamer frame (counts all frames, corrupted and not)
     rx_frame_p1_o         : out std_logic;
     -- configuration
@@ -149,7 +151,7 @@ end xrx_streamer;
 
 architecture rtl of xrx_streamer is
 
-  type t_rx_state is (IDLE, HEADER, FRAME_SEQ_ID, PAYLOAD, SUBFRAME_HEADER, EOF);
+  type t_rx_state is (IDLE, HEADER, FRAME_SEQ_ID, PAYLOAD, EOF, DROP_FRAME);
 
   signal fab, fsm_in : t_pipe;
 
@@ -165,18 +167,27 @@ architecture rtl of xrx_streamer is
 
   signal pack_data, fifo_data : std_logic_vector(g_data_width-1 downto 0);
 
-  signal fifo_drop, fifo_accept, fifo_accept_d0, fifo_dvalid : std_logic;
+  signal fifo_drop, fifo_accept, fifo_accept_d0, fifo_dvalid, fifo_full, fifo_dreq : std_logic;
   signal fifo_sync, fifo_last, frames_lost, blocks_lost      : std_logic;
   signal fifo_dout, fifo_din                                 : std_logic_vector(g_data_width + 1 + 28 + 1 downto 0);
 
+  attribute mark_debug                : string;
+  attribute mark_debug of fifo_drop   : signal is "true";
+  attribute mark_debug of fifo_accept : signal is "true";
+  attribute mark_debug of fifo_dvalid : signal is "true";
+  attribute mark_debug of state       : signal is "true";
+  attribute mark_debug of fsm_in      : signal is "true";
+  attribute mark_debug of fifo_full   : signal is "true";
+  attribute mark_debug of fifo_dreq   : signal is "true";
+
   signal fifo_target_ts_en : std_logic;
-  signal fifo_target_ts    : unsigned(27 downto 0);
+  signal fifo_target_ts    : std_logic_vector(28 downto 0);
 
   signal pending_write, fab_dvalid_pre : std_logic;
 
 
   signal tx_tag_cycles, rx_tag_cycles : std_logic_vector(27 downto 0);
-  signal tx_tag_valid, rx_tag_valid   : std_logic;
+  signal tx_tag_valid, tx_tag_present, rx_tag_valid : std_logic;
   signal rx_tag_valid_stored          : std_logic;
 
   signal got_next_subframe : std_logic;
@@ -195,6 +206,20 @@ architecture rtl of xrx_streamer is
   signal fifo_last_int : std_logic;
 
   signal rst_int_n : std_logic;
+
+  signal tx_tag_error : std_logic;
+
+
+  signal tx_tag_adj_valid  : std_logic;
+  signal tx_tag_adj_error  : std_logic;
+  signal tx_tag_adj_cycles : std_logic_vector(27 downto 0);
+  signal tx_tag_adj_tai    : std_logic_vector(39 downto 0);
+
+  signal fifo_target_ts_tai    : std_logic_vector(39 downto 0);
+  signal fifo_target_ts_cycles : std_logic_vector(27 downto 0);
+  signal fifo_target_ts_error  : std_logic;
+  signal timestamp_pushed_to_fifo : std_logic;
+
   
 begin  -- rtl
 
@@ -268,6 +293,7 @@ begin  -- rtl
     fab.dreq      <= fsm_in.dreq;
     is_escape     <= '0';
   end generate gen_no_escape;
+
   fsm_in.eof <= fab.eof or fab.error;
   fsm_in.sof <= fab.sof;
 
@@ -306,17 +332,50 @@ begin  -- rtl
       d_last_i         => fifo_last_int,
       d_sync_i         => fifo_sync,
       d_target_ts_en_i => fifo_target_ts_en,
-      d_target_ts_i    => std_logic_vector(fifo_target_ts),
+      d_target_ts_tai_i    => fifo_target_ts_tai,
+      d_target_ts_cycles_i => fifo_target_ts_cycles,
+      d_target_ts_error_i  => fifo_target_ts_error,
       d_valid_i        => fifo_dvalid,
       d_drop_i         => fifo_drop,
       d_accept_i       => fifo_accept_d0,
-      d_req_o          => fsm_in.dreq,
+      d_req_o              => fifo_dreq,
+      d_full_o             => fifo_full,
       rx_first_p1_o    => rx_first_p1_o,
       rx_last_p1_o     => rx_last_p1_o,
       rx_data_o        => rx_data_o,
       rx_valid_o       => rx_valid_o,
       rx_dreq_i        => rx_dreq_i,
       rx_streamer_cfg_i => rx_streamer_cfg_i);
+
+
+  U_RestoreTAITimeFromRXTimestamp : entity work.ts_restore_tai
+    generic map (
+      g_tm_sample_period        => 20,
+      g_clk_ref_rate            => g_clk_ref_rate,
+      g_simulation              => g_simulation,
+      g_sim_cycle_counter_range => g_sim_cycle_counter_range)
+    port map (
+      clk_sys_i       => clk_sys_i,
+      clk_ref_i       => clk_ref_i,
+      rst_n_i         => rst_n_i,
+      tm_time_valid_i => tm_time_valid_i,
+      tm_tai_i        => tm_tai_i,
+      tm_cycles_i     => tm_cycles_i,
+      ts_valid_i      => tx_tag_valid,
+      ts_cycles_i     => tx_tag_cycles,
+      ts_valid_o      => tx_tag_adj_valid,
+      ts_cycles_o     => tx_tag_adj_cycles,
+      ts_error_o      => tx_tag_adj_error,
+      ts_tai_o        => tx_tag_adj_tai);
+
+  p_gen_fsm_dreq : process(fifo_full, state)
+  begin
+    if state = PAYLOAD then
+      fsm_in.dreq <= not fifo_full;
+    else
+      fsm_in.dreq <= '1';
+    end if;
+  end process;
 
 
   p_fsm : process(clk_sys_i)
@@ -348,6 +407,8 @@ begin  -- rtl
         pack_data              <= (others=>'0');
         is_vlan                <= '0';
         rx_tag_valid_stored  <= '0';
+        tx_tag_present       <= '0';
+        tx_tag_valid         <= '0';
       else
         case state is
           when IDLE =>
@@ -368,13 +429,24 @@ begin  -- rtl
             rx_lost_frames_cnt_o <= (others => '0');
             frames_lost          <= '0';
             blocks_lost          <= '0';
-            rx_latency           <= (others=>'0');
-            rx_latency_valid     <= '0';
             is_vlan              <= '0';
-            rx_tag_valid_stored  <= '0';
+            tx_tag_present       <= '0';
+            tx_tag_valid         <= '0';
+
             if(fsm_in.sof = '1') then
-              state            <= HEADER;
+
+              if(fifo_full = '1') then
+                state <= DROP_FRAME;
+              else
+                state <=  HEADER;
+              end if;
             end if;
+
+          when DROP_FRAME =>
+            if (fsm_in.eof = '1' or fsm_in.error = '1') then
+              state <= IDLE;
+            end if;
+
 
           when HEADER =>
             if(fsm_in.eof = '1') then
@@ -421,12 +493,14 @@ begin  -- rtl
                   count <= count + 1;
                 when x"07" =>
                   if(is_vlan = '0') then
-                    tx_tag_valid               <= fsm_in.data(15);
-                    tx_tag_cycles(27 downto 16)<= fsm_in.data(11 downto 0);
+                    tx_tag_present              <= fsm_in.data(15);
+                    tx_tag_error                <= fsm_in.data(14);
+                    tx_tag_cycles(27 downto 16) <= fsm_in.data(11 downto 0);
                   end if;
                   count <= count + 1;
                 when x"08" =>
                   if(is_vlan = '0') then
+                    tx_tag_valid               <= '1';
                     tx_tag_cycles(15 downto 0) <= fsm_in.data;
                     count                      <= count + 1;
                     crc_en                     <= '1';
@@ -438,10 +512,12 @@ begin  -- rtl
                   end if;
                   count <= count + 1;
                 when x"09" =>
-                  tx_tag_valid               <= fsm_in.data(15);
-                  tx_tag_cycles(27 downto 16)<= fsm_in.data(11 downto 0);
+                  tx_tag_present              <= fsm_in.data(15);
+                  tx_tag_error                <= fsm_in.data(14);
+                  tx_tag_cycles(27 downto 16) <= fsm_in.data(11 downto 0);
                    count <= count + 1;
                 when x"0A" =>
+                  tx_tag_valid               <= '1';
                   tx_tag_cycles(15 downto 0) <= fsm_in.data;
                   count                      <= count + 1;
                   crc_en                     <= '1';
@@ -465,30 +541,6 @@ begin  -- rtl
               ser_count           <= (others => '0');
               word_count          <= word_count + 1; -- count words, increment in advance
               got_next_subframe   <= '1';
-              fifo_target_ts_en <= '0';
-
-
-              fifo_target_ts <= unsigned(tx_tag_cycles);
-              
-              if(tx_tag_valid = '1' and unsigned(rx_streamer_cfg_i.fixed_latency) /= 0) then
-                fifo_target_ts_en <= '1';
-              end if;
-            
-              
-              -- latency measurement
-              if(tx_tag_valid = '1' and rx_tag_valid_stored = '1') then
-                rx_latency_valid <= '1';
-                if(unsigned(tx_tag_cycles) > unsigned(rx_tag_cycles)) then
-                  rx_latency <= unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles) + to_unsigned(125000000, 28);
-                else
-                  rx_latency <= unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles);
-                end if;
-                tx_tag_valid <= '0';
-              else
-                rx_latency_valid <= '0';
-              end if;
-              rx_tag_valid_stored <= '0';
-
 
               if(std_logic_vector(seq_no) /= fsm_in.data(14 downto 0)) then
                 seq_no    <= unsigned(fsm_in.data(14 downto 0))+1;
@@ -507,37 +559,9 @@ begin  -- rtl
               end if;
             end if;
 
-          when SUBFRAME_HEADER =>
-            if fifo_dvalid = '1' then
-              fifo_target_ts_en <= '0';
-            end if;
-            
-            fifo_drop   <= '0';
-            fifo_accept <= '0';
-            ser_count <= (others => '0');
 
-            if(fsm_in.eof = '1') then
-              state <= IDLE;
-              got_next_subframe <= '0';
-              blocks_lost <= '0';
-            elsif (fsm_in.dvalid = '1' and is_escape = '1') then
-              got_next_subframe <= '1';
-
-              if(std_logic_vector(count) /= fsm_in.data(14 downto 0)) then
-                count     <= unsigned(fsm_in.data(14 downto 0))+1;
-                blocks_lost <= '1';
-              else
-                count    <= count + 1;
-                blocks_lost <= '0';
-              end if;
-              state <= PAYLOAD;
-            end if;
 
           when PAYLOAD =>
-            if fifo_dvalid = '1' then
-              fifo_target_ts_en <= '0';
-            end if;
-            
             frames_lost <= '0';
             rx_lost_frames_cnt_o <= (others => '0');
             rx_latency_valid <= '0';
@@ -581,6 +605,8 @@ begin  -- rtl
                   state       <= EOF;
                   fifo_accept <= crc_match;      --_latched;
                   fifo_drop   <= not crc_match;  --_latched;
+
+
                   fifo_dvalid <= pending_write and not fifo_dvalid;
                 else
                   blocks_lost   <= '0';
@@ -618,6 +644,7 @@ begin  -- rtl
                     fifo_accept <= '1'; 
                     fifo_drop   <= '0'; 
                     fifo_dvalid <= '1';
+
                   else
                     word_count <= word_count + 1;
                   end if;
@@ -653,7 +680,58 @@ begin  -- rtl
     end if;
   end process;
 
-  p_delay_fifo_accept : process(clk_sys_i)
+
+
+  p_handle_latency : process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_int_n = '0' then
+        fifo_target_ts_en        <= '0';
+        rx_latency_valid         <= '0';
+        rx_tag_valid_stored      <= '0';
+        timestamp_pushed_to_fifo <= '0';
+      else
+
+        case state is
+          when IDLE =>
+            timestamp_pushed_to_fifo <= '0';
+
+          when PAYLOAD =>
+
+            if(timestamp_pushed_to_fifo = '0' and tx_tag_adj_valid = '1' and tx_tag_present = '1' and unsigned(rx_streamer_cfg_i.fixed_latency) /= 0) then
+              fifo_target_ts_cycles <= tx_tag_adj_cycles;
+              fifo_target_ts_tai    <= tx_tag_adj_tai;
+              fifo_target_ts_error  <= tx_tag_adj_error or tx_tag_error;
+              fifo_target_ts_en     <= '1';
+            end if;
+
+            if fifo_dvalid = '1' and fifo_target_ts_en = '1' then
+              timestamp_pushed_to_fifo <= '1';
+            end if;
+
+            -- latency measurement
+            if(tx_tag_present = '1' and rx_tag_valid_stored = '1') then
+              rx_latency_valid <= '1';
+              if(unsigned(tx_tag_cycles) > unsigned(rx_tag_cycles)) then
+                rx_latency <= unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles) + to_unsigned(125000000, 28);
+              else
+                rx_latency <= unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles);
+              end if;
+            else
+              rx_latency_valid <= '0';
+            end if;
+            rx_tag_valid_stored <= '0';
+
+          when others => null;
+        end case;
+      end if;
+    end if;
+  end process;
+
+
+
+
+  p_delay_signals : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       fifo_accept_d0 <= fifo_accept;

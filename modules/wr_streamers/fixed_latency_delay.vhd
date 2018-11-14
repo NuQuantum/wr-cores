@@ -31,7 +31,9 @@ entity fixed_latency_delay is
     d_last_i         : in std_logic;
     d_sync_i         : in std_logic;
     d_target_ts_en_i : in std_logic;
-    d_target_ts_i    : in std_logic_vector(27 downto 0);
+    d_target_ts_tai_i    : in std_logic_vector(39 downto 0);
+    d_target_ts_cycles_i : in std_logic_vector(27 downto 0);
+    d_target_ts_error_i  : in std_logic;
 
     d_valid_i  : in  std_logic;
     d_drop_i   : in  std_logic;
@@ -81,6 +83,9 @@ architecture rtl of fixed_latency_delay is
   signal delay_match : std_logic;
   signal delay_miss : std_logic;
   
+  signal fifo_target_ts_error : std_logic;
+  signal fifo_target_ts_tai : std_logic_vector(39 downto 0);
+  signal fifo_target_ts_cycles : std_logic_vector(27 downto 0);
 begin
 
 
@@ -102,8 +107,10 @@ begin
   dbuf_d(g_data_width+1) <= d_sync_i;
   dbuf_d(g_data_width+2) <= d_target_ts_en_i;
   dbuf_d(g_data_width+3+27 downto g_data_width+3) <= d_target_ts_i;
-  
-  
+  dbuf_d(g_data_width+3+28+39 downto g_data_width+3+28) <= d_target_ts_tai_i;
+  dbuf_d(g_data_width+3+28+40)                          <= d_target_ts_error_i;
+
+
   U_DropBuffer : entity work.dropping_buffer
     generic map (
       g_size       => g_buffer_size,
@@ -164,7 +171,7 @@ begin
 
           when TS_SETUP_MATCH =>
             if fifo_valid = '1' then
-              if fifo_target_ts_en = '1' then
+              if fifo_target_ts_en = '1' and fifo_target_ts_error = '0' then
                 state <= TS_WAIT_MATCH;
               else
                 state <= SEND;
@@ -208,7 +215,8 @@ begin
       clk_i           => clk_ref_i,
       rst_n_i         => rst_n_ref,
       arm_i           => delay_arm,
-      ts_origin_i     => fifo_target_ts,
+      ts_tai_i        => fifo_target_ts_tai,
+      ts_cycles_i     => fifo_target_ts_cycles,
       ts_latency_i    => rx_streamer_cfg_i.fixed_latency,
       tm_time_valid_i => tm_time_valid_i,
       tm_tai_i        => tm_tai_i,
@@ -246,7 +254,9 @@ begin
   fifo_last         <= fifo_q(g_data_width);
   fifo_sync         <= fifo_q(g_data_width+1);
   fifo_target_ts_en <= fifo_q(g_data_width+2);
-  fifo_target_ts    <= fifo_q(g_data_width + 3 + 27 downto g_data_width + 3);
+  fifo_target_ts_cycles <= fifo_q(g_data_width+3+27 downto g_data_width+3);
+  fifo_target_ts_tai    <= fifo_q(g_data_width+3+28+39 downto g_data_width+3+28);
+  fifo_target_ts_error  <= fifo_q(g_data_width+3+28+40);
 
   rx_data_o <= fifo_data;
   rx_valid_o <= rx_valid;
