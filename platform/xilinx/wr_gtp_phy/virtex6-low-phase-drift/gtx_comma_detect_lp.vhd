@@ -27,7 +27,7 @@ architecture rtl of gtx_comma_detect_lp is
 
   type t_state is (SYNC_LOST, SYNC_CHECK, SYNC_ACQUIRED);
 
-  constant c_IDLE_LENGTH_UP   : integer := 40;
+  constant c_IDLE_LENGTH_UP   : integer := 500;
   constant c_IDLE_LENGTH_LOSS : integer := 1000;
 
   constant c_COMMA_SHIFT_WE_WANT : std_logic_vector(6 downto 0) := "0110000";
@@ -88,11 +88,11 @@ architecture rtl of gtx_comma_detect_lp is
 begin
 
 
-  gen1 : if g_id = 0 generate
-    --chipscope_icon_1 : chipscope_icon
+  gen1 : if g_id = 5 generate
+    -- chipscope_icon_1 : chipscope_icon
     --  port map (
     --    CONTROL0 => CONTROL);
-    --chipscope_ila_1 : chipscope_ila
+    -- chipscope_ila_1 : chipscope_ila
     --  port map (
     --    CONTROL => CONTROL,
     --    CLK     => clk_rx_i,
@@ -101,14 +101,15 @@ begin
     --    TRIG2   => TRIG2,
     --    TRIG3   => TRIG3);
 
-    --trig0 (19 downto 0) <= rx_data_raw_i;
-    --trig1 (19 downto 0) <= comma_found;
-    --trig0(20) <= comma_pos_valid;
-    --trig0(21) <= link_up;
-    --trig0(22) <= link_aligned;
-    --trig2(15 downto 0) <= rx_data_i;
-    --trig2(17 downto 16) <= rx_k_i;
-    --trig2(18) <= rx_error_i;
+    trig0 (19 downto 0) <= rx_data_raw_i;
+    trig1 (19 downto 0) <= comma_found;
+    trig0(20) <= comma_pos_valid;
+    trig0(21) <= link_up;
+    trig0(22) <= link_aligned;
+    trig2(15 downto 0) <= rx_data_i;
+    trig2(17 downto 16) <= rx_k_i;
+    trig2(18) <= rx_error_i;
+    trig3(15 downto 0) <= std_logic_vector(cnt);
   end generate gen1;
 
 
@@ -159,11 +160,12 @@ begin
 
           when SYNC_CHECK =>
             if comma_pos = first_comma and comma_pos_valid = '1' then
-              if cnt < 2 * c_IDLE_LENGTH_UP then
-                cnt <= cnt + 4;
-              end if;
+              cnt <= cnt + 4;
             elsif cnt > 0 then
               cnt <= cnt - 1;
+              if cnt = 1 then
+                state <= SYNC_LOST;
+              end if;
             end if;
 
             if cnt >= c_IDLE_LENGTH_UP then
