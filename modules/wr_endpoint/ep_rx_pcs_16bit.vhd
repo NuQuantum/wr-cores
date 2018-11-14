@@ -172,12 +172,10 @@ architecture behavioral of ep_rx_pcs_16bit is
   -- 8b10b decoding and postprocessing signals
   signal d_data                                 : std_logic_vector(15 downto 0);
   signal d_data_shrunk                          : std_logic_vector(15 downto 0);
-  signal d_data_buf                             : std_logic_vector(7 downto 0);
   signal d_err, d_is_idle, d_is_spd_preamble    : std_logic;
   signal d_is_eof_extend, d_is_eof, d_is_extend : std_logic;
   signal d_is_preamble, d_is_preamble_sfd       : std_logic;
   signal d_is_k                                 : std_logic_vector(1 downto 0);
-  signal d_is_k_buf                             : std_logic;
   signal d_is_k_shrunk                          : std_logic_vector(1 downto 0);
   signal d_is_lcr                               : std_logic;
   signal d_is_cal                               : std_logic;
@@ -187,7 +185,7 @@ architecture behavioral of ep_rx_pcs_16bit is
   signal phy_rx_k_muxed         : std_logic_vector(1 downto 0);
 
   signal d_is_shrunk : std_logic;
-  signal shrunk_preamble : std_logic;
+  signal odd_reception : std_logic;
 
 -- Synchronization detection FSM signals
   signal rx_synced      : std_logic;
@@ -369,9 +367,9 @@ begin
 -------------------------------------------------------------------------------  
 
   phy_rx_data_shrunk <= d_data(7 downto 0) & phy_rx_data_i(15 downto 8);
-  phy_rx_data_muxed <= phy_rx_data_i when shrunk_preamble = '0' else
+  phy_rx_data_muxed <= phy_rx_data_i when odd_reception = '0' else
                        phy_rx_data_shrunk;
-  phy_rx_k_muxed    <= phy_rx_k_i when shrunk_preamble = '0' else
+  phy_rx_k_muxed    <= phy_rx_k_i when odd_reception = '0' else
                        d_is_k(0) & phy_rx_k_i(1);
 
   -- process postprocesses the raw 8b10b decoder output (phy_rx_data_i, phy_rx_k_i, phy_rx_enc_err_ior)
@@ -392,17 +390,14 @@ begin
         d_is_eof_extend   <= '0';
         d_is_lcr          <= '0';
         d_err             <= '0';
-        d_data_buf        <= (others=>'0');
         d_data_shrunk     <= (others=>'0');
         d_is_shrunk       <= '0';
       else
 
         d_data <= phy_rx_data_i;
         d_is_k <= phy_rx_k_i;
-        d_data_shrunk <= d_data_buf & phy_rx_data_i(15 downto 8); -- 
-        d_data_buf <= phy_rx_data_i(7 downto 0);
-        d_is_k_shrunk <= d_is_k_buf & phy_rx_k_i(1);
-        d_is_k_buf <= phy_rx_k_i(0);
+        d_data_shrunk <= d_data(7 downto 0) & phy_rx_data_i(15 downto 8); -- 
+        d_is_k_shrunk <= d_is_k(0) & phy_rx_k_i(1);
 
 
         if(phy_rx_enc_err_i = '0') then
@@ -433,27 +428,23 @@ begin
                          and phy_rx_k_muxed = "00");
 
 -- data + EPD
-          if (shrunk_preamble = '0') then
-            d_is_eof <= f_to_sl( phy_rx_data_i(7 downto 0) = c_K29_7 and phy_rx_k_i = "01");
-          else
-            d_is_eof <= f_to_sl( phy_rx_data_i(15 downto 8) = c_K29_7 and phy_rx_k_i(1) = '1');
-          end if;
+          d_is_eof <= f_to_sl( phy_rx_data_muxed(7 downto 0) = c_K29_7 and phy_rx_k_muxed = "01");
 
           -- EPD + extend
           d_is_eof_extend <= f_to_sl(
             phy_rx_data_muxed(15 downto 8) = c_K29_7
             and phy_rx_data_muxed(7 downto 0) = c_k23_7
-            and phy_rx_k_i = "11");
+            and phy_rx_k_muxed = "11");
 
           d_is_extend <= f_to_sl(
             phy_rx_data_muxed = c_K23_7 & c_K23_7
-            and phy_rx_k_i = "11");
+            and phy_rx_k_muxed = "11");
 
           d_is_lcr <= f_to_sl(
-            phy_rx_data_i(15 downto 8) = c_K28_5
-            and (phy_rx_data_i(7 downto 0) = c_d21_5
-                 or phy_rx_data_i(7 downto 0) = c_d2_2)
-            and phy_rx_k_i = "10");
+            phy_rx_data_muxed(15 downto 8) = c_K28_5
+            and (phy_rx_data_muxed(7 downto 0) = c_d21_5
+                 or phy_rx_data_muxed(7 downto 0) = c_d2_2)
+            and phy_rx_k_muxed = "10");
 
 
 -- invalid code received?
@@ -506,7 +497,7 @@ begin
         rmon_invalid_code_p_int <= '0';
         timestamp_trigger_p_a_o <= '0';
         timestamp_pending       <= "000";
-        shrunk_preamble         <= '0';
+        odd_reception         <= '0';
       else                              -- normal PCS operation
 
         -- clear the autogotiation variables if the autonegotiation is disabled
@@ -537,7 +528,7 @@ begin
             rx_busy           <= '0';
             timestamp_trigger_p_a_o <= '0';
 
-            shrunk_preamble         <= '0';
+            odd_reception         <= '0';
 
             -- insert the RX timestamp into the FIFO
             if(timestamp_pending /= "000") then
@@ -605,8 +596,8 @@ begin
             -- values are identical.
 
 -- an error? - abort the reception and go to NOFRAME state.
-            if(d_err = '1' or (d_is_k /= "00" and shrunk_preamble = '0') or
-            (d_is_k_shrunk /= "00" and shrunk_preamble = '1') or rx_synced = '0') then
+            if(d_err = '1' or (d_is_k /= "00" and odd_reception = '0') or
+            (d_is_k_shrunk /= "00" and odd_reception = '1') or rx_synced = '0') then
               rx_state                <= RX_NOFRAME;
               rmon_invalid_code_p_int <= d_err;
 
@@ -663,7 +654,7 @@ begin
 
 -- indicate a start-of-packet condition in the RX FIFO and enable writing to
 -- the FIFO.
-                  shrunk_preamble <= d_is_shrunk; -- remember if we're processing normal frame, or there was a shrunk preamble
+                  odd_reception <= d_is_shrunk; -- remember if we're processing normal frame, or there was a shrunk preamble
                   pcs_fab_out.sof <= '1';
                   rx_state      <= RX_PAYLOAD;
                 end if;
@@ -693,7 +684,7 @@ begin
             pcs_fab_out.sof <= '0';
             pcs_fab_out.eof <= '0';
             pcs_fab_out.has_rx_timestamp <= '0';
-            if (shrunk_preamble = '1') then
+            if (odd_reception = '1') then
               pcs_fab_out.data <= d_data_shrunk;
             else
               pcs_fab_out.data <= d_data;
@@ -701,8 +692,8 @@ begin
 
             -- check for errors.
             if (d_err = '1' or rx_synced = '0' or pcs_fifo_almostfull_i = '1'
-                or (d_is_k /= "00" and d_is_eof_extend = '0' and d_is_eof = '0' and shrunk_preamble = '0')
-                or (d_is_k_shrunk /= "00" and d_is_eof_extend = '0' and d_is_eof = '0' and shrunk_preamble = '1') ) then
+                or (d_is_k /= "00" and d_is_eof_extend = '0' and d_is_eof = '0' and odd_reception = '0')
+                or (d_is_k_shrunk /= "00" and d_is_eof_extend = '0' and d_is_eof = '0' and odd_reception = '1') ) then
 
               -- indicate an errorneous termination of the current frame in the
               -- RX FIFO
@@ -864,7 +855,7 @@ begin
   trig1(18) <= pcs_fab_out.dvalid;
   trig1(19) <= pcs_fab_out.error;
   trig1(20) <= pcs_fab_out.bytesel;
-  trig1(28 downto 21) <= d_data_buf;
+  trig1(28 downto 21) <= d_data(7 downto 0);
   trig1(31 downto 29) <= std_logic_vector(preamble_cntr);
   
   trig2(15 downto 0) <= d_data_shrunk;
