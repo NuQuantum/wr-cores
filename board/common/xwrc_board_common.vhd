@@ -566,6 +566,23 @@ begin  -- architecture struct
 
   end generate gen_etherbone;
 
+  gen_loopback : if (g_fabric_iface = LOOPBACK) generate
+
+    cmp_wrf_loopback : xwrf_loopback
+      generic map(
+        g_interface_mode        => PIPELINED,
+        g_address_granularity   => WORD)
+      port map(
+        clk_sys_i => clk_sys_i,
+        rst_n_i   => rst_n_i,
+        wrf_snk_i => wrf_src_out,
+        wrf_snk_o => wrf_src_in,
+        wrf_src_o => wrf_snk_in,
+        wrf_src_i => wrf_snk_out,
+        wb_i      => aux_master_out,
+        wb_o      => aux_master_in);
+  end generate gen_loopback;
+
   gen_wr_fabric : if (g_fabric_iface = PLAIN) generate
 
     wrf_src_o <= wrf_src_out;
