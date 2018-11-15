@@ -164,9 +164,7 @@ architecture behavioral of ep_tx_pcs_8bit is
   signal mdio_mcr_pdown_synced : std_logic;
   signal an_tx_en_synced       : std_logic;
 
-  signal s_one : std_logic := '1';
   signal sh_preamble_sent : std_logic;
-
 begin
 
   U_sync_pcs_busy_o : gc_sync_ffs

@@ -162,10 +162,10 @@ package endpoint_private_pkg is
       mdio_stb_i                    : in  std_logic;
       mdio_rw_i                     : in  std_logic;
       mdio_ready_o                  : out std_logic;
-      dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-      dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
-      nice_dbg_o  : out t_dbg_ep_pcs;
-      preamble_shrinkage : in std_logic);
+      dbg_tx_pcs_wr_count_o         : out std_logic_vector(5+4 downto 0);
+      dbg_tx_pcs_rd_count_o         : out std_logic_vector(5+4 downto 0);
+      nice_dbg_o                    : out t_dbg_ep_pcs;
+      preamble_shrinkage            : in std_logic);
   end component;
 
   component ep_tx_pcs_8bit

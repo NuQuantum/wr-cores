@@ -304,8 +304,7 @@ entity wr_endpoint is
 
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
     dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
-    nice_dbg_o  : out t_dbg_ep;
-    preamble_shrinkage : in std_logic
+    nice_dbg_o                : out t_dbg_ep
     );
 
 end wr_endpoint;
@@ -548,7 +547,7 @@ begin
       dbg_tx_pcs_wr_count_o => dbg_tx_pcs_wr_count_o,
       dbg_tx_pcs_rd_count_o => dbg_tx_pcs_rd_count_o,
       nice_dbg_o   => nice_dbg_o.pcs,
-      preamble_shrinkage => preamble_shrinkage);
+      preamble_shrinkage => regs_fromwb.ecr_txshrin_en_o);
 
 
 -------------------------------------------------------------------------------
