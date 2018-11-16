@@ -61,7 +61,8 @@ entity ep_rtu_header_extract is
     rtu_full_i     : in  std_logic;
     rtu_rq_abort_o : out std_logic;
     rtu_rq_valid_o : out std_logic;
-    rxbuf_full_i   : in  std_logic
+    rxbuf_full_i   : in  std_logic;
+    nice_dbg_o     : out t_dbg_rtu_extract
     );
 
 end ep_rtu_header_extract;
@@ -201,5 +202,11 @@ begin  -- rtl
   rtu_rq_o.has_prio <= vlan_is_tagged_i;
   rtu_rq_valid_o    <= rtu_rq_valid_out and not snk_fab_i.ERROR;
   rtu_rq_o.hash     <= (others => '0');
+
+  nice_dbg_o.in_packet <= in_packet;
+  nice_dbg_o.in_header <= in_header;
+  nice_dbg_o.rtu_rq_valid_basic  <= rtu_rq_valid_basic;
+  nice_dbg_o.rtu_rq_valid_tagged <= rtu_rq_valid_tagged;
+  nice_dbg_o.rtu_rq_abort        <= rtu_rq_abort;
   
 end rtl;

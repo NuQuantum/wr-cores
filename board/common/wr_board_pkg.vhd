@@ -42,7 +42,7 @@ use work.streamers_pkg.all;
 
 package wr_board_pkg is
 
-  type t_board_fabric_iface is (PLAIN, STREAMERS, ETHERBONE, always_last_invalid);
+  type t_board_fabric_iface is (PLAIN, STREAMERS, ETHERBONE, LOOPBACK, always_last_invalid);
 
   -- TODO: using these default paths requires absolute path. If relative path is used,
   --       they work only for reference designs by chance. Once we figure out how to

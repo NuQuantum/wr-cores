@@ -148,6 +148,14 @@ package endpoint_pkg is
     rx : t_dbg_ep_rxpcs;
   end record;
 
+  type t_dbg_rtu_extract is record
+    in_packet : std_logic;
+    in_header : std_logic;
+    rtu_rq_valid_basic : std_logic;
+    rtu_rq_valid_tagged : std_logic;
+    rtu_rq_abort  : std_logic;
+  end record;
+
   type t_dbg_ep_rxpath is record
     fab_pipe  : t_fab_pipe(9 downto 0);
     dreq_pipe : std_logic_vector(9 downto 0);
@@ -155,6 +163,7 @@ package endpoint_pkg is
     pcs_fifo_empty : std_logic;
     pcs_fifo_full  : std_logic;
     rxbuf_full     : std_logic;
+    rtu_extract    : t_dbg_rtu_extract;
   end record;
 
   type t_dbg_ep is record
@@ -186,7 +195,8 @@ package endpoint_pkg is
       g_with_packet_injection : boolean                        := false;
       g_use_new_rxcrc         :	boolean                        := false;
       g_use_new_txcrc         :	boolean                        := false;
-      g_with_stop_traffic     : boolean                        := false);
+      g_with_stop_traffic     : boolean                        := false;
+      g_ep_idx  : integer := 0);
     port (
       clk_ref_i            : in  std_logic;
       clk_sys_i            : in  std_logic;
@@ -297,7 +307,8 @@ package endpoint_pkg is
       g_with_packet_injection : boolean                        := false;
       g_use_new_rxcrc         : boolean                        := false;
       g_use_new_txcrc         : boolean                        := false;
-      g_with_stop_traffic     : boolean                        := false);
+      g_with_stop_traffic     : boolean                        := false;
+      g_ep_idx  : integer := 0);
     port (
       clk_ref_i            : in  std_logic;
       clk_sys_i            : in  std_logic;
@@ -403,7 +414,7 @@ package endpoint_pkg is
       stop_traffic_i       : in std_logic := '0';
       dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
       dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
-      nice_dbg_o  : out t_dbg_ep);
+      nice_dbg_o           : out t_dbg_ep);
   end component;
   
   constant c_xwr_endpoint_sdb : t_sdb_device := (

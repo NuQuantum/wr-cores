@@ -65,7 +65,8 @@ entity xwr_endpoint is
     g_with_packet_injection : boolean                        := false;
     g_use_new_rxcrc         : boolean                        := false;
     g_use_new_txcrc         : boolean                        := false;
-    g_with_stop_traffic     : boolean                        := false
+    g_with_stop_traffic     : boolean                        := false;
+    g_ep_idx : integer
     );
   port (
 
@@ -319,7 +320,8 @@ begin
       g_with_packet_injection => g_with_packet_injection,
       g_use_new_rxcrc         => g_use_new_rxcrc,
       g_use_new_txcrc         => g_use_new_txcrc,
-      g_with_stop_traffic     => g_with_stop_traffic)
+      g_with_stop_traffic     => g_with_stop_traffic,
+      g_ep_idx  => g_ep_idx)
     port map (
       clk_ref_i            => clk_ref_i,
       clk_sys_i            => clk_sys_i,

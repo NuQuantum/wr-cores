@@ -86,6 +86,17 @@ peripheral {
 			 type = BIT;
 		};
 
+		field {
+			 name = "Generate preamble shrinkage";
+			 prefix = "TXSHRIN_en";
+			 description = "1: TX preamble shrinkage enabled\
+			                0: TX preamble shrinkage disabled";
+
+			 access_bus = READ_WRITE;
+			 access_dev = READ_ONLY;
+			 type = BIT;
+		};
+
     field {
        name = "Feature present: VLAN tagging";
        description = "1: this implementation of WR Endpoint supports VLAN processing \

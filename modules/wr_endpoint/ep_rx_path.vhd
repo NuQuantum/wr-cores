@@ -75,6 +75,8 @@ entity ep_rx_path is
     rst_n_sys_i : in std_logic;
     rst_n_rx_i  : in std_logic;
 
+    stop_traffic_i : in std_logic;
+
 -- physical coding sublayer (PCS) interface
     pcs_fab_i             : in  t_ep_internal_fabric;
     pcs_fifo_almostfull_o : out std_logic;
@@ -394,7 +396,8 @@ begin  -- behavioral
       rtu_full_i       => rtu_full_i,
       rtu_rq_abort_o   => rtu_rq_abort_o,
       rtu_rq_valid_o   => rtu_rq_valid,
-      rxbuf_full_i     => rxbuf_full);
+      rxbuf_full_i     => rxbuf_full,
+      nice_dbg_o       => nice_dbg_o.rtu_extract);
 
   gen_with_rx_buffer : if g_with_rx_buffer generate
     U_Rx_Buffer : ep_rx_buffer
@@ -445,6 +448,7 @@ begin  -- behavioral
     port map (
       clk_sys_i  => clk_sys_i,
       rst_n_i    => rst_n_sys_i,
+      stop_traffic_i  => stop_traffic_i,
       snk_fab_i  => fab_pipe(9),
       snk_dreq_o => dreq_pipe(9),
       src_wb_i   => src_wb_i,
