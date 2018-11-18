@@ -106,7 +106,7 @@ entity wrsw_nic is
     wb_dat_o   : out std_logic_vector(c_wishbone_data_width-1 downto 0);
     wb_ack_o   : out std_logic;
     wb_stall_o : out std_logic;
-    wb_int_o   : out std_logic
+    int_o      : out std_logic
 
     );
 
@@ -135,7 +135,8 @@ architecture rtl of wrsw_nic is
       rtu_rsp_valid_o     : out std_logic;
       rtu_rsp_ack_i       : in  std_logic;
       wb_i                : in  t_wishbone_slave_in;
-      wb_o                : out t_wishbone_slave_out);
+      wb_o                : out t_wishbone_slave_out;
+      int_o               : out std_logic);
   end component;
 
   signal snk_out : t_wrf_sink_out;
@@ -171,7 +172,8 @@ begin
       rtu_rsp_valid_o     => rtu_rsp_valid_o,
       rtu_rsp_ack_i       => rtu_rsp_ack_i,
       wb_i                => wb_in,
-      wb_o                => wb_out);
+      wb_o                => wb_out,
+      int_o               => int_o);
 
   -- WBP Master (TX)
   src_dat_o    <= src_out.dat;
@@ -204,6 +206,5 @@ begin
   wb_dat_o   <= wb_out.dat;
   wb_ack_o   <= wb_out.ack;
   wb_stall_o <= wb_out.stall;
-  wb_int_o   <= wb_out.int;
   
 end rtl;

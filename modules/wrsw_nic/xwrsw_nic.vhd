@@ -97,6 +97,7 @@ entity xwrsw_nic is
 
     wb_i : in  t_wishbone_slave_in;
     wb_o : out t_wishbone_slave_out;
+    int_o: out std_logic;
 
 -------------------------------------------------------------------------------
 -- RMON events
@@ -363,7 +364,7 @@ begin  -- rtl
       wb_we_i   => wb_in.we,
       wb_ack_o  => wb_ack_slave,
       wb_stall_o=> wb_out.stall,
-      wb_int_o  => wb_out.int,
+      wb_int_o  => int_o,
 
 
       regs_o => regs_fromwb,
