@@ -85,8 +85,9 @@ entity xwrsw_tx_tsu is
 -- Wishbone bus
 -------------------------------------------------------------------------------
 
-    wb_i : in  t_wishbone_slave_in;
-    wb_o : out t_wishbone_slave_out
+    wb_i  : in  t_wishbone_slave_in;
+    wb_o  : out t_wishbone_slave_out;
+    int_o : out std_logic
     );
 
 
@@ -226,7 +227,7 @@ begin  -- syn
       wb_stb_i              => wb_in.stb,
       wb_we_i               => wb_in.we,
       wb_ack_o              => wb_out.ack,
-      wb_int_o              => wb_out.int,
+      wb_int_o              => int_o,
       txtsu_tsf_wr_req_i    => txtsu_tsf_wr_req,
       txtsu_tsf_wr_full_o   => txtsu_tsf_wr_full,
       txtsu_tsf_wr_empty_o  => txtsu_tsf_wr_empty,
