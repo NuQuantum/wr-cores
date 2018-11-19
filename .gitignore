@@ -19,3 +19,4 @@ doc/
 Makefile
 *.xml
 xgui/
+*.orig
