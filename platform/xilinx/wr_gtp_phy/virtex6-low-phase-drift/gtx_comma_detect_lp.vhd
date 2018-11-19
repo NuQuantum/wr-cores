@@ -41,28 +41,21 @@ architecture rtl of gtx_comma_detect_lp is
   signal state       : t_state;
   signal comma_found : std_logic_vector(19 downto 0);
 
-  component chipscope_icon
-    port (
-      CONTROL0 : inout std_logic_vector(35 downto 0));
-  end component;
-
-  component chipscope_ila
+  component chipscope_ila_v6 is
     port (
       CONTROL : inout std_logic_vector(35 downto 0);
       CLK     : in    std_logic;
-      TRIG0   : in    std_logic_vector(31 downto 0);
-      TRIG1   : in    std_logic_vector(31 downto 0);
-      TRIG2   : in    std_logic_vector(31 downto 0);
-      TRIG3   : in    std_logic_vector(31 downto 0));
-  end component;
+      TRIG0   : in    std_logic_vector(63 downto 0));
+  end component chipscope_ila_v6;
+
+  component chipscope_icon_v6 is
+    port (
+      CONTROL0 : inout std_logic_vector(35 downto 0));
+  end component chipscope_icon_v6;
 
   signal CONTROL : std_logic_vector(35 downto 0);
-  signal TRIG0   : std_logic_vector(31 downto 0);
-  signal TRIG1   : std_logic_vector(31 downto 0);
-  signal TRIG2   : std_logic_vector(31 downto 0);
-  signal TRIG3   : std_logic_vector(31 downto 0);
-
-
+  signal TRIG0   : std_logic_vector(63 downto 0);
+  
   function f_onehot_encode (x : std_logic_vector; output_bits : integer)return std_logic_vector is
     variable rv : std_logic_vector(output_bits-1 downto 0);
   begin
@@ -88,30 +81,24 @@ architecture rtl of gtx_comma_detect_lp is
 begin
 
 
-  gen1 : if g_id = 5 generate
-    -- chipscope_icon_1 : chipscope_icon
-    --  port map (
-    --    CONTROL0 => CONTROL);
-    -- chipscope_ila_1 : chipscope_ila
-    --  port map (
-    --    CONTROL => CONTROL,
-    --    CLK     => clk_rx_i,
-    --    TRIG0   => TRIG0,
-    --    TRIG1   => TRIG1,
-    --    TRIG2   => TRIG2,
-    --    TRIG3   => TRIG3);
+--  gen1 : if g_id = 0 generate
+--     chipscope_icon_1 : chipscope_icon_v6
+--      port map (
+--        CONTROL0 => CONTROL);
 
-    trig0 (19 downto 0) <= rx_data_raw_i;
-    trig1 (19 downto 0) <= comma_found;
-    trig0(20) <= comma_pos_valid;
-    trig0(21) <= link_up;
-    trig0(22) <= link_aligned;
-    trig2(15 downto 0) <= rx_data_i;
-    trig2(17 downto 16) <= rx_k_i;
-    trig2(18) <= rx_error_i;
-    trig3(15 downto 0) <= std_logic_vector(cnt);
-  end generate gen1;
-
+--     chipscope_ila_1 : chipscope_ila_v6
+--      port map (
+--        CONTROL => CONTROL,
+--        CLK     => clk_rx_i,
+--        TRIG0   => TRIG0);
+     
+--    trig0 (19 downto 0) <= rx_data_raw_i;
+--    trig0 (39 downto 20) <= comma_found;
+--    trig0 (40) <= comma_pos_valid;
+--    trig0 (41) <= link_up;
+--    trig0 (42) <= link_aligned;
+--    trig0 (43+15 downto 43) <= std_logic_vector(cnt);
+--  end generate gen1;
 
   process(clk_rx_i)
   begin
@@ -155,7 +142,7 @@ begin
             if comma_pos_valid = '1' then
               first_comma <= comma_pos;
               state       <= SYNC_CHECK;
-              cnt         <= (others => '0');
+              cnt         <= to_unsigned(4, cnt'length);
             end if;
 
           when SYNC_CHECK =>
