@@ -139,6 +139,11 @@ package streamers_pkg is
     filter_remote          : std_logic;
     -- value in cycles of fixed-latency enforced on data
     fixed_latency          : std_logic_vector(27 downto 0);
+
+    -- value in cycles of fixed-latency timeout (if it takes longer than this value
+    -- to output the packet, it's dropped)
+    fixed_latency_timeout  : std_logic_vector(27 downto 0);
+
     -- software controlled reset
     sw_reset : std_logic;
   end record;
@@ -169,6 +174,7 @@ package streamers_pkg is
     accept_broadcasts      => '1',
     filter_remote          => '0',
     fixed_latency          => x"0000000",
+    fixed_latency_timeout          => x"1000000",
     sw_reset => '0');
 
   constant c_tx_streamer_cfg_default: t_tx_streamer_cfg :=(

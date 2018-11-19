@@ -290,6 +290,9 @@ peripheral {
       };
   };
 
+
+	
+
   reg {
     name = "Tx Config Reg 0";
     prefix = "TX_CFG0";
@@ -641,4 +644,75 @@ peripheral {
 			 type = MONOSTABLE;
     };
 	};
+
+
+	reg {
+		 name = "Rx statistics";
+		 prefix = "RX_STAT14";
+		 field {
+				name = "WR Streamer RX Buffer Overflow Count";
+				description = "Number of RX buffer overflow events";
+				prefix = "RX_BUF_OVERFLOW_CNT";
+				type = SLV;
+				size = 32;
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+		 };
+  };
+
+	reg {
+		 name = "Rx statistics";
+		 prefix = "RX_STAT15";
+		 field {
+				name = "WR Streamer RX Late Frames Count";
+				description = "Number of RX frames that missed their fixed-latency deadline";
+				prefix = "RX_LATE_FRAMES_CNT";
+				type = SLV;
+				size = 32;
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+		 };
+  };
+
+	reg {
+		 name = "Rx statistics";
+		 prefix = "RX_STAT16";
+		 field {
+				name = "WR Streamer RX Timed-out Frames Count";
+				description = "Number of RX frames that had their execution timestamp too far in the future (exceeding the RX_CFG6 value)";
+				prefix = "RX_TIMEOUT_FRAMES_CNT";
+				type = SLV;
+				size = 32;
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+		 };
+  };
+
+	reg {
+		 name = "Rx statistics";
+		 prefix = "RX_STAT17";
+		 field {
+				name = "WR Streamer RX OK Frames Count";
+				description = "Number of RX executed on time in the fixed latency mode";
+				prefix = "RX_MATCH_FRAMES_CNT";
+				type = SLV;
+				size = 32;
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+		 };
+  };
+
+  reg {
+    name = "Rx Config Reg 6";
+    prefix = "RX_CFG6";
+    field {
+      name = "RX Fixed Latency Timeout";
+      prefix = "RX_FIXED_LATENCY_TIMEOUT";
+      type = SLV;
+      size = 28;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  
 };

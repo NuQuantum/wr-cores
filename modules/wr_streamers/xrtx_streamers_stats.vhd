@@ -78,6 +78,7 @@ entity xrtx_streamers_stats is
     rst_n_i                : in std_logic;
 
     -- input signals from streamers
+
     sent_frame_i           : in std_logic;
     rcvd_frame_i           : in std_logic;
     lost_block_i           : in std_logic;
@@ -85,6 +86,10 @@ entity xrtx_streamers_stats is
     lost_frames_cnt_i      : in std_logic_vector(14 downto 0);
     rcvd_latency_i         : in  std_logic_vector(27 downto 0);
     rcvd_latency_valid_i   : in  std_logic;
+
+    rx_stat_match_p1_i     : in std_logic;
+    rx_stat_late_p1_i      : in std_logic;
+    rx_stat_timeout_p1_i   : in std_logic;
 
     clk_ref_i              : in std_logic;
     tm_time_valid_i        : in std_logic := '0';
@@ -103,6 +108,10 @@ entity xrtx_streamers_stats is
     rcvd_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
     lost_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
     lost_block_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
+    rx_stat_match_cnt_o    : out std_logic_vector(g_cnt_width-1 downto 0);
+    rx_stat_late_cnt_o     : out std_logic_vector(g_cnt_width-1 downto 0);
+    rx_stat_timeout_cnt_o  : out std_logic_vector(g_cnt_width-1 downto 0);
+
     -- output statistics: latency
     latency_cnt_o          : out std_logic_vector(g_cnt_width-1 downto 0);
     latency_acc_overflow_o : out std_logic;
@@ -121,11 +130,14 @@ architecture rtl of xrtx_streamers_stats is
   signal reset_time_tai    : std_logic_vector(39 downto 0);
   signal reset_time_cycles : std_logic_vector(27 downto 0);
 
-  signal sent_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
-  signal rcvd_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
-  signal lost_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
-  signal lost_block_cnt    : unsigned(g_cnt_width-1  downto 0);
-  signal latency_cnt       : unsigned(g_cnt_width-1  downto 0);
+--  signal sent_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
+--  signal rcvd_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
+--  signal lost_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
+--  signal lost_block_cnt    : unsigned(g_cnt_width-1  downto 0);
+  signal rx_stat_match_cnt_out   : std_logic_vector(g_cnt_width-1 downto 0);
+  signal rx_stat_timeout_cnt_out : std_logic_vector(g_cnt_width-1 downto 0);
+  signal rx_stat_late_cnt_out    : std_logic_vector(g_cnt_width-1 downto 0);
+--  signal latency_cnt       : unsigned(g_cnt_width-1  downto 0);
 
   signal latency_max       : std_logic_vector(27  downto 0);
   signal latency_min       : std_logic_vector(27  downto 0);
@@ -136,6 +148,11 @@ architecture rtl of xrtx_streamers_stats is
   signal rcvd_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
   signal lost_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
   signal lost_block_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
+
+  signal rx_match_frame_cnt_out   : std_logic_vector(g_cnt_width-1 downto 0);
+  signal rx_late_frame_cnt_out    : std_logic_vector(g_cnt_width-1 downto 0);
+  signal rx_timeout_frame_cnt_out : std_logic_vector(g_cnt_width-1 downto 0);
+
   signal latency_cnt_out          : std_logic_vector(g_cnt_width-1 downto 0);
   signal latency_acc_overflow_out : std_logic;
   signal latency_acc_out          : std_logic_vector(g_acc_width-1  downto 0);
@@ -245,12 +262,20 @@ begin
         lost_frames_cnt_i      => lost_frames_cnt_i,
         rcvd_latency_i         => rcvd_latency_i,
         rcvd_latency_valid_i   => rcvd_latency_valid_i,
+        rx_stat_timeout_p1_i   => rx_stat_timeout_p1_i,
+        rx_stat_match_p1_i     => rx_stat_match_p1_i,
+        rx_stat_late_p1_i      => rx_stat_late_p1_i,
+
         tm_time_valid_i        => tm_time_valid_i,
         snapshot_ena_i         => snapshot_ena,
         reset_stats_i          => reset_stats,
         rcvd_frame_cnt_o       => rcvd_frame_cnt_out,
         lost_frame_cnt_o       => lost_frame_cnt_out,
         lost_block_cnt_o       => lost_block_cnt_out,
+        rx_stat_match_cnt_o    => rx_stat_match_cnt_out,
+        rx_stat_late_cnt_o     => rx_stat_late_cnt_out,
+        rx_stat_timeout_cnt_o  => rx_stat_timeout_cnt_out,
+
         latency_cnt_o          => latency_cnt_out,
         latency_acc_overflow_o => latency_acc_overflow_out,
         latency_acc_o          => latency_acc_out,
@@ -279,6 +304,12 @@ begin
   latency_acc_o            <= latency_acc_out;
   latency_cnt_o            <= latency_cnt_out;
   latency_acc_overflow_o   <= latency_acc_overflow_out;
+  rx_stat_timeout_cnt_o    <= rx_stat_timeout_cnt_out;
+  rx_stat_late_cnt_o       <= rx_stat_late_cnt_out;
+  rx_stat_match_cnt_o      <= rx_stat_match_cnt_out;
+
+
+  -- fixme: add rx late/miss/match stats to SNMP array
 
   -------------------------------------------------------------------------------------------
   -- SNMP remote output

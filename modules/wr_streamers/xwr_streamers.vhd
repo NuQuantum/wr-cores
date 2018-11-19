@@ -161,6 +161,9 @@ entity xwr_streamers is
     -- data word in the subsequent clock cycle.
     rx_dreq_i                  : in  std_logic;
 
+    rx_late_o : out std_logic;
+    rx_timeout_o : out std_logic;
+    
     ---------------------------------------------------------------------------
     -- WRC Timing interface, used for latency measurement
     ---------------------------------------------------------------------------
@@ -194,11 +197,12 @@ architecture rtl of xwr_streamers is
 
   signal to_wb              : t_wr_streamers_in_registers;
   signal from_wb            : t_wr_streamers_out_registers;
+
   signal dbg_word                : std_logic_vector(31 downto 0);
   signal start_bit               : std_logic_vector(from_wb.dbg_ctrl_start_byte_o'length-1+3 downto 0);
   signal rx_data                 : std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
   signal wb_regs_slave_in        : t_wishbone_slave_in;
-  signal wb_regs_slave_out       : t_wishbone_slave_out;  
+  signal wb_regs_slave_out       : t_wishbone_slave_out;
   signal tx_frame                : std_logic;
   signal reset_time_tai          : std_logic_vector(39 downto 0);
   signal latency_acc             : std_logic_vector(g_stats_acc_width-1 downto 0);
@@ -207,7 +211,11 @@ architecture rtl of xwr_streamers is
   signal rcvd_frame_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
   signal lost_frame_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
   signal lost_block_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal rx_stat_match_cnt       : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal rx_stat_timeout_cnt     : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal rx_stat_late_cnt        : std_logic_vector(g_stats_cnt_width-1 downto 0);
   signal rx_valid                : std_logic;
+
 
   signal rx_latency_valid        : std_logic;
   signal rx_latency              : std_logic_vector(27 downto 0);
@@ -215,6 +223,11 @@ architecture rtl of xwr_streamers is
   signal rx_lost_frames_cnt      : std_logic_vector(14 downto 0);
   signal rx_lost_blocks          : std_logic;
   signal rx_frame                : std_logic;
+
+  signal rx_stat_match_p1        : std_logic;
+  signal rx_stat_late_p1         : std_logic;
+  signal rx_stat_timeout_p1      : std_logic;
+
 
   signal tx_streamer_cfg         : t_tx_streamer_cfg;
   signal rx_streamer_cfg         : t_rx_streamer_cfg;
@@ -294,9 +307,15 @@ begin
         rx_data_o                => rx_data,
         rx_valid_o               => rx_valid,
         rx_dreq_i                => rx_dreq_i,
+        rx_late_o                => rx_late_o,
+        rx_timeout_o             => rx_timeout_o,
         rx_lost_p1_o             => rx_lost_blocks,
         rx_lost_frames_p1_o      => rx_lost_frames,
         rx_lost_frames_cnt_o     => rx_lost_frames_cnt,
+        rx_stat_match_p1_o       => rx_stat_match_p1,
+        rx_stat_late_p1_o        => rx_stat_late_p1,
+        rx_stat_timeout_p1_o     => rx_stat_timeout_p1,
+
         rx_latency_o             => rx_latency,
         rx_latency_valid_o       => rx_latency_valid,
         rx_frame_p1_o            => rx_frame,
@@ -321,6 +340,7 @@ begin
       g_clk_ref_rate           => g_clk_ref_rate
       )
     port map(
+
       clk_i                    => clk_sys_i,
       rst_n_i                  => rst_n_i,
       sent_frame_i             => tx_frame,
@@ -342,6 +362,13 @@ begin
       rcvd_frame_cnt_o         => rcvd_frame_cnt_out,
       lost_frame_cnt_o         => lost_frame_cnt_out,
       lost_block_cnt_o         => lost_block_cnt_out,
+      rx_stat_timeout_cnt_o    => rx_stat_timeout_cnt,
+      rx_stat_match_cnt_o      => rx_stat_match_cnt,
+      rx_stat_late_cnt_o       => rx_stat_late_cnt,
+
+      rx_stat_match_p1_i       => rx_stat_match_p1,
+      rx_stat_late_p1_i        => rx_stat_late_p1,
+      rx_stat_timeout_p1_i     => rx_stat_timeout_p1,
       latency_cnt_o            => latency_cnt,
       latency_acc_o            => latency_acc,
       latency_max_o            => to_wb.rx_stat0_rx_latency_max_i,
@@ -371,6 +398,11 @@ begin
   to_wb.rx_stat11_rx_latency_acc_msb_i    (c_aw-32-1 downto 0) <= latency_acc       (c_aw-1 downto 32);
   to_wb.rx_stat12_rx_latency_acc_cnt_lsb_i                     <= latency_cnt       (31     downto 0);
   to_wb.rx_stat13_rx_latency_acc_cnt_msb_i(c_cw-32-1 downto 0) <= latency_cnt       (c_cw-1 downto 32);
+
+  to_wb.rx_stat15_rx_late_frames_cnt_i    <= rx_stat_late_cnt(31 downto 0);
+  to_wb.rx_stat16_rx_timeout_frames_cnt_i <= rx_stat_timeout_cnt(31 downto 0);
+  to_wb.rx_stat17_rx_match_frames_cnt_i   <= rx_stat_match_cnt(31 downto 0);
+
 
   rx_data_o  <= rx_data;
   rx_valid_o <= rx_valid;
@@ -492,6 +524,8 @@ begin
                                        rx_streamer_cfg_i.filter_remote;
   rx_streamer_cfg.fixed_latency     <= from_wb.rx_cfg5_fixed_latency_o    when (from_wb.cfg_or_rx_fix_lat_o='1') else
                                        rx_streamer_cfg_i.fixed_latency;
+  rx_streamer_cfg.fixed_latency_timeout <= from_wb.rx_cfg6_rx_fixed_latency_timeout_o when (from_wb.cfg_or_rx_fix_lat_o = '1') else
+                                           rx_streamer_cfg_i.fixed_latency_timeout;
 
 
   rx_streamer_cfg.sw_reset <= from_wb.rstr_rst_sw_o;

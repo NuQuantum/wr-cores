@@ -122,6 +122,12 @@ entity xrx_streamer is
     rx_data_o          : out std_logic_vector(g_data_width-1 downto 0);
     -- 1 indicted that rx_data_o is outputting a valid data word.
     rx_valid_o         : out std_logic;
+    -- 1 indicates the frame has been reproduced later than its desired fixed latency
+    rx_late_o : out std_logic;
+    -- 1 indicates the frame has been reproduced earlier than its desired fixed
+    -- latency due to the RX latency timeout
+    rx_timeout_o : out std_logic;
+
     -- Synchronous data request input: when 1, the streamer may output another
     -- data word in the subsequent clock cycle.
     rx_dreq_i          : in  std_logic;
@@ -140,7 +146,10 @@ entity xrx_streamer is
     -- 1 when the latency on rx_latency_o is valid.
     rx_latency_valid_o : out std_logic;
     -- pulse when a frame was dropped due to buffer overflow
-    rx_overflow_p1_o     : out std_logic;
+    rx_stat_overflow_p1_o     : out std_logic;
+    rx_stat_match_p1_o   : out std_logic;
+    rx_stat_late_p1_o    : out std_logic;
+    rx_stat_timeout_p1_o : out std_logic;
     -- received 	streamer frame (counts all frames, corrupted and not)
     rx_frame_p1_o         : out std_logic;
     -- configuration
@@ -345,6 +354,11 @@ begin  -- rtl
       rx_data_o        => rx_data_o,
       rx_valid_o       => rx_valid_o,
       rx_dreq_i        => rx_dreq_i,
+      rx_late_o => rx_late_o,
+      rx_timeout_o => rx_timeout_o,
+      stat_match_p1_o   => rx_stat_match_p1_o,
+      stat_late_p1_o    => rx_stat_late_p1_o,
+      stat_timeout_p1_o => rx_stat_timeout_p1_o,
       rx_streamer_cfg_i => rx_streamer_cfg_i);
 
 
