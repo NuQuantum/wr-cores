@@ -7,10 +7,10 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2018-03-20
+-- Last update: 2018-11-28
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
--- Copyright (c) 2017 CERN
+-- Copyright (c) 2017-2018 CERN
 -------------------------------------------------------------------------------
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
@@ -41,6 +41,7 @@ use work.wrcore_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.wr_board_pkg.all;
+use work.wr_xilinx_pkg.all;
 use work.streamers_pkg.all;
 
 package wr_svec_pkg is
@@ -50,6 +51,7 @@ package wr_svec_pkg is
       g_simulation                : integer              := 0;
       g_with_external_clock_input : boolean              := TRUE;
       g_aux_clks                  : integer              := 0;
+      g_aux_pll_config            : t_px_pll_cfg         := c_PX_DEFAULT_PLL_CFG;
       g_fabric_iface              : t_board_fabric_iface := plain;
       g_streamers_op_mode         : t_streamers_op_mode  := TX_AND_RX;
       g_tx_streamer_params        : t_tx_streamer_params := c_tx_streamer_params_defaut;
@@ -72,8 +74,10 @@ package wr_svec_pkg is
       pps_ext_i            : in  std_logic                                        := '0';
       clk_sys_62m5_o       : out std_logic;
       clk_ref_125m_o       : out std_logic;
+      clk_pll_aux_o        : out std_logic;
       rst_sys_62m5_n_o     : out std_logic;
       rst_ref_125m_n_o     : out std_logic;
+      rst_pll_aux_n_o      : out std_logic;
       pll20dac_din_o       : out std_logic;
       pll20dac_sclk_o      : out std_logic;
       pll20dac_sync_n_o    : out std_logic;

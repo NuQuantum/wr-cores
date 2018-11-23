@@ -19,7 +19,7 @@
 --
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2016-2017 CERN / BE-CO-HT
+-- Copyright (c) 2016-2018 CERN / BE-CO-HT
 --
 -- This source file is free software; you can redistribute it
 -- and/or modify it under the terms of the GNU Lesser General
@@ -60,6 +60,8 @@ entity xwrc_platform_xilinx is
       g_with_external_clock_input : boolean := FALSE;
       -- Set to FALSE if you want to instantiate your own PLLs
       g_use_default_plls          : boolean := TRUE;
+      -- Config for the auxiliary PLL output (for now only used in Spartan-6)
+      g_aux_pll_config            : t_px_pll_cfg := c_PX_DEFAULT_PLL_CFG;
       -- Select GTP channel to use 
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
@@ -135,7 +137,10 @@ entity xwrc_platform_xilinx is
     sfp1_tx_fault_i       : in  std_logic             := '0';
     sfp1_los_i            : in  std_logic             := '0';
     sfp1_tx_disable_o     : out std_logic;
-
+    ---------------------------------------------------------------------------
+    --Auxiliary PLL output
+    ---------------------------------------------------------------------------
+    clk_pll_aux_o         : out std_logic;
     ---------------------------------------------------------------------------
     --Interface to WR PTP Core (WRPC)
     ---------------------------------------------------------------------------
@@ -144,7 +149,6 @@ entity xwrc_platform_xilinx is
     clk_125m_ref_o        : out std_logic;
     clk_ref_locked_o      : out std_logic;
     clk_62m5_dmtd_o       : out std_logic;
-    clk_ddr_o : out std_logic;
     pll_locked_o          : out std_logic;
     clk_10m_ext_o         : out std_logic;
     -- PHY - CH0
@@ -220,73 +224,68 @@ begin  -- architecture rtl
 
   gen_default_plls : if (g_use_default_plls = TRUE) generate
 
-    -- Default PLL setup consists of two PLLs.
+    -- Default PLL setup consists of two DCMs.
     -- One takes a 125MHz clock signal as input and produces the
     -- 62.5MHz WR PTP core main system clock and the 125MHz reference clock.
-    -- The other PLL takes a 20MHz clock signal as input and produces the
+    -- The other DCM takes a 20MHz clock signal as input and produces the
     -- 62.5MHz DMTD clock.
     --
-    -- A third PLL is instantiated if also g_with_external_clock_input = TRUE.
+    -- A third DCM is instantiated if also g_with_external_clock_input = TRUE.
     -- In that case, a 10MHz external reference is multiplied to generate a
     -- 125MHz reference clock
     gen_spartan6_default_plls : if (g_fpga_family = "spartan6") generate
 
       signal clk_sys          : std_logic;
       signal clk_sys_out      : std_logic;
-      signal clk_sys_fb       : std_logic;
       signal pll_sys_locked   : std_logic;
       signal clk_dmtd         : std_logic;
-      signal clk_dmtd_fb      : std_logic;
       signal pll_dmtd_locked  : std_logic;
       signal clk_20m_vcxo_buf : std_logic;
-      signal clk_ddr : std_logic;
+      signal clk_pll_aux      : std_logic;
 
       signal clk_125m_pllref_buf_int1 : std_logic;
       signal clk_125m_pllref_buf_int2 : std_logic;
 
     begin  --gen_spartan6_default_plls
 
-      -- System PLL
-      cmp_sys_clk_pll : PLL_BASE
+      -- System DCM
+      cmp_sys_clk_dcm : DCM_SP
         generic map (
-          BANDWIDTH          => "OPTIMIZED",
-          CLK_FEEDBACK       => "CLKFBOUT",
-          COMPENSATION       => "INTERNAL",
-          DIVCLK_DIVIDE      => 1,
-          CLKFBOUT_MULT      => 8,
-          CLKFBOUT_PHASE     => 0.000,
-          CLKOUT0_DIVIDE     => 16,
-          CLKOUT0_PHASE      => 0.000,
-          CLKOUT0_DUTY_CYCLE => 0.500,
-          CLKOUT1_DIVIDE     => 8,
-          CLKOUT1_PHASE      => 0.000,
-          CLKOUT1_DUTY_CYCLE => 0.500,
-          CLKOUT2_DIVIDE     => 3,
-          CLKOUT2_PHASE      => 0.000,
-          CLKOUT2_DUTY_CYCLE => 0.500,
+          CLKDV_DIVIDE       => 2.000,
+          CLKFX_DIVIDE       => g_aux_pll_config.divide,
+          CLKFX_MULTIPLY     => g_aux_pll_config.multiply,
+          CLKIN_DIVIDE_BY_2  => FALSE,
           CLKIN_PERIOD       => 8.0,
-          REF_JITTER         => 0.016)
-        port map (
-          CLKFBOUT => clk_sys_fb,
-          CLKOUT0  => clk_sys,
-          CLKOUT1  => clk_125m_pllref_buf_int2,
-          CLKOUT2  => clk_ddr,
-          LOCKED   => pll_sys_locked,
-          RST      => pll_arst,
-          CLKFBIN  => clk_sys_fb,
-          CLKIN    => clk_125m_pllref_buf_int1);
+          CLKOUT_PHASE_SHIFT => "NONE",
+          CLK_FEEDBACK       => "1X",
+          DESKEW_ADJUST      => "SYSTEM_SYNCHRONOUS",
+          PHASE_SHIFT        => 0,
+          STARTUP_WAIT       => FALSE)
+        port map
+          -- Input clock
+        (CLKIN    => clk_125m_pllref_buf_int1,
+         CLKFB    => clk_125m_pllref_buf,
+          -- Output clocks
+         CLK0     => clk_125m_pllref_buf_int2,
+         CLKDV    => clk_sys,
+         CLKFX    => clk_pll_aux,
+          -- Ports for dynamic phase shift
+         PSCLK    => '0',
+         PSEN     => '0',
+         PSINCDEC => '0',
+         PSDONE   => open,
+          -- Other control and status signals
+         LOCKED   => pll_sys_locked,
+         STATUS   => open,
+         RST      => pll_arst,
+          -- Unused pin, tie low
+         DSSEN    => '0');
 
       -- System PLL input clock buffer
       cmp_clk_sys_buf_i : BUFG
         port map (
           O => clk_125m_pllref_buf_int1,
           I => clk_125m_pllref_i);
-
-      -- DDR PLL global clock buffer
-      cmp_ddr_clk_buf_o : BUFG
-        port map (
-          O => clk_ddr_o,
-          I => clk_ddr);
 
       -- System PLL output clock buffer
       cmp_clk_sys_buf_o : BUFG
@@ -305,40 +304,59 @@ begin  -- architecture rtl
       pll_locked_o     <= pll_sys_locked and pll_dmtd_locked;
       clk_ref_locked_o <= '1';
 
-      -- DMTD PLL
-      cmp_dmtd_clk_pll : PLL_BASE
+      -- DMTD DCM
+      cmp_dmtd_clk_pll : DCM_SP
         generic map (
-          BANDWIDTH          => "OPTIMIZED",
-          CLK_FEEDBACK       => "CLKFBOUT",
-          COMPENSATION       => "INTERNAL",
-          DIVCLK_DIVIDE      => 1,
-          CLKFBOUT_MULT      => 50,
-          CLKFBOUT_PHASE     => 0.000,
-          CLKOUT0_DIVIDE     => 16,
-          CLKOUT0_PHASE      => 0.000,
-          CLKOUT0_DUTY_CYCLE => 0.500,
+          CLKDV_DIVIDE       => 2.000,
+          CLKFX_DIVIDE       => 8,
+          CLKFX_MULTIPLY     => 25,
+          CLKIN_DIVIDE_BY_2  => FALSE,
           CLKIN_PERIOD       => 50.0,
-          REF_JITTER         => 0.016)
-        port map (
-          CLKFBOUT => clk_dmtd_fb,
-          CLKOUT0  => clk_dmtd,
-          LOCKED   => pll_dmtd_locked,
-          RST      => pll_arst,
-          CLKFBIN  => clk_dmtd_fb,
-          CLKIN    => clk_20m_vcxo_buf);
+          CLKOUT_PHASE_SHIFT => "NONE",
+          CLK_FEEDBACK       => "NONE",
+          DESKEW_ADJUST      => "SYSTEM_SYNCHRONOUS",
+          PHASE_SHIFT        => 0,
+          STARTUP_WAIT       => FALSE)
+        port map
+          -- Input clock
+        (CLKIN    => clk_20m_vcxo_buf,
+          -- Output clocks
+         CLKFX    => clk_dmtd,
+          -- Ports for dynamic phase shift
+         PSCLK    => '0',
+         PSEN     => '0',
+         PSINCDEC => '0',
+         PSDONE   => open,
+          -- Other control and status signals
+         LOCKED   => pll_dmtd_locked,
+         STATUS   => open,
+         RST      => pll_arst,
+          -- Unused pin, tie low
+         DSSEN    => '0');
 
-      -- DMTD PLL input clock buffer
+      -- DMTD DCM input clock buffer
       cmp_clk_dmtd_buf_i : BUFG
         port map (
           O => clk_20m_vcxo_buf,
           I => clk_20m_vcxo_i);
 
-      -- DMTD PLL output clock buffer
+      -- DMTD DCM output clock buffer
       cmp_clk_dmtd_buf_o : BUFG
         port map (
           O => clk_62m5_dmtd_o,
           I => clk_dmtd);
 
+      -- AUX PLL global clock buffer
+      gen_used_aux_clk : if g_aux_pll_config.enabled = TRUE generate
+        cmp_aux_clk_buf_o : BUFG
+          port map (
+            O => clk_pll_aux_o,
+            I => clk_pll_aux);
+      end generate gen_used_aux_clk;
+
+      gen_unused_aux_clk : if g_aux_pll_config.enabled = FALSE generate
+        clk_pll_aux_o <= '0';
+      end generate gen_unused_aux_clk;
 
       gen_spartan6_ext_ref_pll : if (g_with_external_clock_input = TRUE) generate
 
@@ -507,6 +525,9 @@ begin  -- architecture rtl
         port map (
           O => clk_62m5_dmtd_o,
           I => clk_dmtd);
+
+      -- drive unused auxiliary pll output to zero
+      clk_pll_aux_o <= '0';
 
     end generate gen_virtex5_default_plls;
 
@@ -731,6 +752,9 @@ begin  -- architecture rtl
             extended_o => pll_ext_rst);
 
       end generate gen_kintex7_ext_ref_pll;
+
+      -- drive unused auxiliary pll output to zero
+      clk_pll_aux_o <= '0';
 
     end generate gen_kintex7_default_plls;
 
@@ -966,6 +990,9 @@ begin  -- architecture rtl
 
       end generate gen_artix7_ext_ref_pll;
 
+      -- drive unused auxiliary pll output to zero
+      clk_pll_aux_o <= '0';
+
     end generate gen_artix7_default_plls;
     ---------------------------------------------------------------------------
     
@@ -993,6 +1020,9 @@ begin  -- architecture rtl
     ext_ref_mul_o         <= clk_125m_ext_i;
     ext_ref_mul_locked_o  <= clk_ext_locked_i;
     ext_ref_mul_stopped_o <= clk_ext_stopped_i;
+
+    -- drive unused auxiliary pll output to zero
+    clk_pll_aux_o <= '0';
 
   end generate gen_custom_plls;
 
