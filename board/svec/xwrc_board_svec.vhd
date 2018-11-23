@@ -357,7 +357,7 @@ begin  -- architecture struct
   -- generate rstlogic_arst_n. This is needed to connect optional reset like PCIe
   -- reset. When baord runs standalone, we need to ignore PCIe reset being
   -- constantly low.
-  cmp_arst_edge: gc_sync_ffs
+  cmp_arst_edge : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
     port map (
@@ -366,23 +366,21 @@ begin  -- architecture struct
       data_i   => areset_edge_n_i,
       ppulse_o => areset_edge_ppulse);
 
-  -- logic AND of all async reset sources (active low)
-  rstlogic_arst_n <= pll_locked and areset_n_i and (not areset_edge_ppulse);
+  -- logic AND of all async reset sources (active high)
+  rstlogic_arst <= (not pll_locked) and (not areset_n_i) and areset_edge_ppulse;
 
   -- concatenation of all clocks required to have synced resets
   rstlogic_clk_in(0) <= clk_pll_62m5;
   rstlogic_clk_in(1) <= clk_pll_125m;
 
-  cmp_rstlogic_reset : gc_reset
+  cmp_rstlogic_reset : gc_reset_multi_aasd
     generic map (
-      g_clocks    => 2,                           -- 62.5MHz, 125MHz
-      g_logdelay  => 4,                           -- 16 clock cycles
-      g_syncdepth => 3)                           -- length of sync chains
+      g_CLOCKS  => 2,                     -- 62.5MHz, 125MHz
+      g_RST_LEN => 16)                    -- 16 clock cycles
     port map (
-      free_clk_i => clk_125m_pllref_buf,
-      locked_i   => rstlogic_arst_n,
-      clks_i     => rstlogic_clk_in,
-      rstn_o     => rstlogic_rst_out);
+      arst_i  => rstlogic_arst,
+      clks_i  => rstlogic_clk_in,
+      rst_n_o => rstlogic_rst_out);
 
   -- distribution of resets (already synchronized to their clock domains)
   rst_62m5_n <= rstlogic_rst_out(0);
