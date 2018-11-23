@@ -222,7 +222,7 @@ begin  -- architecture rtl
 
     -- Default PLL setup consists of two PLLs.
     -- One takes a 125MHz clock signal as input and produces the
-    -- 62.5MHz WR PTP core main system clock.
+    -- 62.5MHz WR PTP core main system clock and the 125MHz reference clock.
     -- The other PLL takes a 20MHz clock signal as input and produces the
     -- 62.5MHz DMTD clock.
     --
@@ -241,6 +241,9 @@ begin  -- architecture rtl
       signal clk_20m_vcxo_buf : std_logic;
       signal clk_ddr : std_logic;
 
+      signal clk_125m_pllref_buf_int1 : std_logic;
+      signal clk_125m_pllref_buf_int2 : std_logic;
+
     begin  --gen_spartan6_default_plls
 
       -- System PLL
@@ -255,24 +258,28 @@ begin  -- architecture rtl
           CLKOUT0_DIVIDE     => 16,
           CLKOUT0_PHASE      => 0.000,
           CLKOUT0_DUTY_CYCLE => 0.500,
-          CLKOUT1_DIVIDE     => 3,
+          CLKOUT1_DIVIDE     => 8,
           CLKOUT1_PHASE      => 0.000,
           CLKOUT1_DUTY_CYCLE => 0.500,
+          CLKOUT2_DIVIDE     => 3,
+          CLKOUT2_PHASE      => 0.000,
+          CLKOUT2_DUTY_CYCLE => 0.500,
           CLKIN_PERIOD       => 8.0,
           REF_JITTER         => 0.016)
         port map (
           CLKFBOUT => clk_sys_fb,
           CLKOUT0  => clk_sys,
-          CLKOUT1 => clk_ddr,
+          CLKOUT1  => clk_125m_pllref_buf_int2,
+          CLKOUT2  => clk_ddr,
           LOCKED   => pll_sys_locked,
           RST      => pll_arst,
           CLKFBIN  => clk_sys_fb,
-          CLKIN    => clk_125m_pllref_buf);
+          CLKIN    => clk_125m_pllref_buf_int1);
 
       -- System PLL input clock buffer
       cmp_clk_sys_buf_i : BUFG
         port map (
-          O => clk_125m_pllref_buf,
+          O => clk_125m_pllref_buf_int1,
           I => clk_125m_pllref_i);
 
       -- DDR PLL global clock buffer
@@ -287,9 +294,15 @@ begin  -- architecture rtl
           O => clk_sys_out,
           I => clk_sys);
 
-      clk_62m5_sys_o <= clk_sys_out;
-      clk_125m_ref_o <= clk_125m_pllref_buf;
-      pll_locked_o   <= pll_sys_locked and pll_dmtd_locked;
+      -- System PLL output clock buffer
+      cmp_clk_ref_buf_o : BUFG
+        port map (
+          O => clk_125m_pllref_buf,
+          I => clk_125m_pllref_buf_int2);
+
+      clk_62m5_sys_o   <= clk_sys_out;
+      clk_125m_ref_o   <= clk_125m_pllref_buf;
+      pll_locked_o     <= pll_sys_locked and pll_dmtd_locked;
       clk_ref_locked_o <= '1';
 
       -- DMTD PLL
