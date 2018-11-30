@@ -20,3 +20,12 @@ modules = {
         "../../top/svec_ref_design/",
     ],
 }
+
+fetchto="../../ip_cores"
+
+syn_post_project_cmd = (
+    "$(TCL_INTERPRETER) " + \
+    fetchto + "/general-cores/tools/sdb_desc_gen.tcl " + \
+    syn_tool + " $(PROJECT_FILE);" \
+    "$(TCL_INTERPRETER) syn_extra_steps.tcl $(PROJECT_FILE)"
+)

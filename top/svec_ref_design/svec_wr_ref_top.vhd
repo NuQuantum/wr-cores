@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2017-03-10
+-- Last update: 2018-11-30
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the SVEC.
@@ -21,10 +21,10 @@
 -- * provide a reference top HDL file showing how the WRPC can be instantiated
 --   in HDL projects.
 --
--- VFC-HD:  http://www.ohwr.org/projects/svec/
+-- SVEC:  http://www.ohwr.org/projects/svec/
 --
 -------------------------------------------------------------------------------
--- Copyright (c) 2017 CERN
+-- Copyright (c) 2017-2018 CERN
 -------------------------------------------------------------------------------
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
@@ -56,17 +56,18 @@ use work.wishbone_pkg.all;
 use work.vme64x_pkg.all;
 use work.wr_board_pkg.all;
 use work.wr_svec_pkg.all;
+use work.synthesis_descriptor.all;
 
 library unisim;
 use unisim.vcomponents.all;
 
 entity svec_wr_ref_top is
   generic (
-    g_dpram_initf : string := "../../bin/wrpc/wrc_phy8.bram";
+    g_DPRAM_INITF : string := "../../bin/wrpc/wrc_phy8.bram";
     -- Simulation-mode enable parameter. Set by default (synthesis) to 0, and
     -- changed to non-zero in the instantiation of the top level DUT in the testbench.
     -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
-    g_simulation : integer := 0
+    g_SIMULATION : integer := 0
   );
   port (
     ---------------------------------------------------------------------------
@@ -208,17 +209,23 @@ architecture top of svec_wr_ref_top is
   -- Primary Wishbone slave(s) offsets
   constant c_WB_SLAVE_WRC : integer := 0;
 
-  -- sdb header address on primary crossbar
+  -- SDB meta info
+  constant c_SDB_GIT_REPO_URL : integer := c_NUM_WB_SLAVES;
+  constant c_SDB_SYNTHESIS    : integer := c_NUM_WB_SLAVES + 1;
+
+  -- SDB header address on primary crossbar
   constant c_SDB_ADDRESS : t_wishbone_address := x"00000000";
 
   -- f_xwb_bridge_manual_sdb(size, sdb_addr)
   -- Note: sdb_addr is the sdb records address relative to the bridge base address
-  constant c_wrc_bridge_sdb : t_sdb_bridge :=
+  constant c_WRC_BRIDGE_SDB : t_sdb_bridge :=
     f_xwb_bridge_manual_sdb(x"0003ffff", x"00030000");
 
   -- Primary wishbone crossbar layout
-  constant c_WB_LAYOUT : t_sdb_record_array(c_NUM_WB_SLAVES - 1 downto 0) := (
-    c_WB_SLAVE_WRC => f_sdb_embed_bridge(c_wrc_bridge_sdb, x"00040000"));
+  constant c_WB_LAYOUT : t_sdb_record_array(c_NUM_WB_SLAVES + 1 downto 0) := (
+    c_WB_SLAVE_WRC     => f_sdb_embed_bridge(c_WRC_BRIDGE_SDB, x"00040000"),
+    c_SDB_GIT_REPO_URL => f_sdb_embed_repo_url(c_SDB_REPO_URL),
+    c_SDB_SYNTHESIS    => f_sdb_embed_synthesis(c_SDB_SYNTHESIS_INFO));
 
   -----------------------------------------------------------------------------
   -- Signals
