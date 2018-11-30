@@ -2,7 +2,6 @@ fetchto = "../../ip_cores"
 
 files = [
     "svec_wr_ref_top.vhd",
-    "svec_wr_ref_top.ucf",
 ]
 
 modules = {

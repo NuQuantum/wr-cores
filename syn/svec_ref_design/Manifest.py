@@ -11,8 +11,12 @@ syn_project = "svec_wr_ref.xise"
 
 syn_tool = "ise"
 
+files = [
+    "svec_wr_ref_top.ucf",
+]
+
 modules = {
     "local" : [
         "../../top/svec_ref_design/",
-    ]
+    ],
 }

@@ -11,4 +11,12 @@ syn_project = "spec_wr_ref.xise"
 
 syn_tool = "ise"
 
-modules = { "local" : "../../top/spec_ref_design/"}
+files = [
+    "spec_wr_ref_top.ucf",
+]
+
+modules = {
+    "local" : [
+        "../../top/spec_ref_design/",
+    ],
+}
