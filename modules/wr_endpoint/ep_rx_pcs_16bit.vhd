@@ -215,30 +215,9 @@ architecture behavioral of ep_rx_pcs_16bit is
   signal mdio_mcr_reset_synced : std_logic;
   signal mdio_mcr_pdown_synced : std_logic;
 
-
+  signal pcs_fab_out       : t_ep_internal_fabric;
   signal pcs_valid_int     : std_logic;
   signal timestamp_pending : std_logic_vector(2 downto 0) := "000";
-
-
-  ------------------------
-  component chipscope_icon
-    port (
-      CONTROL0 : inout std_logic_vector(35 downto 0));
-  end component;
-
-  component chipscope_ila
-    port (
-      CONTROL : inout std_logic_vector(35 downto 0);
-      CLK     : in    std_logic;
-      TRIG0   : in    std_logic_vector(31 downto 0);
-      TRIG1   : in    std_logic_vector(31 downto 0);
-      TRIG2   : in    std_logic_vector(31 downto 0);
-      TRIG3   : in    std_logic_vector(31 downto 0));
-  end component;
-  signal control0                   : std_logic_vector(35 downto 0);
-  signal trig0, trig1, trig2, trig3 : std_logic_vector(31 downto 0);
-
-  signal pcs_fab_out  : t_ep_internal_fabric;
   
 begin
 -------------------------------------------------------------------------------
@@ -813,54 +792,7 @@ begin
                     "100" when (rx_state = RX_EXTEND) else
                     "111";
 
-
-  ------------------------
   pcs_fab_o <= pcs_fab_out;
-
-  GEN_CS: if g_ep_idx = 0 generate
-    CS_ICON : chipscope_icon
-     port map (
-      CONTROL0 => CONTROL0);
-    CS_ILA : chipscope_ila
-     port map (
-       CONTROL => CONTROL0,
-       CLK     => phy_rx_clk_i, --phys_i(0).rx_clk,
-       TRIG0   => trig0,
-       TRIG1   => trig1,
-       TRIG2   => trig2,
-       TRIG3   => trig3);
-   end generate;
-
-  trig0(15 downto 0) <= phy_rx_data_i;
-  trig0(17 downto 16)<= phy_rx_k_i;
-  trig0(18) <= d_is_preamble;
-  trig0(19) <= d_is_preamble_sfd;
-  trig0(22 downto 20) <= "000" when (rx_state = RX_NOFRAME) else
-                    "001" when (rx_state = RX_CR) else
-                    "010" when (rx_state = RX_SPD_PREAMBLE) else
-                    "011" when (rx_state = RX_PAYLOAD) else
-                    "100" when (rx_state = RX_EXTEND) else
-                    "111";
-  trig0(23) <= rx_busy;
-  trig0(24) <= rx_synced;
-  trig0(25) <= d_is_spd_preamble;
-  trig0(26) <= d_is_idle;
-  trig0(27) <= d_is_eof;
-  trig0(28) <= d_is_shrunk;
-  trig0(29) <= phy_rdy_i;
-  
-  trig1(15 downto 0) <= pcs_fab_out.data;
-  trig1(16) <= pcs_fab_out.sof;
-  trig1(17) <= pcs_fab_out.eof;
-  trig1(18) <= pcs_fab_out.dvalid;
-  trig1(19) <= pcs_fab_out.error;
-  trig1(20) <= pcs_fab_out.bytesel;
-  trig1(28 downto 21) <= d_data(7 downto 0);
-  trig1(31 downto 29) <= std_logic_vector(preamble_cntr);
-  
-  trig2(15 downto 0) <= d_data_shrunk;
-  ------------------------
-  trig2(31 downto 16) <= phy_rx_data_muxed;
 
 end behavioral;
 
