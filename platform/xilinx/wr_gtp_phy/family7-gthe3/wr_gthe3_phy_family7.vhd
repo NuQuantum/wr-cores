@@ -18,7 +18,7 @@ entity wr_gthe3_phy_family7 is
     clk_gth_n_i : in std_logic;
 
     clk_freerun_i : in std_logic;
-
+    
     -- TX path, synchronous to tx_out_clk_o (62.5 MHz):
     tx_out_clk_o : out std_logic;
     tx_locked_o  : out std_logic;
@@ -150,13 +150,13 @@ architecture rtl of wr_gthe3_phy_family7 is
   signal TXUSRCLK2       : std_logic;
   signal RXDLYSRESET     : std_logic;
 
-  signal serdes_ready, rx_comma_det, rx_byte_is_aligned, rx_slide : std_logic;
+  signal serdes_ready : std_logic;
   signal rx_synced, rst_rxclk                                     : std_logic;
 
   signal rx_data_int : std_logic_vector(15 downto 0);
   signal rx_k_int    : std_logic_vector(1 downto 0);
 
-  signal ready_txusrclk, ready_rxusrclk : std_logic;
+  signal serdes_ready_txusrclk, serdes_ready_rxusrclk : std_logic;
 
    signal cur_disp : t_8b10b_disparity;
 
@@ -188,59 +188,30 @@ begin
   rst_master_n <= not rst_i;
 
   TXCTRL2(7 downto 2) <= (others => '0');
-  TXCTRL2(1)          <= tx_k_i(1);
-  TXCTRL2(0)          <= tx_k_i(0);
+  TXCTRL2(1)          <= tx_k_i(0);
+  TXCTRL2(0)          <= tx_k_i(1);
 
-  TXDATA(15 downto 0)   <= tx_data_i;
+  TXDATA(7 downto 0)   <= tx_data_i(15 downto 8);
+  TXDATA(15 downto 8)   <= tx_data_i(7 downto 0);
   TXDATA(127 downto 16) <= (others => '0');
 
   rx_k_int    <= RXCTRL0(1 downto 0);
   rx_data_int <= RXDATA(15 downto 0);
 
-
-  RXSLIDE <= '0';
-
-
-  --  U_Bitslide : gtp_bitslide
-  --    generic map (
-  --      g_simulation => g_simulation,
-  --      g_target     => "virtex6")
-  --    port map (
-  --      gtp_rst_i                => rst_i,
-  --      gtp_rx_clk_i             => rx_clk,
-  --      gtp_rx_comma_det_i       => rx_comma_det,
-  --      gtp_rx_byte_is_aligned_i => rx_byte_is_aligned,
-  --      serdes_ready_i           => serdes_ready,
-  --      gtp_rx_slide_o           => rx_slide,
-  --      gtp_rx_cdr_rst_o         => open,
-  --      bitslide_o               => rx_bitslide_o,
-  --      synced_o                 => rx_synced);
-
-  -- tx_is_k_swapped <=  tx_k_i(0) & tx_k_i(1);
-  --  tx_data_swapped <= tx_data_i(7 downto 0) & tx_data_i(15 downto 8);
-
-  -- U_Wrapped_GTH : wr_gth_wrapper_example_top
-  --   port map (
-  --     ch0_gthrxn_in  => pad_rxn_i,
-  --     ch0_gthrxp_in  => pad_rxp_i,
-  --     ch0_gthtxn_out => pad_txn_o,
-  --     ch0_gthtxp_out => pad_txp_o,
-
-  --     hb_gtwiz_reset_all_in         => rst_i,
-  --     hb_gtwiz_reset_clk_freerun_in => clk_freerun_i,
-
-  --     mgtrefclk0_x0y2_n    => clk_gth_n_i,
-  --     mgtrefclk0_x0y2_p    => clk_gth_p_i,
-  --     rx_byte_is_aligned_o => rx_byte_is_aligned,
-  --     rx_clk_o             => rx_clk,
-  --     rx_comma_det_o       => rx_comma_det,
-  --     rx_data_o            => rx_data_int,
-  --     rx_k_o               => rx_k_int,
-  --     rx_slide_i           => rx_slide,
-  --     tx_clk_o             => tx_clk,
-  --     tx_data_i            => tx_data_swapped,
-  --     tx_k_i               => tx_is_k_swapped,
-  --     ready_o              => serdes_ready);
+   U_Bitslide : entity work.gtp_bitslide
+     generic map (
+       g_simulation => g_simulation,
+       g_target     => "virtex6")
+     port map (
+       gtp_rst_i                => rst_i,
+       gtp_rx_clk_i             => RXUSRCLK2,
+       gtp_rx_comma_det_i       => RXCOMMADET,
+       gtp_rx_byte_is_aligned_i => RXBYTEISALIGNED,
+       serdes_ready_i           => serdes_ready_rxusrclk,
+       gtp_rx_slide_o           => RXSLIDE,
+       gtp_rx_cdr_rst_o         => open,
+       bitslide_o               => rx_bitslide_o,
+       synced_o                 => rx_synced);
 
 
   U_Ref_Clock_Buffer : IBUFDS_GTE3
@@ -330,7 +301,22 @@ begin
       RXSYNCDONE_i  => RXSYNCDONE,
       done_o        => rx_buffer_bypass_done);
 
+  U_Sync_Ready_RXClk : gc_sync_ffs
+    port map (
+      clk_i    => RXUSRCLK2,
+      rst_n_i  => rst_master_n,
+      data_i   => serdes_ready,
+      synced_o => serdes_ready_rxusrclk);
 
+  U_Sync_Ready_TXClk : gc_sync_ffs
+    port map (
+      clk_i    => TXUSRCLK2,
+      rst_n_i  => rst_master_n,
+      data_i   => serdes_ready,
+      synced_o => serdes_ready_txusrclk);
+
+  serdes_ready <= reset_done and rx_buffer_bypass_done and tx_buffer_bypass_done and RXCDRLOCK and RXRESETDONE and TXRESETDONE and TXSYNCDONE and RXSYNCDONE and RXPMARESETDONE and TXPMARESETDONE;
+  
   -- tx_active -> userclk_tx_reset and deassert tx_active on rst master, deassert after few cycles of
   -- txusrclk2. same for rx_active.
 
@@ -406,16 +392,14 @@ begin
   GTHRXN <= pad_rxn_i;
   GTHRXP <= pad_rxp_i;
 
-  rx_synced <= '1';
-
-   p_gen_rx_outputs : process(RXUSRCLK2, ready_rxusrclk)
+  p_gen_rx_outputs : process(RXUSRCLK2, serdes_ready_rxusrclk)
    begin
-     if(ready_rxusrclk = '0') then
+     if(serdes_ready_rxusrclk = '0') then
        rx_data_o    <= (others => '0');
        rx_k_o       <= (others => '0');
        rx_enc_err_o <= '0';
      elsif rising_edge(RXUSRCLK2) then
-       if(ready_rxusrclk = '1' and rx_synced = '1') then
+       if(serdes_ready_rxusrclk = '1' and rx_synced = '1') then
          rx_data_o    <= rx_data_int(7 downto 0) & rx_data_int(15 downto 8);
          rx_k_o       <= rx_k_int(0) & rx_k_int(1);
          rx_enc_err_o <= '0';  --rx_disp_err(0) or rx_disp_err(1) or rx_code_err(0) or rx_code_err(1);
@@ -430,7 +414,7 @@ begin
   p_gen_tx_disparity : process(TXUSRCLK2)
   begin
     if rising_edge(TXUSRCLK2) then
-      if ready_txusrclk = '0' then
+      if serdes_ready_txusrclk = '0' then
         cur_disp <= RD_MINUS;
       else
         cur_disp <= f_next_8b10b_disparity16(cur_disp, tx_k_i, tx_data_i);
@@ -451,9 +435,9 @@ begin
   end generate gen_synthesis;
 
 
-  -- rdy_o <= serdes_ready and rx_synced;
-  -- tx_locked_o <= '1';
-  -- tx_enc_err_o <= '0';
+  rdy_o <= serdes_ready and rx_synced;
+  tx_locked_o <= serdes_ready;
+  tx_enc_err_o <= '0';
 
 
 end rtl;
