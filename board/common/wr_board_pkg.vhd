@@ -220,6 +220,24 @@ package wr_board_pkg is
       link_ok_o            : out std_logic);
   end component xwrc_board_common;
 
+  component eb_ethernet_slave is
+    generic (
+      g_sdb_address    : std_logic_vector(63 downto 0) := x"0000000000000000";
+      g_timeout_cycles : natural := 0;
+      g_mtu            : natural := 0);
+    port (
+      clk_i       : in  std_logic;
+      nRst_i      : in  std_logic;
+      snk_i       : in  t_wrf_sink_in;
+      snk_o       : out t_wrf_sink_out;
+      src_o       : out t_wrf_source_out;
+      src_i       : in  t_wrf_source_in;
+      cfg_slave_o : out t_wishbone_slave_out;
+      cfg_slave_i : in  t_wishbone_slave_in;
+      master_o    : out t_wishbone_master_out;
+      master_i    : in  t_wishbone_master_in);
+  end component eb_ethernet_slave;
+  
 end wr_board_pkg;
 
 package body wr_board_pkg is
