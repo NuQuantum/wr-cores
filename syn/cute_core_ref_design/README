@@ -1,0 +1,3 @@
+As there are thousands of nodes in LHAASO project, we merge the WR function with
+user module into one FPGA. So they just need the cute_core. The
+syn/cute_core_ref is used to generate the ngc for them.
