@@ -272,7 +272,6 @@ entity xwrc_board_cute is
     btn1_i     : in  std_logic := '1';
     btn2_i     : in  std_logic := '1';
     -- 1PPS output
-    pps_valid_o: out std_logic;
     pps_p_o    : out std_logic;
     pps_led_o  : out std_logic;
     pps_csync_o: out std_logic;
@@ -670,7 +669,6 @@ begin  -- architecture struct
       link_ok_o            => link_ok_o);
 
   tm_time_valid_o <= tm_time_valid;
-  pps_valid_o     <= tm_time_valid;
   pll_locked_o    <= pll_locked;
 
   onewire_oen_o <= onewire_en(0);

@@ -197,7 +197,6 @@ architecture rtl of cute_core_ref_top is
   signal aux_half_high: unsigned(15 downto 0);
   signal aux_half_low : unsigned(15 downto 0);
   signal aux_shift    : unsigned(15 downto 0);
-  signal pps_valid_d  : std_logic;
   signal clk_realign  : std_logic;
   signal new_freq     : std_logic;
 
@@ -205,9 +204,9 @@ architecture rtl of cute_core_ref_top is
   signal pps_csync         : std_logic;
   attribute maxdelay       : string;
   attribute maxdelay of pps_csync : signal is "500 ps";
-  signal pps_valid         : std_logic;
   signal tm_tai            : std_logic_vector(39 downto 0);
   signal tm_tai_valid      : std_logic;
+  signal tm_tai_valid_d1   : std_logic;
   -- Wishbone buse(s) from masters attached to crossbar
   signal cnx_master_out : t_wishbone_master_out_array(0 downto 0);
   signal cnx_master_in  : t_wishbone_master_in_array(0 downto 0);
@@ -312,7 +311,6 @@ begin
       led_link_o          => sfp1_led,
       pps_p_o             => pps_out,
       pps_led_o           => usr_led1,
-      pps_valid_o         => pps_valid,
       pps_csync_o         => pps_csync,
       pll_locked_o        => pll_locked,
       link_ok_o           => usr_led2);
@@ -331,13 +329,13 @@ begin
   begin
     if rising_edge(clk_ref_125m) then
       if(rst_ref_125m_n = '0' or pll_locked = '0') then  -- if new_freq or pll lost lock,
-        pps_valid_d <= '0';
+        tm_tai_valid_d1 <= '0';
       elsif(pps_csync = '1') then
-        pps_valid_d <= pps_valid;
+        tm_tai_valid_d1 <= tm_tai_valid;
       end if;
     end if;
   end process;
-  clk_realign <= (not pps_valid_d) and pps_valid and pps_csync;
+  clk_realign <= (not tm_tai_valid_d1) and tm_tai_valid and pps_csync;
 
   process(clk_ref_125m)
     variable rest  : integer range 0 to 65535;

@@ -170,7 +170,6 @@ package wr_cute_pkg is
       led_link_o           : out std_logic;
       btn1_i               : in  std_logic := '1';
       btn2_i               : in  std_logic := '1';
-      pps_valid_o          : out std_logic;
       pps_p_o              : out std_logic;
       pps_led_o            : out std_logic;
       pps_csync_o          : out std_logic;
