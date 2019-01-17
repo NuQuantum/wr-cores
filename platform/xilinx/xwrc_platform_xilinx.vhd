@@ -150,6 +150,7 @@ entity xwrc_platform_xilinx is
     -- PLL outputs
     clk_62m5_sys_o        : out std_logic;
     clk_125m_ref_o        : out std_logic;
+    clk_20m_o             : out std_logic;
     clk_ref_locked_o      : out std_logic;
     clk_62m5_dmtd_o       : out std_logic;
     pll_locked_o          : out std_logic;
@@ -238,6 +239,7 @@ begin  -- architecture rtl
     -- 125MHz reference clock
     gen_spartan6_default_plls : if (g_fpga_family = "spartan6") generate
 
+      signal clk_20m          : std_logic;
       signal clk_sys          : std_logic;
       signal clk_sys_out      : std_logic;
       signal clk_sys_fb       : std_logic;
@@ -328,6 +330,7 @@ begin  -- architecture rtl
           O => clk_125m_pllref_buf,
           I => clk_125m_pllref_buf_int2);
 
+      clk_20m_o        <= clk_20m_vcxo_buf;
       clk_62m5_sys_o   <= clk_sys_out;
       clk_125m_ref_o   <= clk_125m_pllref_buf;
       pll_locked_o     <= pll_sys_locked and pll_dmtd_locked;

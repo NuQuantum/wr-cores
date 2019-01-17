@@ -97,6 +97,7 @@ package wr_xilinx_pkg is
       pll_aux_locked_o      : out std_logic;
       clk_62m5_sys_o        : out std_logic;
       clk_125m_ref_o        : out std_logic;
+      clk_20m_o             : out std_logic;
       clk_ref_locked_o      : out std_logic;
       clk_62m5_dmtd_o       : out std_logic;
       pll_locked_o          : out std_logic;

@@ -320,6 +320,7 @@ architecture struct of xwrc_board_cute is
   signal clk_pll_62m5 : std_logic;
   signal clk_pll_125m : std_logic;
   signal clk_pll_500m : std_logic;
+  signal clk_pll_20m  : std_logic;
   signal clk_pll_dmtd : std_logic;
   signal pll_locked   : std_logic;
   signal clk_10m_ext  : std_logic;
@@ -377,6 +378,9 @@ architecture struct of xwrc_board_cute is
   signal multiboot_slave_out : t_wishbone_slave_out;
   signal multiboot_slave_in  : t_wishbone_slave_in := cc_dummy_slave_in;
 
+  signal multiboot_wb_out  : t_wishbone_master_out;
+  signal multiboot_wb_in   : t_wishbone_master_in;
+  
 begin  -- architecture struct
 
   -----------------------------------------------------------------------------
@@ -419,6 +423,7 @@ begin  -- architecture struct
       clk_62m5_sys_o        => clk_pll_62m5,
       clk_125m_ref_o        => clk_pll_125m,
       clk_500m_o            => clk_pll_500m,
+      clk_20m_o             => clk_pll_20m,
       clk_62m5_dmtd_o       => clk_pll_dmtd,
       pll_locked_o          => pll_locked,
       clk_10m_ext_o         => clk_10m_ext,
@@ -681,12 +686,23 @@ U_WRPC_MULTIBOOT: if (g_multiboot_enable = true) generate
   aux_master_in        <= multiboot_slave_out;
   aux_master_o         <= cc_dummy_master_out;
 
+  cmp_clock_crossing: xwb_clock_crossing
+    port map (
+      slave_clk_i     => clk_pll_62m5,
+      slave_rst_n_i   => rst_62m5_n,
+      slave_i         => multiboot_slave_in,
+      slave_o         => multiboot_slave_out,
+      master_clk_i    => clk_pll_20m,
+      master_rst_n_i  => '1',
+      master_i        => multiboot_wb_in,
+      master_o        => multiboot_wb_out);
+
   u_multiboot: xwb_xil_multiboot
     port map (
-      clk_i   => clk_pll_62m5,
-      rst_n_i => rst_62m5_n,
-      wbs_i   => multiboot_slave_in,
-      wbs_o   => multiboot_slave_out,
+      clk_i   => clk_pll_20m,
+      rst_n_i => '1',
+      wbs_i   => multiboot_wb_out,
+      wbs_o   => multiboot_wb_in,
       spi_cs_n_o => open,
       spi_sclk_o => open,
       spi_mosi_o => open,
