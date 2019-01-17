@@ -63,6 +63,7 @@ entity cute_wr_ref_top is
     g_dpram_initf : string := "../../bin/wrpc/wrc_phy8.bram";
     g_sfp0_enable : integer:= 1;
     g_sfp1_enable : integer:= 0;
+    g_cute_version       : string:= "2.2";
     g_aux_sdb            : t_sdb_device  := c_xwb_xil_multiboot_sdb;
     g_multiboot_enable   : boolean:= false
   );
@@ -208,7 +209,8 @@ begin
       g_sfp0_enable      => g_sfp0_enable,
       g_sfp1_enable      => g_sfp1_enable,
       g_aux_sdb          => g_aux_sdb,
-      g_cute_version     => "2.1",
+      g_cute_version     => g_cute_version,
+      g_phy_refclk_sel   => 4,
       g_multiboot_enable => g_multiboot_enable)
     port map (
       areset_n_i          => usr_button,
