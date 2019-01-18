@@ -325,7 +325,7 @@ begin
       pps_p_o             => pps_out,
       pps_led_o           => usr_led1,
       pps_csync_o         => pps_csync,
-      pll_locked_o        => pll_locked,
+      pll_aux_locked_o    => pll_locked,
       link_ok_o           => usr_led2);
   
   cnx_slave_in <= cnx_master_out;

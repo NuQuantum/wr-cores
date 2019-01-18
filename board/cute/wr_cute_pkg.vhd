@@ -173,7 +173,7 @@ package wr_cute_pkg is
       pps_p_o              : out std_logic;
       pps_led_o            : out std_logic;
       pps_csync_o          : out std_logic;
-      pll_locked_o         : out std_logic;
+      pll_aux_locked_o     : out std_logic;
       link_ok_o            : out std_logic);
   end component xwrc_board_cute;
 

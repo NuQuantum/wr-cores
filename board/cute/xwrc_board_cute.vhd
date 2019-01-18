@@ -275,7 +275,7 @@ entity xwrc_board_cute is
     pps_p_o    : out std_logic;
     pps_led_o  : out std_logic;
     pps_csync_o: out std_logic;
-    pll_locked_o : out std_logic;
+    pll_aux_locked_o : out std_logic;
     -- Link ok indication
     link_ok_o  : out std_logic
     );
@@ -426,6 +426,7 @@ begin  -- architecture struct
       clk_20m_o             => clk_pll_20m,
       clk_62m5_dmtd_o       => clk_pll_dmtd,
       pll_locked_o          => pll_locked,
+      pll_aux_locked_o      => pll_aux_locked_o,
       clk_10m_ext_o         => clk_10m_ext,
       phy8_o                => phy8_to_wrc,
       phy8_i                => phy8_from_wrc,
@@ -674,7 +675,6 @@ begin  -- architecture struct
       link_ok_o            => link_ok_o);
 
   tm_time_valid_o <= tm_time_valid;
-  pll_locked_o    <= pll_locked;
 
   onewire_oen_o <= onewire_en(0);
   onewire_in(0) <= onewire_i;
