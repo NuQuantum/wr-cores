@@ -35,6 +35,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 library work;
 use work.gencores_pkg.all;
@@ -111,8 +112,8 @@ entity xwrc_board_cute is
     clk_sys_62m5_o      : out std_logic;
     -- 125MHz ref clock output
     clk_ref_125m_o      : out std_logic;
-    -- 500MHz clock output
-    clk_500m_o          : out std_logic;
+    -- 10MHz ext clock output
+    clk_10m_ext_o       : out std_logic;
     -- active low reset outputs, synchronous to 62m5 and 125m clocks
     rst_sys_62m5_n_o    : out std_logic;
     rst_ref_125m_n_o    : out std_logic;
@@ -275,7 +276,6 @@ entity xwrc_board_cute is
     pps_p_o    : out std_logic;
     pps_led_o  : out std_logic;
     pps_csync_o: out std_logic;
-    pll_aux_locked_o : out std_logic;
     -- Link ok indication
     link_ok_o  : out std_logic
     );
@@ -307,9 +307,27 @@ architecture struct of xwrc_board_cute is
       dac_din_o    : out std_logic);
   end component cute_serial_dac_arb;
 
+  component oserdes_4_to_1 is
+    generic(
+      sys_w : integer := 1;
+      dev_w : integer := 4); 
+    port(
+      data_out_from_device : in  std_logic_vector(dev_w-1 downto 0); 
+      data_out_to_pins     : out std_logic_vector(sys_w-1 downto 0); 
+      delay_reset          : in  std_logic;
+      clk_in     : in std_logic;
+      pll_locked : in std_logic;
+      clk_div_in : in std_logic;
+      io_reset   : in std_logic);
+  end component;
+
   -----------------------------------------------------------------------------
   -- Signals
   -----------------------------------------------------------------------------
+  constant c_AUX_500M_CFG : t_auxpll_cfg := (
+    enabled  => TRUE,
+    divide   => 2);
+  constant c_AUX_CFG_ARRAY : t_auxpll_cfg_array := (0=>c_AUX_500M_CFG, others=>c_AUXPLL_CFG_DEFAULT);
 
   -- IBUFDS
   signal clk_125m_pllref_buf : std_logic;
@@ -319,11 +337,11 @@ architecture struct of xwrc_board_cute is
   signal clk_125m_gtp_n : std_logic;
   signal clk_pll_62m5 : std_logic;
   signal clk_pll_125m : std_logic;
-  signal clk_pll_500m : std_logic;
   signal clk_pll_20m  : std_logic;
   signal clk_pll_dmtd : std_logic;
   signal pll_locked   : std_logic;
   signal clk_10m_ext  : std_logic;
+  signal clk_pll_aux_out : std_logic_vector(3 downto 0);
 
   -- Reset logic
   signal areset_edge_ppulse : std_logic;
@@ -371,6 +389,21 @@ architecture struct of xwrc_board_cute is
   signal sfp_los_in          : std_logic;
 
   signal tm_time_valid : std_logic;
+
+  -- ext 10M clock output
+  constant c_DATA_W   : integer := 4;  -- parallel data width going to serdes
+  constant c_HALF     : integer := 25; -- default high/low width for 10MHz
+  signal rst_oserdes  : std_logic;
+  signal pll_aux_locked : std_logic;
+  signal sd_out       : std_logic_vector(0 downto 0);
+
+  signal sd_data      : std_logic_vector(c_DATA_W-1 downto 0);
+  signal aux_half_high: unsigned(15 downto 0);
+  signal aux_half_low : unsigned(15 downto 0);
+  signal aux_shift    : unsigned(15 downto 0);
+  signal clk_realign  : std_logic;
+  signal tm_time_valid_d1 : std_logic;
+  signal pps_csync    : std_logic;
  
   signal aux_master_out  :  t_wishbone_master_out;
   signal aux_master_in   :  t_wishbone_master_in := cc_dummy_master_in;
@@ -402,6 +435,7 @@ begin  -- architecture struct
       g_fpga_family               => "spartan6",
       g_with_external_clock_input => g_with_external_clock_input,
       g_use_default_plls          => TRUE,
+      g_aux_pll_cfg               => c_AUX_CFG_ARRAY,
       g_gtp_enable_ch0            => 0,
       g_gtp_enable_ch1            => 1,
       g_phy_refclk_sel            => g_phy_refclk_sel,
@@ -420,13 +454,13 @@ begin  -- architecture struct
       sfp_tx_fault_i        => sfp_tx_fault_in,
       sfp_los_i             => sfp_los_in,
       sfp_tx_disable_o      => sfp_tx_disable_out,
+      clk_pll_aux_o         => clk_pll_aux_out,
       clk_62m5_sys_o        => clk_pll_62m5,
       clk_125m_ref_o        => clk_pll_125m,
-      clk_500m_o            => clk_pll_500m,
       clk_20m_o             => clk_pll_20m,
       clk_62m5_dmtd_o       => clk_pll_dmtd,
       pll_locked_o          => pll_locked,
-      pll_aux_locked_o      => pll_aux_locked_o,
+      pll_aux_locked_o      => pll_aux_locked,
       clk_10m_ext_o         => clk_10m_ext,
       phy8_o                => phy8_to_wrc,
       phy8_i                => phy8_from_wrc,
@@ -437,7 +471,6 @@ begin  -- architecture struct
 
   clk_sys_62m5_o <= clk_pll_62m5;
   clk_ref_125m_o <= clk_pll_125m;
-  clk_500m_o     <= clk_pll_500m;
 
   -----------------------------------------------------------------------------
   -- SFP0/1 selection
@@ -670,11 +703,12 @@ begin  -- architecture struct
       btn1_i               => btn1_i,
       btn2_i               => btn2_i,
       pps_p_o              => pps_p_o,
-      pps_csync_o          => pps_csync_o,
+      pps_csync_o          => pps_csync,
       pps_led_o            => pps_led_o,
       link_ok_o            => link_ok_o);
 
   tm_time_valid_o <= tm_time_valid;
+  pps_csync_o     <= pps_csync;
 
   onewire_oen_o <= onewire_en(0);
   onewire_in(0) <= onewire_i;
@@ -714,5 +748,66 @@ U_WRPC_NO_MULTIBOOT: if (g_multiboot_enable = false) generate
   aux_master_o   <= aux_master_out;
   aux_master_in  <= aux_master_i;
 end generate;
+
+  -----------------------------------------------------------------------------
+  -- 10MHz output generation
+  -----------------------------------------------------------------------------
+  aux_half_high <= to_unsigned(c_HALF, aux_half_high'length);
+  aux_half_low  <= to_unsigned(c_HALF, aux_half_low'length);
+  aux_shift     <= to_unsigned(11, aux_half_low'length);
+  rst_oserdes   <= not pll_aux_locked;
+  clk_10m_ext_o <= sd_out(0);
+
+  process(clk_pll_125m)
+  begin
+    if rising_edge(clk_pll_125m) then
+      if(rstlogic_rst_out(1) = '0' or pll_aux_locked = '0') then
+        tm_time_valid_d1 <= '0';
+      elsif(pps_csync = '1') then
+        tm_time_valid_d1 <= tm_time_valid;
+      end if;
+    end if;
+  end process;
+  clk_realign <= (not tm_time_valid_d1) and tm_time_valid and pps_csync;
+
+  process(clk_pll_125m)
+    variable rest  : integer range 0 to 65535;
+    variable v_bit : std_logic;
+  begin
+    if rising_edge(clk_pll_125m) then
+      if (rstlogic_rst_out(1)='0' or pll_aux_locked='0' or clk_realign='1') then
+          rest := to_integer(aux_half_high - aux_shift);
+          v_bit := '1';
+      else
+        for i in 0 to c_DATA_W-1 loop
+          if(rest /= 0) then
+            sd_data(i) <= v_bit;
+            rest := rest - 1;
+          elsif(v_bit = '1') then
+            sd_data(i) <= '0';
+            v_bit := '0';
+            rest := to_integer(aux_half_low-1); -- because here we already wrote first bit
+                                    -- from this group
+          elsif(v_bit = '0') then
+            sd_data(i) <= '1';
+            v_bit := '1';
+            rest := to_integer(aux_half_high-1);
+          end if;
+        end loop;
+      end if;
+    end if;
+  end process;
+
+  U_10MHZ_SERDES: oserdes_4_to_1
+  generic map(
+    dev_w => c_DATA_W)
+  port map(
+    data_out_from_device => sd_data,
+    data_out_to_pins     => sd_out,
+    delay_reset          => '0',
+    clk_in               => clk_pll_aux_out(0), --500MHz
+    pll_locked           => pll_aux_locked,
+    clk_div_in           => clk_pll_125m,
+    io_reset             => rst_oserdes);
 
 end architecture struct;

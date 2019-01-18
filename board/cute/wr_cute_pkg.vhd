@@ -81,7 +81,7 @@ package wr_cute_pkg is
       pps_ext_i           : in  std_logic                               := '0';
       clk_sys_62m5_o      : out std_logic;
       clk_ref_125m_o      : out std_logic;
-      clk_500m_o          : out std_logic;
+      clk_10m_ext_o       : out std_logic;
       rst_sys_62m5_n_o    : out std_logic;
       rst_ref_125m_n_o    : out std_logic;
       plldac_sclk_o       : out std_logic;
@@ -173,7 +173,6 @@ package wr_cute_pkg is
       pps_p_o              : out std_logic;
       pps_led_o            : out std_logic;
       pps_csync_o          : out std_logic;
-      pll_aux_locked_o     : out std_logic;
       link_ok_o            : out std_logic);
   end component xwrc_board_cute;
 
