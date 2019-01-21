@@ -7,14 +7,14 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2018-11-28
+-- Last update: 2018-06-22
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
 -- needed to operate the core on the SVEC board.
 -- http://www.ohwr.org/projects/svec/
 -------------------------------------------------------------------------------
--- Copyright (c) 2017-2018 CERN
+-- Copyright (c) 2017 CERN
 -------------------------------------------------------------------------------
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
@@ -61,16 +61,14 @@ entity xwrc_board_svec is
     g_with_external_clock_input : boolean              := TRUE;
     -- Number of aux clocks syntonized by WRPC to WR timebase
     g_aux_clks                  : integer              := 0;
-    -- Config for the auxiliary PLL output
-    g_aux_pll_config            : t_px_pll_cfg         := c_PX_DEFAULT_PLL_CFG;
     -- plain     = expose WRC fabric interface
     -- streamers = attach WRC streamers to fabric interface
     -- etherbone = attach Etherbone slave to fabric interface
     g_fabric_iface              : t_board_fabric_iface := plain;
     -- parameters configuration when g_fabric_iface = "streamers" (otherwise ignored)
     g_streamers_op_mode         : t_streamers_op_mode := TX_AND_RX;
-    g_tx_streamer_params        : t_tx_streamer_params := c_tx_streamer_params_defaut;
-    g_rx_streamer_params        : t_rx_streamer_params := c_rx_streamer_params_defaut;
+    g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
+    g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- memory initialisation file for embedded CPU
     g_dpram_initf               : string               := "default_xilinx";
     -- identification (id and ver) of the layout of words in the generic diag interface
@@ -105,13 +103,9 @@ entity xwrc_board_svec is
     clk_sys_62m5_o      : out std_logic;
     -- 125MHz ref clock output
     clk_ref_125m_o      : out std_logic;
-    -- Auxiliary clock output from PLL, configured through g_aux_pll_config.
-    -- Not to be confused with clk_aux_i and/or g_aux_clks parameter.
-    clk_pll_aux_o       : out std_logic;
-    -- active low reset outputs, synchronous to their respective clocks
+    -- active low reset outputs, synchronous to 62m5 and 125m clocks
     rst_sys_62m5_n_o    : out std_logic;
     rst_ref_125m_n_o    : out std_logic;
-    rst_pll_aux_n_o     : out std_logic;
 
     ---------------------------------------------------------------------------
     -- SPI interfaces to DACs
@@ -274,14 +268,13 @@ architecture struct of xwrc_board_svec is
   signal clk_pll_dmtd : std_logic;
   signal pll_locked   : std_logic;
   signal clk_10m_ext  : std_logic;
-  signal clk_pll_aux  : std_logic;
 
   -- Reset logic
   signal areset_edge_ppulse : std_logic;
   signal rst_62m5_n         : std_logic;
-  signal rstlogic_arst      : std_logic;
-  signal rstlogic_clk_in    : std_logic_vector(2 downto 0);
-  signal rstlogic_rst_out   : std_logic_vector(2 downto 0);
+  signal rstlogic_arst_n    : std_logic;
+  signal rstlogic_clk_in    : std_logic_vector(1 downto 0);
+  signal rstlogic_rst_out   : std_logic_vector(1 downto 0);
 
   -- PLL DAC ARB
   signal dac_sync_n       : std_logic_vector(1 downto 0);
@@ -327,7 +320,6 @@ begin  -- architecture struct
       g_fpga_family               => "spartan6",
       g_with_external_clock_input => g_with_external_clock_input,
       g_use_default_plls          => TRUE,
-      g_aux_pll_config            => g_aux_pll_config,
       g_simulation                => g_simulation)
     port map (
       areset_n_i            => areset_n_i,
@@ -343,7 +335,6 @@ begin  -- architecture struct
       sfp_tx_fault_i        => sfp_tx_fault_i,
       sfp_los_i             => sfp_los_i,
       sfp_tx_disable_o      => sfp_tx_disable_o,
-      clk_pll_aux_o         => clk_pll_aux,
       clk_62m5_sys_o        => clk_pll_62m5,
       clk_125m_ref_o        => clk_pll_125m,
       clk_62m5_dmtd_o       => clk_pll_dmtd,
@@ -358,14 +349,13 @@ begin  -- architecture struct
 
   clk_sys_62m5_o <= clk_pll_62m5;
   clk_ref_125m_o <= clk_pll_125m;
-  clk_pll_aux_o  <= clk_pll_aux;
 
   -----------------------------------------------------------------------------
   -- Reset logic
   -----------------------------------------------------------------------------
   -- Detect when areset_edge_n_i goes high (end of reset) and use this edge to
   -- generate rstlogic_arst_n. This is needed to connect optional reset like PCIe
-  -- reset. When board runs standalone, we need to ignore PCIe reset being
+  -- reset. When baord runs standalone, we need to ignore PCIe reset being
   -- constantly low.
   cmp_arst_edge : gc_sync_ffs
     generic map (
@@ -382,12 +372,11 @@ begin  -- architecture struct
   -- concatenation of all clocks required to have synced resets
   rstlogic_clk_in(0) <= clk_pll_62m5;
   rstlogic_clk_in(1) <= clk_pll_125m;
-  rstlogic_clk_in(2) <= clk_pll_aux;
 
   cmp_rstlogic_reset : gc_reset_multi_aasd
     generic map (
-      g_CLOCKS  => 3,   -- 62.5MHz, 125MHz, plus aux clk
-      g_RST_LEN => 16)  -- 16 clock cycles
+      g_CLOCKS  => 2,                     -- 62.5MHz, 125MHz
+      g_RST_LEN => 16)                    -- 16 clock cycles
     port map (
       arst_i  => rstlogic_arst,
       clks_i  => rstlogic_clk_in,
@@ -398,7 +387,6 @@ begin  -- architecture struct
 
   rst_sys_62m5_n_o <= rst_62m5_n;
   rst_ref_125m_n_o <= rstlogic_rst_out(1);
-  rst_pll_aux_n_o  <= rstlogic_rst_out(2);
 
   -----------------------------------------------------------------------------
   -- 2x SPI DAC
