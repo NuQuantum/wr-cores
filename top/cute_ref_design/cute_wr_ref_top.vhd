@@ -189,8 +189,10 @@ architecture rtl of cute_wr_ref_top is
   attribute maxdelay       : string;
   attribute maxdelay of pps_csync : signal is "500 ps";
   signal tm_tai            : std_logic_vector(39 downto 0);
-  signal tm_tai_valid      : std_logic;
-  signal tm_tai_valid_d1   : std_logic;
+  signal tm_time_valid     : std_logic;
+  signal tm_link_up        : std_logic;
+  signal pps_led           : std_logic;
+  signal led_act           : std_logic;
   -- Wishbone buse(s) from masters attached to crossbar
   signal cnx_master_out : t_wishbone_master_out_array(0 downto 0);
   signal cnx_master_in  : t_wishbone_master_in_array(0 downto 0);
@@ -285,17 +287,17 @@ begin
       wb_eth_master_o     => cnx_master_out(0),
       wb_eth_master_i     => cnx_master_in(0),
   
-      tm_link_up_o        => open,
-      tm_time_valid_o     => tm_tai_valid,
+      tm_link_up_o        => tm_link_up,
+      tm_time_valid_o     => tm_time_valid,
       tm_tai_o            => tm_tai,
       tm_cycles_o         => open,
   
-      led_act_o           => sfp0_led,
-      led_link_o          => sfp1_led,
+      led_act_o           => led_act,
+      led_link_o          => open,
       pps_p_o             => pps_out,
-      pps_led_o           => usr_led1,
+      pps_led_o           => pps_led,
       pps_csync_o         => pps_csync,
-      link_ok_o           => usr_led2);
+      link_ok_o           => open);
   
   cnx_slave_in <= cnx_master_out;
   cnx_master_in <= cnx_slave_out;
@@ -319,5 +321,11 @@ begin
   -- Tristates for Onewire
   one_wire <= '0' when onewire_oen_o = '1' else 'Z';
   onewire_i  <= one_wire;
+  
+  sfp0_led <= not led_act;
+  sfp1_led <= not pps_led;
+  
+  usr_led1 <= not tm_time_valid;
+  usr_led2 <= not tm_link_up;
   
 end rtl;

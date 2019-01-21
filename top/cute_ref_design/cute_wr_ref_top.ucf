@@ -111,7 +111,6 @@ net "plldac_sclk" loc = c2;net "plldac_sclk" iostandard = lvcmos33;
 net "plldac_sync_n" loc = d1;net "plldac_sync_n" iostandard = lvcmos33;
 net "plldac_load_n" loc = d2;net "plldac_load_n" iostandard = lvcmos33;
 
-net "ext_clk"  loc = f2;net "ext_clk" iostandard = lvcmos33;
 net "sfp1_led" loc = g3;net "sfp1_led" iostandard = lvcmos33;
 net "sfp0_led" loc = k4;net "sfp0_led" iostandard = lvcmos33;
 net "sfp0_los" loc = g1;net "sfp0_los" iostandard = lvcmos33;
@@ -157,4 +156,8 @@ TIMESPEC TS_u_wr_core_cmp_xwrc_platform_gen_phy_spartan6_cmp_gtp_ch_gtp_clkout_i
 
 inst "pps_out" iob = force;
 net "pps_out" drive = 24 | slew = fast;
+#cute-wr-dp V2.1
+#net "ext_clk"  loc = f2;net "ext_clk" iostandard = lvcmos33;
+#cute-wr-dp V2.2
+net "ext_clk"  loc = k3;net "ext_clk" iostandard = lvcmos33;
 net "ext_clk" drive = 24 | slew = fast;
