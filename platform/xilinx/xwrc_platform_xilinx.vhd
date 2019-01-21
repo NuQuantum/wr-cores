@@ -60,14 +60,14 @@ entity xwrc_platform_xilinx is
       g_with_external_clock_input : boolean := FALSE;
       -- Set to FALSE if you want to instantiate your own PLLs
       g_use_default_plls          : boolean := TRUE;
+      -- Config for the auxiliary PLL output (for now only used in Spartan-6
+      g_aux_pll_cfg               : t_auxpll_cfg_array := c_AUXPLL_CFG_ARRAY_DEFAULT;
       -- Select GTP channel to use 
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
       g_gtp_mux_enable            : boolean := FALSE;
       -- Set to TRUE will speed up some initialization processes
-      g_simulation                : integer := 0;
-      g_ddr_clock_divider : integer := 3
-      );
+      g_simulation                : integer := 0);
   port (
     ---------------------------------------------------------------------------
     -- Asynchronous reset (active low)
@@ -137,6 +137,11 @@ entity xwrc_platform_xilinx is
     sfp1_tx_disable_o     : out std_logic;
 
     ---------------------------------------------------------------------------
+    --Auxiliary PLL outputs
+    ---------------------------------------------------------------------------
+    clk_pll_aux_o         : out std_logic_vector(3 downto 0);
+    pll_aux_locked_o      : out std_logic;
+    ---------------------------------------------------------------------------
     --Interface to WR PTP Core (WRPC)
     ---------------------------------------------------------------------------
     -- PLL outputs
@@ -144,7 +149,6 @@ entity xwrc_platform_xilinx is
     clk_125m_ref_o        : out std_logic;
     clk_ref_locked_o      : out std_logic;
     clk_62m5_dmtd_o       : out std_logic;
-    clk_ddr_o : out std_logic;
     pll_locked_o          : out std_logic;
     clk_10m_ext_o         : out std_logic;
     -- PHY - CH0
@@ -239,7 +243,7 @@ begin  -- architecture rtl
       signal clk_dmtd_fb      : std_logic;
       signal pll_dmtd_locked  : std_logic;
       signal clk_20m_vcxo_buf : std_logic;
-      signal clk_ddr : std_logic;
+      signal clk_pll_aux      : std_logic_vector(3 downto 0);
 
       signal clk_125m_pllref_buf_int1 : std_logic;
       signal clk_125m_pllref_buf_int2 : std_logic;
@@ -261,16 +265,30 @@ begin  -- architecture rtl
           CLKOUT1_DIVIDE     => 8,
           CLKOUT1_PHASE      => 0.000,
           CLKOUT1_DUTY_CYCLE => 0.500,
-          CLKOUT2_DIVIDE     => 3,
+          -- Aux user clocks parameters
+          CLKOUT2_DIVIDE     => g_aux_pll_cfg(0).divide,
           CLKOUT2_PHASE      => 0.000,
           CLKOUT2_DUTY_CYCLE => 0.500,
+          CLKOUT3_DIVIDE     => g_aux_pll_cfg(1).divide,
+          CLKOUT3_PHASE      => 0.000,
+          CLKOUT3_DUTY_CYCLE => 0.500,
+          CLKOUT4_DIVIDE     => g_aux_pll_cfg(2).divide,
+          CLKOUT4_PHASE      => 0.000,
+          CLKOUT4_DUTY_CYCLE => 0.500,
+          CLKOUT5_DIVIDE     => g_aux_pll_cfg(3).divide,
+          CLKOUT5_PHASE      => 0.000,
+          CLKOUT5_DUTY_CYCLE => 0.500,
+          ----
           CLKIN_PERIOD       => 8.0,
           REF_JITTER         => 0.016)
         port map (
           CLKFBOUT => clk_sys_fb,
           CLKOUT0  => clk_sys,
           CLKOUT1  => clk_125m_pllref_buf_int2,
-          CLKOUT2  => clk_ddr,
+          CLKOUT2  => clk_pll_aux(0),
+          CLKOUT3  => clk_pll_aux(1),
+          CLKOUT4  => clk_pll_aux(2),
+          CLKOUT5  => clk_pll_aux(3),
           LOCKED   => pll_sys_locked,
           RST      => pll_arst,
           CLKFBIN  => clk_sys_fb,
@@ -282,11 +300,18 @@ begin  -- architecture rtl
           O => clk_125m_pllref_buf_int1,
           I => clk_125m_pllref_i);
 
-      -- DDR PLL global clock buffer
-      cmp_ddr_clk_buf_o : BUFG
-        port map (
-          O => clk_ddr_o,
-          I => clk_ddr);
+      -- DDR PLL global clock buffers
+      gen_auxclk_bufs: for I in 0 to 3 generate
+        gen_auxclk_enabled: if g_aux_pll_cfg(I).enabled = TRUE generate
+          cmp_auxclk_bufg : BUFG
+            port map (
+              O => clk_pll_aux_o(I),
+              I => clk_pll_aux(I));
+        end generate;
+        gen_auxclk_disabled: if g_aux_pll_cfg(I).enabled = FALSE generate
+          clk_pll_aux_o(I) <= '0';
+        end generate;
+      end generate;
 
       -- System PLL output clock buffer
       cmp_clk_sys_buf_o : BUFG
@@ -303,6 +328,7 @@ begin  -- architecture rtl
       clk_62m5_sys_o   <= clk_sys_out;
       clk_125m_ref_o   <= clk_125m_pllref_buf;
       pll_locked_o     <= pll_sys_locked and pll_dmtd_locked;
+      pll_aux_locked_o <= pll_sys_locked;
       clk_ref_locked_o <= '1';
 
       -- DMTD PLL

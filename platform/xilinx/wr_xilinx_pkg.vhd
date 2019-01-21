@@ -38,16 +38,26 @@ use work.endpoint_pkg.all;
 
 package wr_xilinx_pkg is
 
+  -- Configuration of used-defined aux PLL clocks
+  type t_auxpll_cfg is record
+    enabled : boolean;
+    divide  : integer;
+  end record t_auxpll_cfg;
+  type t_auxpll_cfg_array is array (0 to 3) of t_auxpll_cfg;
+
+  constant c_AUXPLL_CFG_DEFAULT : t_auxpll_cfg := (FALSE, 1);
+  constant c_AUXPLL_CFG_ARRAY_DEFAULT : t_auxpll_cfg_array := (others=>c_AUXPLL_CFG_DEFAULT);
+
   component xwrc_platform_xilinx is
     generic (
       g_fpga_family               : string  := "spartan6";
       g_with_external_clock_input : boolean := FALSE;
       g_use_default_plls          : boolean := TRUE;
+      g_aux_pll_cfg               : t_auxpll_cfg_array := c_AUXPLL_CFG_ARRAY_DEFAULT;
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
       g_gtp_mux_enable            : boolean := FALSE;
-      g_simulation                : integer := 0;
-      g_ddr_clock_divider         : integer := 3
+      g_simulation                : integer := 0
       );
     port (
       areset_n_i            : in  std_logic             := '1';
@@ -67,7 +77,6 @@ package wr_xilinx_pkg is
       clk_ext_locked_i      : in  std_logic             := '1';
       clk_ext_stopped_i     : in  std_logic             := '0';
       clk_ext_rst_o         : out std_logic;
-      clk_ddr_o : out std_logic;
       sfp_txn_o             : out std_logic;
       sfp_txp_o             : out std_logic;
       sfp_rxn_i             : in  std_logic;
@@ -83,6 +92,8 @@ package wr_xilinx_pkg is
       sfp1_tx_fault_i       : in  std_logic             := '0';
       sfp1_los_i            : in  std_logic             := '0';
       sfp1_tx_disable_o     : out std_logic;
+      clk_pll_aux_o         : out std_logic_vector(3 downto 0);
+      pll_aux_locked_o      : out std_logic;
       clk_62m5_sys_o        : out std_logic;
       clk_125m_ref_o        : out std_logic;
       clk_ref_locked_o      : out std_logic;

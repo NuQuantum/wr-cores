@@ -41,6 +41,7 @@ use work.wrcore_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.wr_board_pkg.all;
+use work.wr_xilinx_pkg.all;
 use work.streamers_pkg.all;
 
 package wr_svec_pkg is
@@ -58,7 +59,8 @@ package wr_svec_pkg is
       g_diag_id                   : integer              := 0;
       g_diag_ver                  : integer              := 0;
       g_diag_ro_size              : integer              := 0;
-      g_diag_rw_size              : integer              := 0);
+      g_diag_rw_size              : integer              := 0;
+      g_aux_pll_cfg               : t_auxpll_cfg_array   := c_AUXPLL_CFG_ARRAY_DEFAULT);
     port (
       areset_n_i           : in  std_logic;
       areset_edge_n_i      : in  std_logic := '1';
@@ -72,6 +74,7 @@ package wr_svec_pkg is
       pps_ext_i            : in  std_logic                                        := '0';
       clk_sys_62m5_o       : out std_logic;
       clk_ref_125m_o       : out std_logic;
+      clk_pll_aux_o        : out std_logic_vector(3 downto 0);
       rst_sys_62m5_n_o     : out std_logic;
       rst_ref_125m_n_o     : out std_logic;
       pll20dac_din_o       : out std_logic;
