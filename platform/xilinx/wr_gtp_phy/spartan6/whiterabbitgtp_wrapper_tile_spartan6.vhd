@@ -37,6 +37,8 @@ entity WHITERABBITGTP_WRAPPER_TILE_SPARTAN6 is
       PLLLKDET1_OUT        : out std_logic;
       RESETDONE0_OUT       : out std_logic;
       RESETDONE1_OUT       : out std_logic;
+      REFSELDYPLL0         : in  std_logic_vector(2 downto 0):=(others=>'0');
+      REFSELDYPLL1         : in  std_logic_vector(2 downto 0):=(others=>'0');
       ----------------------- Receive Ports - 8b10b Decoder ----------------------
       RXCHARISK0_OUT       : out std_logic;
       RXCHARISK1_OUT       : out std_logic;
@@ -483,8 +485,8 @@ begin
       REFCLKPLL1                => open,
       REFCLKPWRDNB0             => tied_to_vcc_i,
       REFCLKPWRDNB1             => tied_to_vcc_i,
-      REFSELDYPLL0              => tied_to_ground_vec_i(2 downto 0),
-      REFSELDYPLL1              => tied_to_ground_vec_i(2 downto 0),
+      REFSELDYPLL0              => REFSELDYPLL0,
+      REFSELDYPLL1              => REFSELDYPLL1,
       RESETDONE0                => RESETDONE0_OUT,
       RESETDONE1                => RESETDONE1_OUT,
       TSTCLK0                   => tied_to_ground_i,

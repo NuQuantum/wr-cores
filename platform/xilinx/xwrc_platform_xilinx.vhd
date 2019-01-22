@@ -41,6 +41,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 library work;
 use work.endpoint_pkg.all;
@@ -65,6 +66,8 @@ entity xwrc_platform_xilinx is
       -- Select GTP channel to use 
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
+      -- Select PHY reference clock
+      g_phy_refclk_sel            : integer range 0 to 7 := 0;
       g_gtp_mux_enable            : boolean := FALSE;
       -- Set to TRUE will speed up some initialization processes
       g_simulation                : integer := 0);
@@ -147,6 +150,7 @@ entity xwrc_platform_xilinx is
     -- PLL outputs
     clk_62m5_sys_o        : out std_logic;
     clk_125m_ref_o        : out std_logic;
+    clk_20m_o             : out std_logic;
     clk_ref_locked_o      : out std_logic;
     clk_62m5_dmtd_o       : out std_logic;
     pll_locked_o          : out std_logic;
@@ -235,6 +239,7 @@ begin  -- architecture rtl
     -- 125MHz reference clock
     gen_spartan6_default_plls : if (g_fpga_family = "spartan6") generate
 
+      signal clk_20m          : std_logic;
       signal clk_sys          : std_logic;
       signal clk_sys_out      : std_logic;
       signal clk_sys_fb       : std_logic;
@@ -262,13 +267,14 @@ begin  -- architecture rtl
           CLKOUT0_DIVIDE     => 16,
           CLKOUT0_PHASE      => 0.000,
           CLKOUT0_DUTY_CYCLE => 0.500,
-          CLKOUT1_DIVIDE     => 8,
+          -- 1st aux user clock parameters
+          CLKOUT1_DIVIDE     => g_aux_pll_cfg(0).divide,
           CLKOUT1_PHASE      => 0.000,
           CLKOUT1_DUTY_CYCLE => 0.500,
-          -- Aux user clocks parameters
-          CLKOUT2_DIVIDE     => g_aux_pll_cfg(0).divide,
+          CLKOUT2_DIVIDE     => 8,
           CLKOUT2_PHASE      => 0.000,
           CLKOUT2_DUTY_CYCLE => 0.500,
+          -- The rest of aux user clocks parameters
           CLKOUT3_DIVIDE     => g_aux_pll_cfg(1).divide,
           CLKOUT3_PHASE      => 0.000,
           CLKOUT3_DUTY_CYCLE => 0.500,
@@ -284,8 +290,10 @@ begin  -- architecture rtl
         port map (
           CLKFBOUT => clk_sys_fb,
           CLKOUT0  => clk_sys,
-          CLKOUT1  => clk_125m_pllref_buf_int2,
-          CLKOUT2  => clk_pll_aux(0),
+          CLKOUT1  => clk_pll_aux(0), -- required for 500MHz generation for
+          -- Cute-WR. This is because 500MHz goes then to BUFPLL which can input
+          -- only CLKOUT0/1 from PLL_BASE.
+          CLKOUT2  => clk_125m_pllref_buf_int2,
           CLKOUT3  => clk_pll_aux(1),
           CLKOUT4  => clk_pll_aux(2),
           CLKOUT5  => clk_pll_aux(3),
@@ -300,14 +308,20 @@ begin  -- architecture rtl
           O => clk_125m_pllref_buf_int1,
           I => clk_125m_pllref_i);
 
-      -- DDR PLL global clock buffers
+      -- PLL aux clocks buffers
       gen_auxclk_bufs: for I in 0 to 3 generate
-        gen_auxclk_enabled: if g_aux_pll_cfg(I).enabled = TRUE generate
+        -- Aux PLL_BASE clocks with BUFG enabled
+        gen_auxclk_bufg_en: if g_aux_pll_cfg(I).enabled = TRUE and g_aux_pll_cfg(I).bufg_en = TRUE generate
           cmp_auxclk_bufg : BUFG
             port map (
               O => clk_pll_aux_o(I),
               I => clk_pll_aux(I));
         end generate;
+        -- Aux PLL_BASE clocks with BUFG disabled
+        gen_auxclk_no_bufg: if g_aux_pll_cfg(I).enabled = TRUE and g_aux_pll_cfg(I).bufg_en = FALSE generate
+          clk_pll_aux_o(I) <= clk_pll_aux(I);
+        end generate;
+        -- Disabled aux PLL_BASE clocks
         gen_auxclk_disabled: if g_aux_pll_cfg(I).enabled = FALSE generate
           clk_pll_aux_o(I) <= '0';
         end generate;
@@ -325,6 +339,7 @@ begin  -- architecture rtl
           O => clk_125m_pllref_buf,
           I => clk_125m_pllref_buf_int2);
 
+      clk_20m_o        <= clk_20m_vcxo_buf;
       clk_62m5_sys_o   <= clk_sys_out;
       clk_125m_ref_o   <= clk_125m_pllref_buf;
       pll_locked_o     <= pll_sys_locked and pll_dmtd_locked;
@@ -1031,7 +1046,9 @@ begin  -- architecture rtl
 
   gen_phy_spartan6 : if(g_fpga_family = "spartan6") generate
 
-    signal clk_125m_gtp_buf : std_logic;
+    signal clk_125m_gtp_buf  : std_logic;
+    signal clk_125m_gtp1_buf : std_logic;
+    signal clk_125m_gtp0_buf : std_logic;
 
     signal ch0_phy8_out, ch1_phy8_out : t_phy_8bits_to_wrc;
 
@@ -1059,7 +1076,7 @@ begin  -- architecture rtl
         g_enable_ch0 => g_gtp_enable_ch0,
         g_enable_ch1 => g_gtp_enable_ch1)
       port map (
-        gtp_clk_i          => clk_125m_gtp_buf,
+        gtp0_clk_i         => clk_125m_gtp0_buf,
         ch0_ref_clk_i      => clk_125m_pllref_buf,
         ch0_tx_data_i      => phy8_i.tx_data,
         ch0_tx_k_i         => phy8_i.tx_k(0),
@@ -1075,6 +1092,8 @@ begin  -- architecture rtl
         ch0_loopen_vec_i   => phy8_i.loopen_vec,
         ch0_tx_prbs_sel_i  => phy8_i.tx_prbs_sel,
         ch0_rdy_o          => ch0_phy8_out.rdy,
+        ch0_ref_sel_pll    => std_logic_vector(to_unsigned(g_phy_refclk_sel, 3)),
+        gtp1_clk_i         => clk_125m_gtp1_buf,
         ch1_ref_clk_i      => clk_125m_pllref_buf,
         ch1_tx_data_i      => phy8_i.tx_data,
         ch1_tx_k_i         => phy8_i.tx_k(0),
@@ -1090,6 +1109,7 @@ begin  -- architecture rtl
         ch1_loopen_vec_i   => phy8_i.loopen_vec,
         ch1_tx_prbs_sel_i  => phy8_i.tx_prbs_sel,
         ch1_rdy_o          => ch1_phy8_out.rdy,
+        ch1_ref_sel_pll    => std_logic_vector(to_unsigned(g_phy_refclk_sel, 3)),
         pad_txn0_o         => ch0_sfp_txn,
         pad_txp0_o         => ch0_sfp_txp,
         pad_rxn0_i         => ch0_sfp_rxn,
@@ -1101,6 +1121,8 @@ begin  -- architecture rtl
         );
 
     gen_gtp_ch0 : if (g_gtp_enable_ch0 = 1 and g_gtp_enable_ch1 = 0) generate
+      clk_125m_gtp0_buf         <= clk_125m_gtp_buf;
+      clk_125m_gtp1_buf         <= '0';
       ch0_phy8_out.ref_clk      <= clk_125m_pllref_buf;
       ch0_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
       ch0_phy8_out.sfp_los      <= sfp_los_i;
@@ -1112,6 +1134,8 @@ begin  -- architecture rtl
     end generate gen_gtp_ch0;
 
     gen_gtp_ch1 : if (g_gtp_enable_ch0 = 0 and g_gtp_enable_ch1 = 1) generate
+      clk_125m_gtp0_buf         <= '0';
+      clk_125m_gtp1_buf         <= clk_125m_gtp_buf;
       ch1_phy8_out.ref_clk      <= clk_125m_pllref_buf;
       ch1_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
       ch1_phy8_out.sfp_los      <= sfp_los_i;

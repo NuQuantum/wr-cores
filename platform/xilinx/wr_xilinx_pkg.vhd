@@ -41,11 +41,12 @@ package wr_xilinx_pkg is
   -- Configuration of used-defined aux PLL clocks
   type t_auxpll_cfg is record
     enabled : boolean;
+    bufg_en : boolean;
     divide  : integer;
   end record t_auxpll_cfg;
   type t_auxpll_cfg_array is array (0 to 3) of t_auxpll_cfg;
 
-  constant c_AUXPLL_CFG_DEFAULT : t_auxpll_cfg := (FALSE, 1);
+  constant c_AUXPLL_CFG_DEFAULT : t_auxpll_cfg := (FALSE, FALSE, 1);
   constant c_AUXPLL_CFG_ARRAY_DEFAULT : t_auxpll_cfg_array := (others=>c_AUXPLL_CFG_DEFAULT);
 
   component xwrc_platform_xilinx is
@@ -57,6 +58,7 @@ package wr_xilinx_pkg is
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
       g_gtp_mux_enable            : boolean := FALSE;
+      g_phy_refclk_sel            : integer range 0 to 7 := 0;
       g_simulation                : integer := 0
       );
     port (
@@ -96,6 +98,7 @@ package wr_xilinx_pkg is
       pll_aux_locked_o      : out std_logic;
       clk_62m5_sys_o        : out std_logic;
       clk_125m_ref_o        : out std_logic;
+      clk_20m_o             : out std_logic;
       clk_ref_locked_o      : out std_logic;
       clk_62m5_dmtd_o       : out std_logic;
       pll_locked_o          : out std_logic;
@@ -116,7 +119,7 @@ package wr_xilinx_pkg is
       g_enable_ch1 : integer := 1;
       g_simulation : integer := 0);
     port (
-      gtp_clk_i          : in  std_logic;
+      gtp0_clk_i         : in  std_logic;
       ch0_ref_clk_i      : in  std_logic                    := '0';
       ch0_tx_data_i      : in  std_logic_vector(7 downto 0) := "00000000";
       ch0_tx_k_i         : in  std_logic                    := '0';
@@ -132,6 +135,7 @@ package wr_xilinx_pkg is
       ch0_loopen_vec_i   : in  std_logic_vector(2 downto 0) := (others => '0');
       ch0_tx_prbs_sel_i  : in  std_logic_vector(2 downto 0) := (others => '0');
       ch0_rdy_o          : out std_logic;
+      gtp1_clk_i         : in  std_logic;
       ch1_ref_clk_i      : in  std_logic;
       ch1_tx_data_i      : in  std_logic_vector(7 downto 0) := "00000000";
       ch1_tx_k_i         : in  std_logic                    := '0';
@@ -147,6 +151,8 @@ package wr_xilinx_pkg is
       ch1_loopen_vec_i   : in  std_logic_vector(2 downto 0) := (others => '0');
       ch1_tx_prbs_sel_i  : in  std_logic_vector(2 downto 0) := (others => '0');
       ch1_rdy_o          : out std_logic;
+      ch0_ref_sel_pll    : in std_logic_vector(2 downto 0)  := (others => '0');
+      ch1_ref_sel_pll    : in std_logic_vector(2 downto 0)  := (others => '0');
       pad_txn0_o         : out std_logic;
       pad_txp0_o         : out std_logic;
       pad_rxn0_i         : in  std_logic                    := '0';
