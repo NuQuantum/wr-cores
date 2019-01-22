@@ -267,13 +267,14 @@ begin  -- architecture rtl
           CLKOUT0_DIVIDE     => 16,
           CLKOUT0_PHASE      => 0.000,
           CLKOUT0_DUTY_CYCLE => 0.500,
+          -- 1st aux user clock parameters
           CLKOUT1_DIVIDE     => g_aux_pll_cfg(0).divide,
           CLKOUT1_PHASE      => 0.000,
           CLKOUT1_DUTY_CYCLE => 0.500,
-          -- Aux user clocks parameters
           CLKOUT2_DIVIDE     => 8,
           CLKOUT2_PHASE      => 0.000,
           CLKOUT2_DUTY_CYCLE => 0.500,
+          -- The rest of aux user clocks parameters
           CLKOUT3_DIVIDE     => g_aux_pll_cfg(1).divide,
           CLKOUT3_PHASE      => 0.000,
           CLKOUT3_DUTY_CYCLE => 0.500,
@@ -289,7 +290,9 @@ begin  -- architecture rtl
         port map (
           CLKFBOUT => clk_sys_fb,
           CLKOUT0  => clk_sys,
-          CLKOUT1  => clk_pll_aux(0),
+          CLKOUT1  => clk_pll_aux(0), -- required for 500MHz generation for
+          -- Cute-WR. This is because 500MHz goes then to BUFPLL which can input
+          -- only CLKOUT0/1 from PLL_BASE.
           CLKOUT2  => clk_125m_pllref_buf_int2,
           CLKOUT3  => clk_pll_aux(1),
           CLKOUT4  => clk_pll_aux(2),
@@ -305,17 +308,20 @@ begin  -- architecture rtl
           O => clk_125m_pllref_buf_int1,
           I => clk_125m_pllref_i);
 
-      -- direct output
-      clk_pll_aux_o(0) <= clk_pll_aux(0);
-
-      -- DDR PLL global clock buffers
-      gen_auxclk_bufs: for I in 1 to 3 generate
-        gen_auxclk_enabled: if g_aux_pll_cfg(I).enabled = TRUE generate
+      -- PLL aux clocks buffers
+      gen_auxclk_bufs: for I in 0 to 3 generate
+        -- Aux PLL_BASE clocks with BUFG enabled
+        gen_auxclk_bufg_en: if g_aux_pll_cfg(I).enabled = TRUE and g_aux_pll_cfg(I).bufg_en = TRUE generate
           cmp_auxclk_bufg : BUFG
             port map (
               O => clk_pll_aux_o(I),
               I => clk_pll_aux(I));
         end generate;
+        -- Aux PLL_BASE clocks with BUFG disabled
+        gen_auxclk_no_bufg: if g_aux_pll_cfg(I).enabled = TRUE and g_aux_pll_cfg(I).bufg_en = FALSE generate
+          clk_pll_aux_o(I) <= clk_pll_aux(I);
+        end generate;
+        -- Disabled aux PLL_BASE clocks
         gen_auxclk_disabled: if g_aux_pll_cfg(I).enabled = FALSE generate
           clk_pll_aux_o(I) <= '0';
         end generate;

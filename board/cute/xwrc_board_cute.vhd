@@ -326,6 +326,7 @@ architecture struct of xwrc_board_cute is
   -----------------------------------------------------------------------------
   constant c_AUX_500M_CFG : t_auxpll_cfg := (
     enabled  => TRUE,
+    bufg_en  => FALSE,
     divide   => 2);
   constant c_AUX_CFG_ARRAY : t_auxpll_cfg_array := (0=>c_AUX_500M_CFG, others=>c_AUXPLL_CFG_DEFAULT);
 

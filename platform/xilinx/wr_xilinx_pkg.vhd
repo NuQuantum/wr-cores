@@ -41,11 +41,12 @@ package wr_xilinx_pkg is
   -- Configuration of used-defined aux PLL clocks
   type t_auxpll_cfg is record
     enabled : boolean;
+    bufg_en : boolean;
     divide  : integer;
   end record t_auxpll_cfg;
   type t_auxpll_cfg_array is array (0 to 3) of t_auxpll_cfg;
 
-  constant c_AUXPLL_CFG_DEFAULT : t_auxpll_cfg := (FALSE, 1);
+  constant c_AUXPLL_CFG_DEFAULT : t_auxpll_cfg := (FALSE, FALSE, 1);
   constant c_AUXPLL_CFG_ARRAY_DEFAULT : t_auxpll_cfg_array := (others=>c_AUXPLL_CFG_DEFAULT);
 
   component xwrc_platform_xilinx is
