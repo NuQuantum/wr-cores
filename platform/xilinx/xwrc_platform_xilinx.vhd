@@ -267,11 +267,11 @@ begin  -- architecture rtl
           CLKOUT0_DIVIDE     => 16,
           CLKOUT0_PHASE      => 0.000,
           CLKOUT0_DUTY_CYCLE => 0.500,
-          CLKOUT1_DIVIDE     => 8,
+          CLKOUT1_DIVIDE     => g_aux_pll_cfg(0).divide,
           CLKOUT1_PHASE      => 0.000,
           CLKOUT1_DUTY_CYCLE => 0.500,
           -- Aux user clocks parameters
-          CLKOUT2_DIVIDE     => g_aux_pll_cfg(0).divide,
+          CLKOUT2_DIVIDE     => 8,
           CLKOUT2_PHASE      => 0.000,
           CLKOUT2_DUTY_CYCLE => 0.500,
           CLKOUT3_DIVIDE     => g_aux_pll_cfg(1).divide,
@@ -289,8 +289,8 @@ begin  -- architecture rtl
         port map (
           CLKFBOUT => clk_sys_fb,
           CLKOUT0  => clk_sys,
-          CLKOUT1  => clk_125m_pllref_buf_int2,
-          CLKOUT2  => clk_pll_aux(0),
+          CLKOUT1  => clk_pll_aux(0),
+          CLKOUT2  => clk_125m_pllref_buf_int2,
           CLKOUT3  => clk_pll_aux(1),
           CLKOUT4  => clk_pll_aux(2),
           CLKOUT5  => clk_pll_aux(3),
@@ -305,8 +305,11 @@ begin  -- architecture rtl
           O => clk_125m_pllref_buf_int1,
           I => clk_125m_pllref_i);
 
+      -- direct output
+      clk_pll_aux_o(0) <= clk_pll_aux(0);
+
       -- DDR PLL global clock buffers
-      gen_auxclk_bufs: for I in 0 to 3 generate
+      gen_auxclk_bufs: for I in 1 to 3 generate
         gen_auxclk_enabled: if g_aux_pll_cfg(I).enabled = TRUE generate
           cmp_auxclk_bufg : BUFG
             port map (
