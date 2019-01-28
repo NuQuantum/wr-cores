@@ -316,18 +316,18 @@ architecture struct of wr_core is
     if(g_dpram_initf = "default") then
       if(g_simulation /= 0) then
         if g_verbose then
-          report "[WR Core] Using simulation LM32 firmware." severity note;
+        report "[WR Core] Using simulation LM32 firmware." severity note;
         end if;
         return "wrc-simulation.ram";
       else
         if g_verbose then
-          report "[WR Core] Using release LM32 firmware." severity note;
+        report "[WR Core] Using release LM32 firmware." severity note;
         end if;
         return "wrc-release.ram";
       end if;
     else
       if g_verbose then
-        report "[WR Core] Using user-provided LM32 firmware." severity note;
+      report "[WR Core] Using user-provided LM32 firmware." severity note;
       end if;
       return g_dpram_initf;
     end if;
@@ -431,7 +431,7 @@ architecture struct of wr_core is
      4 => f_sdb_embed_device(c_wrc_periph0_sdb, x"00000400"),  -- Syscon
      5 => f_sdb_embed_device(c_wrc_periph1_sdb, x"00000500"),  -- UART
      6 => f_sdb_embed_device(c_wrc_periph2_sdb, x"00000600"),  -- 1-Wire
-     7 => f_sdb_embed_device(g_aux_sdb,         x"00000700"),  -- aux WB bus
+     7 => f_sdb_embed_device(g_aux_sdb,         x"00008000"),  -- aux WB bus
      8 => f_sdb_embed_device(c_wrc_periph4_sdb, x"00000800")   -- WRPC diag registers
      );
 
@@ -670,7 +670,7 @@ begin
       -- DMTD Offset clock
       clk_dmtd_i   => clk_dmtd_i,
 
-      clk_ext_i            => clk_ext_i,
+      clk_ext_i     => clk_ext_i,
       clk_ext_mul_i(0)     => clk_ext_mul_i,
       clk_ext_mul_locked_i => clk_ext_mul_locked_i,
       clk_ext_stopped_i    => clk_ext_stopped_i,
