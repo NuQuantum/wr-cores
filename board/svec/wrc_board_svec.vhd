@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2018-06-22
+-- Last update: 2019-02-01
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -56,6 +56,8 @@ entity wrc_board_svec is
   generic(
     -- set to 1 to speed up some initialization processes during simulation
     g_simulation                : integer := 0;
+     -- set to 0 to reduce information messages during simulation
+    g_verbose                   : integer := 1;
     -- Select whether to include external ref clock input
     g_with_external_clock_input : integer := 1;
     -- Number of aux clocks syntonized by WRPC to WR timebase
@@ -428,6 +430,7 @@ begin  -- architecture struct
   cmp_xwrc_board_svec : xwrc_board_svec
     generic map (
       g_simulation                => g_simulation,
+      g_verbose                   => f_int2bool(g_verbose),
       g_with_external_clock_input => f_int2bool(g_with_external_clock_input),
       g_aux_clks                  => g_aux_clks,
       g_fabric_iface              => f_str2iface_type(g_fabric_iface),

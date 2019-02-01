@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2018-03-19
+-- Last update: 2019-02-01
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -361,6 +361,7 @@ package wrcore_pkg is
   component xwr_core is
     generic(
       g_simulation                : integer                        := 0;
+      g_verbose                   : boolean                        := true;
       g_board_name                : string                         := "NA  ";
       g_flash_secsz_kb            : integer                        := 256;        -- default for SVEC (M25P128)
       g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for SVEC (M25P128)
@@ -502,6 +503,7 @@ package wrcore_pkg is
       --if set to 1, then blocks in PCS use smaller calibration counter to speed 
       --up simulation
       g_simulation                : integer                        := 0;
+      g_verbose                   : boolean                        := true;
       g_with_external_clock_input : boolean                        := true;
       --
       g_board_name                : string                         := "NA  ";

@@ -88,12 +88,14 @@ package wr_board_pkg is
   function f_find_default_lm32_firmware (
     dpram_initf : string;
     simulation  : integer;
-    pcs_16_bit  : boolean)
+    pcs_16_bit  : boolean;
+    verbose     : boolean := TRUE)
     return string;
 
   component xwrc_board_common is
     generic (
       g_simulation                : integer                        := 0;
+      g_verbose                   : boolean                        := TRUE;
       g_with_external_clock_input : boolean                        := TRUE;
       g_board_name                : string                         := "NA  ";
       g_flash_secsz_kb            : integer                        := 256;        -- default for M25P128
@@ -319,7 +321,8 @@ package body wr_board_pkg is
   function f_find_default_lm32_firmware (
     dpram_initf : string;
     simulation  : integer;
-    pcs_16_bit  : boolean)
+    pcs_16_bit  : boolean;
+    verbose     : boolean := TRUE)
     return string is
   begin
     if((dpram_initf = "default_altera" or dpram_initf = "default_xilinx") and
@@ -329,28 +332,38 @@ package body wr_board_pkg is
         "pcs_16_bit." severity FAILURE;
       return "";
     elsif (dpram_initf /= "default_altera" and dpram_initf /= "default_xilinx") then
-      report "[Board:Software for LM32 in WR Core]  Using user-provided LM32 " &
-        "firmware ("&dpram_initf&")." severity NOTE;
+      if verbose = TRUE then
+        report "[Board:Software for LM32 in WR Core]  Using user-provided LM32 " &
+          "firmware ("&dpram_initf&")." severity NOTE;
+      end if;
       return dpram_initf;
     elsif (simulation = 0 and dpram_initf = "default_altera" and pcs_16_bit = FALSE and
            dpram_initf_default_altera_phy8 /= "") then
-      report "[Board:Software for LM32 in WR Core] Using release LM32 firmware " &
-        "(altera, phy8)." severity NOTE;
+      if verbose = TRUE then
+        report "[Board:Software for LM32 in WR Core] Using release LM32 firmware " &
+          "(altera, phy8)." severity NOTE;
+      end if;
       return dpram_initf_default_altera_phy8;
     elsif (simulation = 0 and dpram_initf = "default_xilinx" and pcs_16_bit = FALSE and
            dpram_initf_default_xilinx_phy8 /= "") then
-      report "[Board:Software for LM32 in WR Core] Using release LM32 firmware " &
-        "(xilnix, phy8)" severity NOTE;
+      if verbose = TRUE then
+        report "[Board:Software for LM32 in WR Core] Using release LM32 firmware " &
+          "(xilnix, phy8)" severity NOTE;
+      end if;
       return dpram_initf_default_xilinx_phy8;
     elsif (simulation = 1 and dpram_initf = "default_altera" and pcs_16_bit = FALSE and
            dpram_initf_default_altera_phy8_sim /= "") then
-      report "Board:[Software for LM32 in WR Core] Using release LM32 firmware " &
-        "(altera, phy8, sim)." severity NOTE;
+      if verbose = TRUE then
+        report "Board:[Software for LM32 in WR Core] Using release LM32 firmware " &
+          "(altera, phy8, sim)." severity NOTE;
+      end if;
       return dpram_initf_default_altera_phy8_sim;
     elsif (simulation = 1 and dpram_initf = "default_xilinx" and pcs_16_bit = FALSE and
            dpram_initf_default_xilinx_phy8_sim /= "") then
-      report "[Board:Software for LM32 in WR Core] Using release LM32 firmware " &
-        "(xilinx, phy8, sim)." severity NOTE;
+      if verbose = TRUE then
+        report "[Board:Software for LM32 in WR Core] Using release LM32 firmware " &
+          "(xilinx, phy8, sim)." severity NOTE;
+      end if;
       return dpram_initf_default_xilinx_phy8_sim;
     else
       assert FALSE

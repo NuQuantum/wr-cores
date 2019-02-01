@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-17
--- Last update: 2018-07-25
+-- Last update: 2019-04-23
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Copyright (c) 2017 CERN
@@ -49,6 +49,7 @@ package wr_spec_pkg is
   component xwrc_board_spec is
     generic (
       g_simulation                : integer              := 0;
+      g_verbose                   : boolean              := TRUE;
       g_with_external_clock_input : boolean              := TRUE;
       g_aux_clks                  : integer              := 0;
       g_fabric_iface              : t_board_fabric_iface := plain;
@@ -159,6 +160,7 @@ package wr_spec_pkg is
   component wrc_board_spec is
     generic (
       g_simulation                : integer := 0;
+      g_verbose                   : integer := 1;
       g_with_external_clock_input : integer := 1;
       g_aux_clks                  : integer := 0;
       g_fabric_iface              : string  := "PLAINFBRC";

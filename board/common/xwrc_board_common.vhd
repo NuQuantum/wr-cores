@@ -49,6 +49,7 @@ use work.wr_board_pkg.all;
 entity xwrc_board_common is
   generic(
     g_simulation                : integer                        := 0;
+    g_verbose                   : boolean                        := TRUE;
     g_with_external_clock_input : boolean                        := TRUE;
     g_board_name                : string                         := "NA  ";
     g_flash_secsz_kb            : integer                        := 256;        -- default for M25P128
@@ -364,6 +365,7 @@ begin  -- architecture struct
   cmp_xwr_core : xwr_core
     generic map (
       g_simulation                => g_simulation,
+      g_verbose                   => g_verbose,
       g_with_external_clock_input => g_with_external_clock_input,
       g_board_name                => g_board_name,
       g_flash_secsz_kb            => g_flash_secsz_kb,
@@ -373,7 +375,7 @@ begin  -- architecture struct
       g_aux_clks                  => g_aux_clks,
       g_ep_rxbuf_size             => g_ep_rxbuf_size,
       g_tx_runt_padding           => g_tx_runt_padding,
-      g_dpram_initf               => f_find_default_lm32_firmware(g_dpram_initf, g_simulation, g_pcs_16bit),
+      g_dpram_initf               => f_find_default_lm32_firmware(g_dpram_initf, g_simulation, g_pcs_16bit, FALSE),
       g_dpram_size                => g_dpram_size,
       g_interface_mode            => g_interface_mode,
       g_address_granularity       => g_address_granularity,

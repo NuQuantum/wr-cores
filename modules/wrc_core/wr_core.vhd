@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2018-03-19
+-- Last update: 2019-02-01
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -74,6 +74,8 @@ entity wr_core is
     --if set to 1, then blocks in PCS use smaller calibration counter to speed
     --up simulation
     g_simulation                : integer                        := 0;
+    -- set to false to reduce the number of information printed during simulation
+    g_verbose                   : boolean                        := true;
     g_with_external_clock_input : boolean                        := true;
     --
     g_board_name                : string                         := "NA  ";
@@ -312,14 +314,20 @@ architecture struct of wr_core is
   begin
     if(g_dpram_initf = "default") then
       if(g_simulation /= 0) then
-        report "[WR Core] Using simulation LM32 firmware." severity note;
+        if g_verbose then
+          report "[WR Core] Using simulation LM32 firmware." severity note;
+        end if;
         return "wrc-simulation.ram";
       else
-        report "[WR Core] Using release LM32 firmware." severity note;
+        if g_verbose then
+          report "[WR Core] Using release LM32 firmware." severity note;
+        end if;
         return "wrc-release.ram";
       end if;
     else
-      report "[WR Core] Using user-provided LM32 firmware." severity note;
+      if g_verbose then
+        report "[WR Core] Using user-provided LM32 firmware." severity note;
+      end if;
       return g_dpram_initf;
     end if;
   end function;
@@ -956,6 +964,7 @@ begin
   -----------------------------------------------------------------------------
   WB_CON : xwb_sdb_crossbar
     generic map(
+      g_verbose     => g_verbose,
       g_num_masters => 3,
       g_num_slaves  => 2,
       g_registered  => true,
@@ -1024,6 +1033,7 @@ begin
   -----------------------------------------------------------------------------
   WB_SECONDARY_CON : xwb_sdb_crossbar
     generic map(
+      g_verbose     => g_verbose,
       g_num_masters => 1,
       g_num_slaves  => 9,
       g_registered  => true,

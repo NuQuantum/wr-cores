@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2018-03-08
+-- Last update: 2019-02-01
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -73,6 +73,8 @@ entity xwr_core is
     --if set to 1, then blocks in PCS use smaller calibration counter to speed 
     --up simulation
     g_simulation                : integer                        := 0;
+    -- set to false to reduce the number of information printed during simulation
+    g_verbose                   : boolean                        := true;
     g_with_external_clock_input : boolean                        := true;
     --
     g_board_name                : string                         := "NA  ";
@@ -274,6 +276,7 @@ begin
   WRPC : wr_core
     generic map(
       g_simulation                => g_simulation,
+      g_verbose                   => g_verbose,
       g_board_name                => g_board_name,
       g_flash_secsz_kb            => g_flash_secsz_kb,
       g_flash_sdbfs_baddr         => g_flash_sdbfs_baddr,

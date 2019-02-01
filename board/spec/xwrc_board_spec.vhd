@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-17
--- Last update: 2018-07-25
+-- Last update: 2019-04-23
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -57,6 +57,8 @@ entity xwrc_board_spec is
   generic(
     -- set to 1 to speed up some initialization processes during simulation
     g_simulation                : integer              := 0;
+    -- set to false to reduce information messages during simulation
+    g_verbose                   : boolean              := TRUE;
     -- Select whether to include external ref clock input
     g_with_external_clock_input : boolean              := TRUE;
     -- Number of aux clocks syntonized by WRPC to WR timebase
@@ -428,6 +430,7 @@ begin  -- architecture struct
   cmp_board_common : xwrc_board_common
     generic map (
       g_simulation                => g_simulation,
+      g_verbose                   => g_verbose,
       g_with_external_clock_input => g_with_external_clock_input,
       g_board_name                => "SPEC",
       g_flash_secsz_kb            => 64,         -- sector size for M25P32
