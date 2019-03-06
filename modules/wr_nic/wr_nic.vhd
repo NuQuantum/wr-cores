@@ -2,7 +2,7 @@
 -- Title      : Network Interface Controller
 -- Project    : White Rabbit Switch
 -------------------------------------------------------------------------------
--- File       : wrsw_nic.vhd
+-- File       : wr_nic.vhd
 -- Author     : Tomasz Wlostowski, Grzegorz Daniluk
 -- Company    : CERN BE-CO-HT
 -- Created    : 2012-01-19
@@ -11,7 +11,7 @@
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
 -- Description:
--- std-logic-based wrapper for xwrsw_nic module
+-- std-logic-based wrapper for xwr_nic module
 --
 -------------------------------------------------------------------------------
 --
@@ -43,7 +43,7 @@ library work;
 use work.wishbone_pkg.all;
 use work.wr_fabric_pkg.all;
 
-entity wrsw_nic is
+entity wr_nic is
   generic
     (
       g_interface_mode      : t_wishbone_interface_mode      := CLASSIC;
@@ -110,11 +110,11 @@ entity wrsw_nic is
 
     );
 
-end wrsw_nic;
+end wr_nic;
 
-architecture rtl of wrsw_nic is
+architecture rtl of wr_nic is
 
-  component xwrsw_nic
+  component xwr_nic
     generic (
       g_interface_mode      : t_wishbone_interface_mode;
       g_address_granularity : t_wishbone_address_granularity;
@@ -151,7 +151,7 @@ architecture rtl of wrsw_nic is
 
 begin
 
-  U_Wrapped_NIC : xwrsw_nic
+  U_Wrapped_NIC : xwr_nic
     generic map (
       g_interface_mode      => g_interface_mode,
       g_address_granularity => g_address_granularity,

@@ -8,6 +8,6 @@ files  = [  "nic_constants_pkg.vhd" ,
 						"nic_elastic_buffer.vhd",
                                                 "nic_bw_throttling.vhd",
 						"nic_wbgen2_pkg.vhd",
-						"xwrsw_nic.vhd",
-						"wrsw_nic.vhd"];
+						"xwr_nic.vhd",
+						"wr_nic.vhd"];
 

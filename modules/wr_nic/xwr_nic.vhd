@@ -2,7 +2,7 @@
 -- Title      : Network Interface Controller
 -- Project    : White Rabbit Switch
 -------------------------------------------------------------------------------
--- File       : xwrsw_nic.vhd
+-- File       : xwr_nic.vhd
 -- Author     : Tomasz Wlostowski, Grzegorz Daniluk
 -- Company    : CERN BE-CO-HT
 -- Created    : 2012-01-19
@@ -56,7 +56,7 @@ use work.wr_fabric_pkg.all;
 use work.nic_wbgen2_pkg.all;
 
 
-entity xwrsw_nic is
+entity xwr_nic is
   generic
     (
       g_interface_mode      : t_wishbone_interface_mode      := CLASSIC;
@@ -105,9 +105,9 @@ entity xwrsw_nic is
     rmon_events_o : out std_logic_vector(g_port_mask_bits*g_rmon_events_pp-1 downto 0)
     );
 
-end xwrsw_nic;
+end xwr_nic;
 
-architecture rtl of xwrsw_nic is
+architecture rtl of xwr_nic is
 
   component nic_descriptor_manager
     generic (
