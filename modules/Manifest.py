@@ -13,5 +13,6 @@ modules =  {
         "wr_tlu",
         "wrc_core",
         "wr_streamers",
+        "wr_nic",
     ]
 }
