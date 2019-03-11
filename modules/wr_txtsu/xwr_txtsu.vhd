@@ -2,7 +2,7 @@
 -- Title      : TX Timestamping Unit
 -- Project    : White Rabbit Switch
 -------------------------------------------------------------------------------
--- File       : xwrsw_txtsu.vhd
+-- File       : xwr_txtsu.vhd
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-04-26
@@ -57,9 +57,9 @@ library work;
 
 use work.wishbone_pkg.all;
 use work.endpoint_pkg.all;
-use work.wrsw_txtsu_pkg.all;
+use work.wr_txtsu_pkg.all;
 
-entity xwrsw_tx_tsu is
+entity xwr_tx_tsu is
   
   generic (
     g_num_ports           : integer                        := 10;
@@ -92,10 +92,10 @@ entity xwrsw_tx_tsu is
 
 
 
-end xwrsw_tx_tsu;
+end xwr_tx_tsu;
 
 
-architecture syn of xwrsw_tx_tsu is
+architecture syn of xwr_tx_tsu is
 
 
   component wrsw_txtsu_wb

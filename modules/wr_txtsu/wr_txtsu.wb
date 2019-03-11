@@ -4,7 +4,7 @@ peripheral {
 	 name = "Shared TX Timestamping Unit (TXTSU)";
    prefix="txtsu";
 
-	 hdl_entity="wrsw_txtsu_wb";
+	 hdl_entity="wr_txtsu_wb";
 	 
 -- TXTSU shared FIFO
 
