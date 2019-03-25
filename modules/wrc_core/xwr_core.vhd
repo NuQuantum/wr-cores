@@ -258,6 +258,7 @@ entity xwr_core is
     tm_cycles_o          : out std_logic_vector(27 downto 0);
     -- 1PPS output
     pps_csync_o          : out std_logic;
+    pps_valid_o          : out std_logic;
     pps_p_o              : out std_logic;
     pps_led_o            : out std_logic;
 
@@ -431,6 +432,7 @@ begin
       tm_tai_o             => tm_tai_o,
       tm_cycles_o          => tm_cycles_o,
       pps_csync_o          => pps_csync_o,
+      pps_valid_o          => pps_valid_o,
       pps_p_o              => pps_p_o,
       pps_led_o            => pps_led_o,
 
