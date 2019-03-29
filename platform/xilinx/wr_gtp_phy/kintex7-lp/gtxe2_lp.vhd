@@ -113,16 +113,12 @@ port
     RXUSRCLK2_IN                            : in   std_logic;
     ------------------ Receive Ports - FPGA RX interface Ports -----------------
     RXDATA_OUT                              : out  std_logic_vector(15 downto 0);
-    ------------------ Receive Ports - RX 8B/10B Decoder Ports -----------------
-    RXDISPERR_OUT                           : out  std_logic_vector(1 downto 0);
-    RXNOTINTABLE_OUT                        : out  std_logic_vector(1 downto 0);
+    RXCHARISK_OUT                              : out  std_logic_vector(1 downto 0);
+    RXDISPERR_OUT                              : out  std_logic_vector(1 downto 0);
     --------------------------- Receive Ports - RX AFE -------------------------
     GTXRXP_IN                               : in   std_logic;
     ------------------------ Receive Ports - RX AFE Ports ----------------------
     GTXRXN_IN                               : in   std_logic;
-    -------------- Receive Ports - RX Byte and Word Alignment Ports ------------
-    RXBYTEISALIGNED_OUT                     : out  std_logic;
-    RXCOMMADET_OUT                          : out  std_logic;
     --------------------- Receive Ports - RX Equilizer Ports -------------------
     RXLPMHFHOLD_IN                          : in   std_logic;
     RXLPMLFHOLD_IN                          : in   std_logic;
@@ -131,10 +127,6 @@ port
     ------------- Receive Ports - RX Initialization and Reset Ports ------------
     GTRXRESET_IN                            : in   std_logic;
     RXPMARESET_IN                           : in   std_logic;
-    ---------------------- Receive Ports - RX gearbox ports --------------------
-    RXSLIDE_IN                              : in   std_logic;
-    ------------------- Receive Ports - RX8B/10B Decoder Ports -----------------
-    RXCHARISK_OUT                           : out  std_logic_vector(1 downto 0);
     -------------- Receive Ports -RX Initialization and Reset Ports ------------
     RXRESETDONE_OUT                         : out  std_logic;
     --------------------- TX Initialization and Reset Ports --------------------
@@ -178,8 +170,8 @@ architecture RTL of whiterabbit_gtxe2_channel_wrapper_GT is
     -- RX Datapath signals
     signal rxdata_i                         :   std_logic_vector(63 downto 0);      
     signal rxchariscomma_float_i            :   std_logic_vector(5 downto 0);
-    signal rxcharisk_float_i                :   std_logic_vector(5 downto 0);
-    signal rxdisperr_float_i                :   std_logic_vector(5 downto 0);
+    signal rxcharisk_i                :   std_logic_vector(7 downto 0);
+    signal rxdisperr_i                :   std_logic_vector(7 downto 0);
     signal rxnotintable_float_i             :   std_logic_vector(5 downto 0);
     signal rxrundisp_float_i                :   std_logic_vector(5 downto 0);
     
@@ -204,6 +196,9 @@ begin
     -------------------  GT Datapath byte mapping  -----------------
 
     RXDATA_OUT    <=   rxdata_i(15 downto 0);
+    RXCHARISK_OUT <= rxcharisk_i(1 downto 0);
+    RXDISPERR_OUT <= rxdisperr_i(1 downto 0);
+                                               
 
     txdata_i    <=   (tied_to_ground_vec_i(47 downto 0) & TXDATA_IN);
 
@@ -234,7 +229,7 @@ begin
         ALIGN_PCOMMA_VALUE                      =>     ("0101111100"),
         SHOW_REALIGN_COMMA                      =>     ("FALSE"),
         RXSLIDE_AUTO_WAIT                       =>     (7),
-        RXSLIDE_MODE                            =>     ("PCS"),
+        RXSLIDE_MODE                            =>     ("OFF"),
         RX_SIG_VALID_DLY                        =>     (10),
 
        ------------------RX 8B/10B Decoder Attributes---------------
@@ -351,8 +346,7 @@ begin
 
        --For GTX only: Display Port, HBR/RBR- set RXCDR_CFG=72'h0380008bff40200002
 
-       --For GTX only: Display Port, HBR2 -   set RXCDR_CFG=72'h03000023ff10200020
-        RXCDR_CFG                               =>     (x"03000023ff10100020"),
+        RXCDR_CFG                               =>     (x"03000023ff40100020"),
         RXCDR_FR_RESET_ON_EIDLE                 =>     ('0'),
         RXCDR_HOLD_DURING_EIDLE                 =>     ('0'),
         RXCDR_PH_RESET_ON_EIDLE                 =>     ('0'),
@@ -397,7 +391,7 @@ begin
         TRANS_TIME_RATE                         =>     (x"0E"),
 
        --------------TX Buffer Attributes----------------
-        TXBUF_EN                                =>     ("TRUE"),
+        TXBUF_EN                                =>     ("FALSE"),
         TXBUF_RESET_ON_RATE_CHANGE              =>     ("TRUE"),
         TXDLY_CFG                               =>     (x"001F"),
         TXDLY_LCFG                              =>     (x"030"),
@@ -565,12 +559,15 @@ begin
         ------------------- Receive Ports - Clock Correction Ports -----------------
         RXCLKCORCNT                     =>      open,
         ---------- Receive Ports - FPGA RX Interface Datapath Configuration --------
-        RX8B10BEN                       =>      tied_to_vcc_i,
+        RX8B10BEN                       =>      tied_to_ground_i,
         ------------------ Receive Ports - FPGA RX Interface Ports -----------------
         RXUSRCLK                        =>      RXUSRCLK_IN,
         RXUSRCLK2                       =>      RXUSRCLK2_IN,
         ------------------ Receive Ports - FPGA RX interface Ports -----------------
         RXDATA                          =>      rxdata_i,
+        RXCHARISK => rxcharisk_i,
+        RXDISPERR => rxdisperr_i,
+        
         ------------------- Receive Ports - Pattern Checker Ports ------------------
         RXPRBSERR                       =>      open,
         RXPRBSSEL                       =>      tied_to_ground_vec_i(2 downto 0),
@@ -580,11 +577,6 @@ begin
         RXDFEXYDEN                      =>      tied_to_ground_i,
         RXDFEXYDHOLD                    =>      tied_to_ground_i,
         RXDFEXYDOVRDEN                  =>      tied_to_ground_i,
-        ------------------ Receive Ports - RX 8B/10B Decoder Ports -----------------
-        RXDISPERR(7 downto 2)           =>      rxdisperr_float_i,
-        RXDISPERR(1 downto 0)           =>      RXDISPERR_OUT,
-        RXNOTINTABLE(7 downto 2)        =>      rxnotintable_float_i,
-        RXNOTINTABLE(1 downto 0)        =>      RXNOTINTABLE_OUT,
         --------------------------- Receive Ports - RX AFE -------------------------
         GTXRXP                          =>      GTXRXP_IN,
         ------------------------ Receive Ports - RX AFE Ports ----------------------
@@ -608,9 +600,6 @@ begin
         RXPHSLIPMONITOR                 =>      open,
         RXSTATUS                        =>      open,
         -------------- Receive Ports - RX Byte and Word Alignment Ports ------------
-        RXBYTEISALIGNED                 =>      RXBYTEISALIGNED_OUT,
-        RXBYTEREALIGN                   =>      open,
-        RXCOMMADET                      =>      RXCOMMADET_OUT,
         RXCOMMADETEN                    =>      tied_to_vcc_i,
         RXMCOMMAALIGNEN                 =>      tied_to_ground_i,
         RXPCOMMAALIGNEN                 =>      tied_to_ground_i,
@@ -685,11 +674,9 @@ begin
         ----------------- Receive Ports - RX Polarity Control Ports ----------------
         RXPOLARITY                      =>      tied_to_ground_i,
         ---------------------- Receive Ports - RX gearbox ports --------------------
-        RXSLIDE                         =>      RXSLIDE_IN,
+        RXSLIDE                         =>      '0',
         ------------------- Receive Ports - RX8B/10B Decoder Ports -----------------
         RXCHARISCOMMA                   =>      open,
-        RXCHARISK(7 downto 2)           =>      rxcharisk_float_i,
-        RXCHARISK(1 downto 0)           =>      RXCHARISK_OUT,
         ------------------ Receive Ports - Rx Channel Bonding Ports ----------------
         RXCHBONDI                       =>      "00000",
         -------------- Receive Ports -RX Initialization and Reset Ports ------------

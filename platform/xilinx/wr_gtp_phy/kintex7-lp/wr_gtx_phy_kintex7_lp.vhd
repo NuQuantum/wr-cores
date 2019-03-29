@@ -2,11 +2,11 @@
 -- Title      : Deterministic Xilinx GTX wrapper - kintex-7 top module
 -- Project    : White Rabbit Switch
 -------------------------------------------------------------------------------
--- File       : wr_gtx_phy_kintex7.vhd
+-- File       : wr_gtx_phy_family7.vhd
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
--- Last update: 2013-04-08
+-- Last update: 2019-03-29
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -14,7 +14,7 @@
 -- deterministic delays at 1.25 Gbps.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2010 CERN / Tomasz Wlostowski
+-- Copyright (c) 2010 CERN
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -45,31 +45,34 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.gencores_pkg.all;
-
 library unisim;
 use unisim.vcomponents.all;
 
 library work;
---use work.gencores_pkg.all;
+use work.gencores_pkg.all;
 use work.disparity_gen_pkg.all;
 
-entity wr_gtx_phy_kintex7 is
+entity wr_gtx_phy_kintex7_lp is
 
   generic (
     -- set to non-zero value to speed up the simulation by reducing some delays
-    g_simulation         : integer := 0
+    g_simulation         : integer := 0;
+    g_id : integer := 0
     );
 
   port (
     -- Dedicated reference 125 MHz clock for the GTX transceiver
     clk_gtx_i : in std_logic;
-    qpll_clk_i : in std_logic;
-    qpll_refclk_i : in std_logic;
-    qpll_lockdet_i : in std_logic;
 
-    -- TX path, synchronous to tx_out_clk_o (62.5 MHz):
-    tx_out_clk_o : out std_logic;
+    -- DMTD clock for phase measurements (done in the PHY module as we need to
+    -- multiplex between several GTX clock outputs)
+    clk_dmtd_i : in std_logic;
+
+    -- Reference 62.5 MHz clock input for the TX/RX deterministic phase logic (not the GTX itself)
+    clk_ref_i : in std_logic;
+    
+    -- TX path, synchronous to tx_clk_o (62.5 MHz):
+    tx_clk_o : out std_logic;
     tx_locked_o  : out std_logic;
 
     -- data input (8 bits, not 8b10b-encoded)
@@ -108,7 +111,7 @@ entity wr_gtx_phy_kintex7 is
 
     -- reset input, active hi
     rst_i         : in std_logic;
-    loopen_i      : in std_logic_vector(2 downto 0);
+    loopen_i      : in std_logic;
     tx_prbs_sel_i : in std_logic_vector(2 downto 0);
     pad_txn_o : out std_logic;
     pad_txp_o : out std_logic;
@@ -116,10 +119,16 @@ entity wr_gtx_phy_kintex7 is
     pad_rxn_i : in std_logic := '0';
     pad_rxp_i : in std_logic := '0';
 
-    rdy_o     : out std_logic);
-end wr_gtx_phy_kintex7;
+    rdy_o     : out std_logic;
 
-architecture rtl of wr_gtx_phy_kintex7 is
+    debug_i : in  std_logic_vector(15 downto 0) := x"0000";
+    debug_o : out std_logic_vector(15 downto 0);
+    rx_rbclk_sampled_o : out std_logic
+
+    );
+end wr_gtx_phy_kintex7_lp;
+
+architecture rtl of wr_gtx_phy_kintex7_lp is
 
   component WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT is
     generic
@@ -165,16 +174,13 @@ architecture rtl of wr_gtx_phy_kintex7 is
     RXUSRCLK2_IN                            : in   std_logic;
     ------------------ Receive Ports - FPGA RX interface Ports -----------------
     RXDATA_OUT                              : out  std_logic_vector(15 downto 0);
-    ------------------ Receive Ports - RX 8B/10B Decoder Ports -----------------
-    RXDISPERR_OUT                           : out  std_logic_vector(1 downto 0);
-    RXNOTINTABLE_OUT                        : out  std_logic_vector(1 downto 0);
+    RXCHARISK_OUT                              : out  std_logic_vector(1 downto 0);
+    RXDISPERR_OUT                              : out  std_logic_vector(1 downto 0);
+ 
     --------------------------- Receive Ports - RX AFE -------------------------
     GTXRXP_IN                               : in   std_logic;
     ------------------------ Receive Ports - RX AFE Ports ----------------------
     GTXRXN_IN                               : in   std_logic;
-    -------------- Receive Ports - RX Byte and Word Alignment Ports ------------
-    RXBYTEISALIGNED_OUT                     : out  std_logic;
-    RXCOMMADET_OUT                          : out  std_logic;
     --------------------- Receive Ports - RX Equilizer Ports -------------------
     RXLPMHFHOLD_IN                          : in   std_logic;
     RXLPMLFHOLD_IN                          : in   std_logic;
@@ -183,10 +189,6 @@ architecture rtl of wr_gtx_phy_kintex7 is
     ------------- Receive Ports - RX Initialization and Reset Ports ------------
     GTRXRESET_IN                            : in   std_logic;
     RXPMARESET_IN                           : in   std_logic;
-    ---------------------- Receive Ports - RX gearbox ports --------------------
-    RXSLIDE_IN                              : in   std_logic;
-    ------------------- Receive Ports - RX8B/10B Decoder Ports -----------------
-    RXCHARISK_OUT                           : out  std_logic_vector(1 downto 0);
     -------------- Receive Ports -RX Initialization and Reset Ports ------------
     RXRESETDONE_OUT                         : out  std_logic;
     --------------------- TX Initialization and Reset Ports --------------------
@@ -213,36 +215,41 @@ architecture rtl of wr_gtx_phy_kintex7 is
 	);
   end component WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT;
 
-
-
-
+  component dmtd_sampler is
+    generic (
+      g_divide_input_by_2 : boolean;
+      g_reverse           : boolean);
+    port (
+      clk_in_i      : in  std_logic;
+      clk_dmtd_i    : in  std_logic;
+      clk_sampled_o : out std_logic);
+  end component dmtd_sampler;
+  
   component BUFG
     port (
       O : out std_ulogic;
       I : in  std_ulogic);
   end component;
 
-  component gtp_bitslide
-    generic (
-      g_simulation : integer;
-      g_target     : string := "virtex6");
+  component gc_dec_8b10b is
     port (
-      gtp_rst_i                : in  std_logic;
-      gtp_rx_clk_i             : in  std_logic;
-      gtp_rx_comma_det_i       : in  std_logic;
-      gtp_rx_byte_is_aligned_i : in  std_logic;
-      serdes_ready_i           : in  std_logic;
-      gtp_rx_slide_o           : out std_logic;
-      gtp_rx_cdr_rst_o         : out std_logic;
-      bitslide_o               : out std_logic_vector(4 downto 0);
-      synced_o                 : out std_logic);
-  end component;
-
+      clk_i       : in  std_logic;
+      rst_n_i     : in  std_logic;
+      in_10b_i    : in  std_logic_vector(9 downto 0);
+      ctrl_o      : out std_logic;
+      code_err_o  : out std_logic;
+      rdisp_err_o : out std_logic;
+      out_8b_o    : out std_logic_vector(7 downto 0));
+  end component gc_dec_8b10b;
+  
   constant c_rxcdrlock_max            : integer := 3;
   constant c_reset_cnt_max            : integer := 64;	-- Reset pulse width 64 * 8 = 512 ns
   
   signal rst_synced                   : std_logic;
-  signal rst_int                      : std_logic;
+  signal gtx_rst, gtx_rst_n                      : std_logic;
+  signal rst_d0                     : std_logic;
+  signal reset_counter              : unsigned(9 downto 0);
+
 --  signal trig0, trig1, trig2, trig3   : std_logic_vector(31 downto 0);
 
   signal rx_rec_clk_bufin             : std_logic;
@@ -255,22 +262,28 @@ architecture rtl of wr_gtx_phy_kintex7 is
   signal tx_rst_done, rx_rst_done     : std_logic;
   signal txpll_lockdet, rxpll_lockdet : std_logic;
   signal pll_lockdet                  : std_logic;
-  -- signal cpll_lockdet                 : std_logic;
+  signal cpll_lockdet                 : std_logic;
   signal gtreset                      : std_logic;
 
-  signal rx_comma_det                 : std_logic;
-  signal rx_byte_is_aligned           : std_logic;
-
   signal everything_ready             : std_logic;
-  signal rx_slide                     : std_logic;
   signal rx_cdr_rst                   : std_logic;
   signal rx_synced                    : std_logic;
   signal rst_done                     : std_logic;
   signal rst_done_n                   : std_logic;
  
-  signal rx_k_int                     : std_logic_vector(1 downto 0);
-  signal rx_data_int                  : std_logic_vector(15 downto 0);
+  signal rx_k_o_int    : std_logic_vector(1 downto 0);
+  signal rx_data_o_int : std_logic_vector(15 downto 0);
+  signal rx_k_int    : std_logic_vector(1 downto 0);
+  signal rx_data_int : std_logic_vector(15 downto 0);
 
+
+  signal rx_data_wrap : std_logic_vector(15 downto 0);
+  signal rx_charisk_wrap : std_logic_vector(1 downto 0);
+  signal rx_disperr_wrap : std_logic_vector(1 downto 0);
+
+  signal rx_data_raw : std_logic_vector(19 downto 0);
+
+  signal rx_enc_err_o_int : std_logic;
   signal rx_disp_err, rx_code_err     : std_logic_vector(1 downto 0);
 
   signal tx_is_k_swapped              : std_logic_vector(1 downto 0);
@@ -278,39 +291,124 @@ architecture rtl of wr_gtx_phy_kintex7 is
 
   signal cur_disp                     : t_8b10b_disparity;
 
+
+  signal tx_reset_done : std_logic;
+
+  signal link_up, link_aligned : std_logic;
+  signal tx_enable, tx_enable_refclk : std_logic;
+
+  signal tx_sw_reset : std_logic;
+  signal rx_enable, rx_enable_rxclk : std_logic;
+  signal gtx_rx_reset_a : std_logic;
+  signal gtx_tx_reset_a : std_logic;
+
+  signal rx_sw_reset : std_logic;
+  signal rx_rec_clk_sampled, tx_out_clk_sampled : std_logic;
+  signal gtx_loopback               : std_logic_vector(2 downto 0);
+
+  
 begin  -- rtl
 
-  -- There is a hen and egg problem with the reset in wr_core. Some reset signals are
-  -- synchronized by rx_rbclk_o but this signal is de-asserted by the same reset.
-  -- Therefore the rst_i is made edge sensitive and an internal reset pulse is generated for the PHY.
-  -- After this reset pulse signal rx_rbclk_o starts clocking again and the (still asserted) system
-  -- wide reset signal can by synchronized with this clock.
+  tx_sw_reset <= debug_i(0);
+  tx_enable <= debug_i(1);
+  rx_enable <= debug_i(2);
+  rx_sw_reset <= debug_i(3);
 
-  -- Note that the rst_i originates from the clk_sys domain. Synchronisation is not needed
-  -- when the clk_sys is phase locked with clk_gtx_i (which is usually the case) but is a safety
-  -- measure. Add a false path for U_EdgeDet_rst_i_reg_sync0 to the timing constraints.
-  U_EdgeDet_rst_i : gc_sync_ffs port map (
-    clk_i    => clk_gtx_i,
-    rst_n_i  => '1',
-    data_i   => rst_i,
-    ppulse_o => rst_synced);
+  -- Near-end PMA loopback if loopen_i active
+  gtx_loopback <= "010" when loopen_i = '1' else "000";
 
-  p_reset_pulse : process(clk_gtx_i, rst_synced)
-    variable reset_cnt      : integer range 0 to c_reset_cnt_max;
+ U_SyncTxEnable : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_ref_i,
+      rst_n_i  => '1',
+      data_i   => tx_enable,
+      synced_o => tx_enable_refclk
+      );
+
+  U_SyncRxEnable : gc_sync_ffs
+    port map
+    (
+      clk_i    => rx_rec_clk,
+      rst_n_i  => '1',
+      data_i   => rx_enable,
+      synced_o => rx_enable_rxclk
+      );
+
+  U_SyncRxReset : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_dmtd_i,
+      rst_n_i  => '1',
+      data_i   => rx_sw_reset,
+      synced_o => gtx_rx_reset_a
+      );
+
+  U_SyncTxReset : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_dmtd_i,
+      rst_n_i  => '1',
+      data_i   => tx_sw_reset,
+      synced_o => gtx_tx_reset_a
+      );
+
+
+  U_Sampler_RX : dmtd_sampler
+    generic map (
+      g_divide_input_by_2 => false,
+      g_reverse           => true)
+    port map (
+      clk_in_i      => rx_rec_clk,
+      clk_dmtd_i    => clk_dmtd_i,
+      clk_sampled_o => rx_rec_clk_sampled);
+
+  U_Sampler_TX : dmtd_sampler
+    generic map (
+      g_divide_input_by_2 => false,
+      g_reverse           => true)
+    port map (
+      clk_in_i      => tx_out_clk,
+      clk_dmtd_i    => clk_dmtd_i,
+      clk_sampled_o => tx_out_clk_sampled);
+
+
+  process(rx_rec_clk_sampled, tx_out_clk_sampled, debug_i)
   begin
-    if(rst_synced = '1') then
-      reset_cnt := 0;
-      rst_int <= '1';
-    elsif rising_edge(clk_gtx_i) then
-      if reset_cnt /= c_reset_cnt_max then
-        reset_cnt := reset_cnt + 1;
-		rst_int <= '1';
+    case debug_i(15 downto 14) is
+      when "00" =>
+        rx_rbclk_sampled_o <= rx_rec_clk_sampled;
+      when "01" =>
+        rx_rbclk_sampled_o <= tx_out_clk_sampled;
+      when others =>
+        rx_rbclk_sampled_o <= '0';
+    end case;
+  end process;
+
+
+  tx_enc_err_o <= '0';
+  
+  p_gen_reset : process(clk_ref_i)
+  begin
+    if rising_edge(clk_ref_i) then
+
+      rst_d0     <= rst_i;
+      rst_synced <= rst_d0;
+
+      if(rst_synced = '1') then
+        reset_counter <= (others => '0');
       else
-        rst_int <= '0';
+        if(reset_counter(reset_counter'left) = '0') then
+          reset_counter <= reset_counter + 1;
+        end if;
       end if;
     end if;
-  end process;  
+  end process;
 
+  gtx_rst <= rst_synced or std_logic(not reset_counter(reset_counter'left));
+
+  debug_o(0) <= '1'; -- was tx_reset_done
+  
   tx_enc_err_o <= '0';
 
   U_BUF_TxOutClk : BUFG
@@ -318,8 +416,8 @@ begin  -- rtl
       I => tx_out_clk_bufin,
       O => tx_out_clk);
 
-   tx_out_clk_o <= tx_out_clk;
-   tx_locked_o  <= qpll_lockdet_i;
+   tx_clk_o <= tx_out_clk;
+   tx_locked_o  <= cpll_lockdet;
 
       U_BUF_RxRecClk : BUFG
     port map (
@@ -327,11 +425,8 @@ begin  -- rtl
       O => rx_rec_clk);
 
   rx_rbclk_o <= rx_rec_clk;
-    
-  tx_is_k_swapped <= tx_k_i(0) & tx_k_i(1);
-  tx_data_swapped <= tx_data_i(7 downto 0) & tx_data_i(15 downto 8);
   
-U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
+  U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
     generic map
     (
        -- Simulation attributes
@@ -341,12 +436,12 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
     (
 		--------------------------------- CPLL Ports -------------------------------
 		CPLLFBCLKLOST_OUT          => open,
-		CPLLLOCK_OUT               => open,
+		CPLLLOCK_OUT               => cpll_lockdet,
 		CPLLLOCKDETCLK_IN          => '0',
 		CPLLREFCLKLOST_OUT         => open,
-		CPLLRESET_IN               => rst_int,
+		CPLLRESET_IN               => gtx_rst,
 		-------------------------- Channel - Clocking Ports ------------------------
-		GTREFCLK0_IN               => '0',
+		GTREFCLK0_IN               => clk_gtx_i,
 		---------------------------- Channel - DRP Ports  --------------------------
 		DRPADDR_IN                 => (Others => '0'),
 		DRPCLK_IN                  => '0',
@@ -356,50 +451,42 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
 		DRPRDY_OUT                 => open,
 		DRPWE_IN                   => '0',
 		------------------------------- Clocking Ports -----------------------------
-		QPLLCLK_IN                 => qpll_clk_i,
-		QPLLREFCLK_IN              => qpll_refclk_i,
+		QPLLCLK_IN                 => '0',
+		QPLLREFCLK_IN              => '0',
 		------------------------------- Loopback Ports -----------------------------
-		LOOPBACK_IN                => loopen_i,
+		LOOPBACK_IN                => gtx_loopback,
 		--------------------- RX Initialization and Reset Ports --------------------
 --		RXUSERRDY_IN               => rx_cdr_lock,
-		RXUSERRDY_IN               => rx_cdr_lock_filtered,
+		RXUSERRDY_IN               => '1', --rx_cdr_lock_filtered,
 		-------------------------- RX Margin Analysis Ports ------------------------
 		EYESCANDATAERROR_OUT       => open,
 		------------------------- Receive Ports - CDR Ports ------------------------
 		RXCDRLOCK_OUT              => rx_cdr_lock,
-		RXCDRRESET_IN              => rx_cdr_rst,   -- this port cannot be generated by the CoreGen GUI, it cannot be turnes "on"                           : in   std_logic;
+		RXCDRRESET_IN              => '0',   -- this port cannot be generated by the CoreGen GUI, it cannot be turnes "on"                           : in   std_logic;
 		------------------ Receive Ports - FPGA RX Interface Ports -----------------
 		RXUSRCLK_IN                => rx_rec_clk,
 		RXUSRCLK2_IN               => rx_rec_clk,
 		------------------ Receive Ports - FPGA RX interface Ports -----------------
-		RXDATA_OUT                 => rx_data_int,
-		------------------ Receive Ports - RX 8B/10B Decoder Ports -----------------
-		RXDISPERR_OUT              => rx_disp_err,
-		RXNOTINTABLE_OUT           => rx_code_err,
+		RXDATA_OUT                 => rx_data_wrap,
+                RXCHARISK_OUT => rx_charisk_wrap,
+                RXDISPERR_OUT => rx_disperr_wrap,
 		--------------------------- Receive Ports - RX AFE -------------------------
 		GTXRXP_IN                  => pad_rxp_i,
 		------------------------ Receive Ports - RX AFE Ports ----------------------
 		GTXRXN_IN                  => pad_rxn_i,
-		-------------- Receive Ports - RX Byte and Word Alignment Ports ------------
-		RXBYTEISALIGNED_OUT        => rx_byte_is_aligned,
-		RXCOMMADET_OUT             => rx_comma_det,
 		--------------------- Receive Ports - RX Equilizer Ports -------------------
 		RXLPMHFHOLD_IN             => '0',          -- this port is always generated by the CoreGen GUI and cannot be turned "off"
 		RXLPMLFHOLD_IN             => '0',          -- this port is always generated by the CoreGen GUI and cannot be turned "off"
 		--------------- Receive Ports - RX Fabric Output Control Ports -------------
 		RXOUTCLK_OUT               => rx_rec_clk_bufin,
 		------------- Receive Ports - RX Initialization and Reset Ports ------------
-		GTRXRESET_IN               => gtreset,
+		GTRXRESET_IN               => gtx_rx_reset_a,
 		RXPMARESET_IN              => '0',
-		---------------------- Receive Ports - RX gearbox ports --------------------
-		RXSLIDE_IN                 => rx_slide,
-		------------------- Receive Ports - RX8B/10B Decoder Ports -----------------
-		RXCHARISK_OUT              => rx_k_int,
 		-------------- Receive Ports -RX Initialization and Reset Ports ------------
 		RXRESETDONE_OUT            => rx_rst_done,
 		--------------------- TX Initialization and Reset Ports --------------------
-		GTTXRESET_IN               => gtreset,
-		TXUSERRDY_IN               => qpll_lockdet_i,
+		GTTXRESET_IN               => gtx_tx_reset_a,
+		TXUSERRDY_IN               => cpll_lockdet,
 		------------------ Transmit Ports - FPGA TX Interface Ports ----------------
 		TXUSRCLK_IN                => tx_out_clk,
 		TXUSRCLK2_IN               => tx_out_clk,
@@ -419,63 +506,59 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
 		------------- Transmit Ports - TX Initialization and Reset Ports -----------
 		TXRESETDONE_OUT            => tx_rst_done,
                 ------------------ Transmit Ports - pattern Generator Ports ----------------
-    TXPRBSSEL_IN               => tx_prbs_sel_i
-    );
+    TXPRBSSEL_IN               => "000" --tx_prbs_sel_i
+                );
+
+  rx_data_raw(7 downto 0) <= rx_data_wrap(7 downto 0);
+  rx_data_raw(8) <= rx_charisk_wrap(0);
+  rx_data_raw(9) <= rx_disperr_wrap(0);
+  rx_data_raw(17 downto 10) <= rx_data_wrap(15 downto 8);
+  rx_data_raw(18) <= rx_charisk_wrap(1);
+  rx_data_raw(19) <= rx_disperr_wrap(1);
+  
 
 
-
-
-
-
-
-
-  U_Bitslide : gtp_bitslide
-    generic map (
-      g_simulation => g_simulation,
-      g_target     => "kintex7")
-    port map (
-      gtp_rst_i                => rst_done_n,
-      gtp_rx_clk_i             => rx_rec_clk,
-      gtp_rx_comma_det_i       => rx_comma_det,
-      gtp_rx_byte_is_aligned_i => rx_byte_is_aligned,
-      serdes_ready_i           => everything_ready,
-      gtp_rx_slide_o           => rx_slide,
-      gtp_rx_cdr_rst_o         => rx_cdr_rst,
-      bitslide_o               => rx_bitslide_o,
-      synced_o                 => rx_synced);
-
-  txpll_lockdet    <= qpll_lockdet_i;
-  rxpll_lockdet    <= rx_cdr_lock;
- -- rxpll_lockdet    <= rx_cdr_lock_filtered;  mattia
-  gtreset          <= not qpll_lockdet_i;
+  txpll_lockdet    <= cpll_lockdet;
+  rxpll_lockdet    <= rx_cdr_lock_filtered;
+  gtreset          <= not cpll_lockdet;
   rst_done         <= rx_rst_done and tx_rst_done;
   rst_done_n       <= not rst_done;
   pll_lockdet      <= txpll_lockdet and rxpll_lockdet;
   everything_ready <= rst_done and pll_lockdet;
   rdy_o            <= everything_ready;
 
---  trig2(3) <= rx_rst_done;
---  trig2(4) <= tx_rst_done;
---  trig2(5) <= txpll_lockdet;
---  trig2(6) <= rxpll_lockdet;
---  trig2(7) <= '1';
+
+  process(clk_ref_i)
+  begin
+    if rising_edge(clk_ref_i) then
+      if tx_enable_refclk = '0' then
+        tx_is_k_swapped <= "00";
+        tx_data_swapped <= (others => '0');
+      else
+        tx_is_k_swapped <= tx_k_i(0) & tx_k_i(1);
+        tx_data_swapped <= tx_data_i(7 downto 0) & tx_data_i(15 downto 8);
+      end if;
+    end if;
+  end process;
+
+  
 
   -- 2013 August 19: Peterj
   -- The family 7 GTX seem to have an artifact in rx_cdr_lock. For no reason lock may be lost for a clock cycle
   -- There is not much information on the web but examples of "Series-7 Integrated Block for PCI Express" (pipe_user.v)
   -- show that Xilinx itself implements a small delay before an rx_cdr_lock is propagated.
-  p_rx_cdr_lock_filter : process(rx_rec_clk, rst_int)
+  p_rx_cdr_lock_filter : process(rx_rec_clk, gtx_rst)
     variable rxcdrlock_cnt      : integer range 0 to c_rxcdrlock_max;
   begin
-    if(rst_int = '1') then  
+    if(gtx_rst = '1') then  
       rxcdrlock_cnt := 0;
       rx_cdr_lock_filtered <= '0';
     elsif rising_edge(rx_rec_clk) then
       if rx_cdr_lock = '0' then
         if rxcdrlock_cnt /= c_rxcdrlock_max then
-           rxcdrlock_cnt := rxcdrlock_cnt + 1;
+          rxcdrlock_cnt := rxcdrlock_cnt + 1;
         else
-           rx_cdr_lock_filtered <= '0';
+          rx_cdr_lock_filtered <= '0';
         end if;
       else
         rxcdrlock_cnt := 0;
@@ -484,29 +567,71 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
     end if;
   end process;
 
-  p_gen_rx_outputs : process(rx_rec_clk, rst_done_n)
+  
+  U_Comma_Detect : entity work.gtx_comma_detect_lp
+    generic map(
+      g_id => g_id
+      )
+    port map (
+      clk_rx_i  => rx_rec_clk,
+      rst_i     => gtx_rst,
+      rx_data_raw_i => rx_data_raw,
+      link_up_o => link_up,
+      aligned_o => link_aligned,
+      rx_data_i =>rx_data_o_int,
+      rx_k_i => rx_k_o_int,
+      rx_error_i => rx_enc_err_o_int);
+
+  gtx_rst_n <= not gtx_rst;
+  
+  U_Dec1 : gc_dec_8b10b
+    port map (
+      clk_i       => rx_rec_clk,
+      rst_n_i     => gtx_rst_n,
+      in_10b_i    => (rx_data_raw(19 downto 10)),
+      ctrl_o      => rx_k_int(1),
+      code_err_o  => rx_code_err(1),
+      rdisp_err_o => open,
+      out_8b_o    => rx_data_int(15 downto 8));
+
+  U_Dec2 : gc_dec_8b10b
+    port map (
+      clk_i       => rx_rec_clk,
+      rst_n_i     => gtx_rst_n,
+      in_10b_i    => (rx_data_raw(9 downto 0)),
+      ctrl_o      => rx_k_int(0),
+      code_err_o  => rx_code_err(0),
+      rdisp_err_o => open,
+      out_8b_o    => rx_data_int(7 downto 0));
+
+  rx_disp_err <= (others => '0');
+  
+  debug_o(1) <= link_up;
+  debug_o(2) <= link_aligned;
+
+  p_gen_rx_outputs : process(rx_rec_clk, gtx_rst)
   begin
-    if(rst_done_n = '1') then
-      rx_data_o    <= (others => '0');
-      rx_k_o       <= (others => '0');
-      rx_enc_err_o <= '0';
+    if(gtx_rst = '1') then
+      rx_data_o_int    <= (others => '0');
+      rx_k_o_int       <= (others => '0');
+      rx_enc_err_o_int <= '0';
     elsif rising_edge(rx_rec_clk) then
-      if(everything_ready = '1' and rx_synced = '1') then
-        rx_data_o    <= rx_data_int(7 downto 0) & rx_data_int(15 downto 8);
-        rx_k_o       <= rx_k_int(0) & rx_k_int(1);
-        rx_enc_err_o <= rx_disp_err(0) or rx_disp_err(1) or rx_code_err(0) or rx_code_err(1);
+      if(rx_enable_rxclk = '1') then
+        rx_data_o_int    <= rx_data_int(7 downto 0) & rx_data_int(15 downto 8);
+        rx_k_o_int       <= rx_k_int(0) & rx_k_int(1);
+        rx_enc_err_o_int <= rx_disp_err(0) or rx_disp_err(1) or rx_code_err(0) or rx_code_err(1);
       else
-        rx_data_o    <= (others => '1');
-        rx_k_o       <= (others => '1');
-        rx_enc_err_o <= '1';
+        rx_data_o_int    <= (others => '1');
+        rx_k_o_int       <= (others => '1');
+        rx_enc_err_o_int <= '1';
       end if;
     end if;
   end process;
 
-  p_gen_tx_disparity : process(tx_out_clk, rst_done_n)
+  p_gen_tx_disparity : process(clk_ref_i)
   begin
-    if rising_edge(tx_out_clk) then
-      if rst_done_n = '1' then
+    if rising_edge(clk_ref_i) then
+      if tx_enable_refclk = '0' then
         cur_disp <= RD_MINUS;
       else
         cur_disp <= f_next_8b10b_disparity16(cur_disp, tx_k_i, tx_data_i);
@@ -515,4 +640,10 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
   end process;
 
   tx_disparity_o <= to_std_logic(cur_disp);
+
+  rx_data_o <= rx_data_o_int;
+  rx_k_o <= rx_k_o_int;
+  rx_enc_err_o <= '0';-- rx_enc_err_o_int;
+
+
 end rtl;
