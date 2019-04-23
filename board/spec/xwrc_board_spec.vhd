@@ -107,6 +107,8 @@ entity xwrc_board_spec is
     clk_ref_125m_o      : out std_logic;
     -- Configurable (with g_aux_pll_cfg) clock outputs from the main PLL_BASE
     clk_pll_aux_o       : out std_logic_vector(3 downto 0);
+    -- active low reset outputs, synchronous to clk_pll_aux_o clocks
+    rst_pll_aux_n_o     : out std_logic_vector(3 downto 0);
     -- active low reset outputs, synchronous to 62m5 and 125m clocks
     rst_sys_62m5_n_o    : out std_logic;
     rst_ref_125m_n_o    : out std_logic;
@@ -275,13 +277,14 @@ architecture struct of xwrc_board_spec is
   signal clk_pll_dmtd : std_logic;
   signal pll_locked   : std_logic;
   signal clk_10m_ext  : std_logic;
+  signal clk_pll_aux  : std_logic_vector(3 downto 0);
 
   -- Reset logic
   signal areset_edge_ppulse : std_logic;
   signal rst_62m5_n         : std_logic;
   signal rstlogic_arst_n    : std_logic;
-  signal rstlogic_clk_in    : std_logic_vector(1 downto 0);
-  signal rstlogic_rst_out   : std_logic_vector(1 downto 0);
+  signal rstlogic_clk_in    : std_logic_vector(5 downto 0);
+  signal rstlogic_rst_out   : std_logic_vector(5 downto 0);
 
   -- PLL DAC ARB
   signal dac_hpll_load_p1 : std_logic;
@@ -325,6 +328,7 @@ begin  -- architecture struct
       g_with_external_clock_input => g_with_external_clock_input,
       g_use_default_plls          => TRUE,
       g_aux_pll_cfg               => g_aux_pll_cfg,
+      g_phy_refclk_sel            => 4,
       g_simulation                => g_simulation)
     port map (
       areset_n_i            => areset_n_i,
@@ -340,7 +344,7 @@ begin  -- architecture struct
       sfp_tx_fault_i        => sfp_tx_fault_i,
       sfp_los_i             => sfp_los_i,
       sfp_tx_disable_o      => sfp_tx_disable_o,
-      clk_pll_aux_o         => clk_pll_aux_o,
+      clk_pll_aux_o         => clk_pll_aux,
       clk_62m5_sys_o        => clk_pll_62m5,
       clk_125m_ref_o        => clk_pll_125m,
       clk_62m5_dmtd_o       => clk_pll_dmtd,
@@ -355,6 +359,7 @@ begin  -- architecture struct
 
   clk_sys_62m5_o <= clk_pll_62m5;
   clk_ref_125m_o <= clk_pll_125m;
+  clk_pll_aux_o  <= clk_pll_aux;
 
   -----------------------------------------------------------------------------
   -- Reset logic
@@ -376,14 +381,15 @@ begin  -- architecture struct
   rstlogic_arst_n <= pll_locked and areset_n_i and (not areset_edge_ppulse);
 
   -- concatenation of all clocks required to have synced resets
-  rstlogic_clk_in(0) <= clk_pll_62m5;
-  rstlogic_clk_in(1) <= clk_pll_125m;
+  rstlogic_clk_in(0)          <= clk_pll_62m5;
+  rstlogic_clk_in(1)          <= clk_pll_125m;
+  rstlogic_clk_in(5 downto 2) <= clk_pll_aux;
 
   cmp_rstlogic_reset : gc_reset
     generic map (
-      g_clocks    => 2,                           -- 62.5MHz, 125MHz
-      g_logdelay  => 4,                           -- 16 clock cycles
-      g_syncdepth => 3)                           -- length of sync chains
+      g_clocks    => 6,  -- 62.5MHz, 125MHz + 4x pll_aux
+      g_logdelay  => 4,  -- 16 clock cycles
+      g_syncdepth => 3)  -- length of sync chains
     port map (
       free_clk_i => clk_125m_pllref_buf,
       locked_i   => rstlogic_arst_n,
@@ -395,6 +401,7 @@ begin  -- architecture struct
 
   rst_sys_62m5_n_o <= rst_62m5_n;
   rst_ref_125m_n_o <= rstlogic_rst_out(1);
+  rst_pll_aux_n_o  <= rstlogic_rst_out(5 downto 2);
 
   -----------------------------------------------------------------------------
   -- 2x SPI DAC

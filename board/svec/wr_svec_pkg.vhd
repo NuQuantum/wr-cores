@@ -75,6 +75,7 @@ package wr_svec_pkg is
       clk_sys_62m5_o       : out std_logic;
       clk_ref_125m_o       : out std_logic;
       clk_pll_aux_o        : out std_logic_vector(3 downto 0);
+      rst_pll_aux_n_o      : out std_logic_vector(3 downto 0);
       rst_sys_62m5_n_o     : out std_logic;
       rst_ref_125m_n_o     : out std_logic;
       pll20dac_din_o       : out std_logic;
