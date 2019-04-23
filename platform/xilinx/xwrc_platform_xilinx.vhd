@@ -67,7 +67,8 @@ entity xwrc_platform_xilinx is
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
       -- Select PHY reference clock
-      g_phy_refclk_sel            : integer range 0 to 7 := 0;
+      -- default value of 4 selects CLK10 / CLK11 (see UG386, Fig 2-3, page 41)
+      g_phy_refclk_sel            : integer range 0 to 7 := 4;
       g_gtp_mux_enable            : boolean := FALSE;
       -- Set to TRUE will speed up some initialization processes
       g_simulation                : integer := 0);
