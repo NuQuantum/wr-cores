@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2017-05-24
+-- Last update: 2019-04-23
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -363,19 +363,6 @@ architecture rtl of wr_gtp_phy_spartan6 is
 
   signal ch0_tx_chardispval : std_logic;
   signal ch1_tx_chardispval : std_logic;
-
-
-
-  component enc_8b10b
-    port (
-      clk_i     : in  std_logic;
-      rst_n_i   : in  std_logic;
-      ctrl_i    : in  std_logic;
-      in_8b_i   : in  std_logic_vector(7 downto 0);
-      err_o     : out std_logic;
-      dispar_o  : out std_logic;
-      out_10b_o : out std_logic_vector(9 downto 0));
-  end component;
 
   signal ch0_rst_n : std_logic;
   signal ch1_rst_n : std_logic;
