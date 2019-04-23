@@ -279,7 +279,7 @@ architecture struct of xwrc_board_svec is
   -- Reset logic
   signal areset_edge_ppulse : std_logic;
   signal rst_62m5_n         : std_logic;
-  signal rstlogic_arst_n    : std_logic;
+  signal rstlogic_arst      : std_logic;
   signal rstlogic_clk_in    : std_logic_vector(5 downto 0);
   signal rstlogic_rst_out   : std_logic_vector(5 downto 0);
 
@@ -364,7 +364,7 @@ begin  -- architecture struct
   -- Reset logic
   -----------------------------------------------------------------------------
   -- Detect when areset_edge_n_i goes high (end of reset) and use this edge to
-  -- generate rstlogic_arst_n. This is needed to connect optional reset like PCIe
+  -- generate rstlogic_arst. This is needed to connect optional reset like PCIe
   -- reset. When baord runs standalone, we need to ignore PCIe reset being
   -- constantly low.
   cmp_arst_edge : gc_sync_ffs
