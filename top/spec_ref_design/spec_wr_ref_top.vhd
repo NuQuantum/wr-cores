@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-20
--- Last update: 2018-11-30
+-- Last update: 2019-04-26
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the SPEC.
@@ -265,9 +265,6 @@ architecture top of spec_wr_ref_top is
   signal cnx_slave_out : t_wishbone_slave_out_array(c_NUM_WB_SLAVES-1 downto 0);
   signal cnx_slave_in  : t_wishbone_slave_in_array(c_NUM_WB_SLAVES-1 downto 0);
 
-  -- Gennum signals
-  signal gn_wbadr : std_logic_vector(31 downto 0);
-
   -- clock and reset
   signal clk_sys_62m5   : std_logic;
   signal rst_sys_62m5_n : std_logic;
@@ -329,7 +326,7 @@ begin  -- architecture top
   -----------------------------------------------------------------------------
   -- GN4124, PCIe bridge core
   -----------------------------------------------------------------------------
-  cmp_gn4124_core : gn4124_core
+  cmp_gn4124_core : xwb_gn4124_core
     port map (
       ---------------------------------------------------------
       -- Control and status
@@ -375,44 +372,11 @@ begin  -- architecture top
       irq_p_o   => gn_gpio(0),
 
       ---------------------------------------------------------
-      -- DMA registers wishbone interface (slave classic)
-      dma_reg_clk_i => clk_sys_62m5,
-      dma_reg_adr_i => (others=>'0'),
-      dma_reg_dat_i => (others=>'0'),
-      dma_reg_sel_i => (others=>'0'),
-      dma_reg_stb_i => '0',
-      dma_reg_we_i  => '0',
-      dma_reg_cyc_i => '0',
-
-      ---------------------------------------------------------
-      -- CSR wishbone interface (master pipelined)
-      csr_clk_i   => clk_sys_62m5,
-      csr_adr_o   => gn_wbadr,
-      csr_dat_o   => cnx_master_out(c_WB_MASTER_PCIE).dat,
-      csr_sel_o   => cnx_master_out(c_WB_MASTER_PCIE).sel,
-      csr_stb_o   => cnx_master_out(c_WB_MASTER_PCIE).stb,
-      csr_we_o    => cnx_master_out(c_WB_MASTER_PCIE).we,
-      csr_cyc_o   => cnx_master_out(c_WB_MASTER_PCIE).cyc,
-      csr_dat_i   => cnx_master_in(c_WB_MASTER_PCIE).dat,
-      csr_ack_i   => cnx_master_in(c_WB_MASTER_PCIE).ack,
-      csr_stall_i => cnx_master_in(c_WB_MASTER_PCIE).stall,
-      csr_err_i   => cnx_master_in(c_WB_MASTER_PCIE).err,
-      csr_rty_i   => cnx_master_in(c_WB_MASTER_PCIE).rty,
-
-      ---------------------------------------------------------
-      -- L2P DMA Interface (Pipelined Wishbone master)
-      dma_clk_i   => clk_sys_62m5,
-      dma_dat_i   => (others=>'0'),
-      dma_ack_i   => '1',
-      dma_stall_i => '0',
-      dma_err_i   => '0',
-      dma_rty_i   => '0');
-
-  -- "translating" word addressing of Gennum module into byte addressing
-  cnx_master_out(c_WB_MASTER_PCIE).adr(1 downto 0)   <= (others => '0');
-  cnx_master_out(c_WB_MASTER_PCIE).adr(18 downto 2)  <= gn_wbadr(16 downto 0);
-  cnx_master_out(c_WB_MASTER_PCIE).adr(31 downto 19) <= (others => '0');
-
+      -- Main master wishbone interface (to all downstream slaves)
+      wb_master_clk_i   => clk_sys_62m5,
+      wb_master_rst_n_i => rst_sys_62m5_n,
+      wb_master_i       => cnx_master_in(c_WB_MASTER_PCIE),
+      wb_master_o       => cnx_master_out(c_WB_MASTER_PCIE));
 
   -----------------------------------------------------------------------------
   -- The WR PTP core board package (WB Slave + WB Master #2 (Etherbone))
