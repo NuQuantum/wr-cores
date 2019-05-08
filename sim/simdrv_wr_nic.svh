@@ -8,7 +8,7 @@
 `include "wb_packet_source.svh"
 `include "wb_packet_sink.svh"
 
-`include "regs/nic_regs.vh"
+`include "nic_regs.vh"
 
 `define MAX_PACKET_SIZE 1536
 

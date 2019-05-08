@@ -4,7 +4,7 @@
 `timescale 1ns/1ps
 
 `include "simdrv_defs.svh"
-`include "regs/txtsu_regs.vh"
+`include "txtsu_regs.vh"
 
 class CSimDrv_TXTSU;
 
