@@ -57,6 +57,7 @@ entity xwrc_platform_xilinx is
       -- Define the family/model of Xilinx FPGA
       -- (supported: for now only spartan6)
       g_fpga_family               : string  := "spartan6";
+      g_direct_dmtd               : boolean := FALSE;
       -- Select whether to include external ref clock input
       g_with_external_clock_input : boolean := FALSE;
       -- Set to FALSE if you want to instantiate your own PLLs
@@ -553,18 +554,16 @@ begin  -- architecture rtl
     end generate gen_virtex5_default_plls;
 
     ---------------------------------------------------------------------------
-    --   Kintex7 PLLs
+    --   Kintex7, Artix7 PLLs
     ---------------------------------------------------------------------------
-    gen_kintex7_default_plls : if (g_fpga_family = "kintex7") generate
+    gen_kintex7_artix7_default_plls : if (g_fpga_family = "kintex7" or g_fpga_family = "artix7") generate
 
       signal clk_sys          : std_logic;
       signal clk_sys_out      : std_logic;
       signal clk_sys_fb       : std_logic;
       signal pll_sys_locked   : std_logic;
-      signal clk_dmtd         : std_logic;
-      signal clk_dmtd_fb      : std_logic;
+      signal clk_dmtd         : std_logic := '0'; -- initialize for simulation
       signal pll_dmtd_locked  : std_logic;
-      signal clk_20m_vcxo_buf : std_logic;
 
     begin
       -- System PLL (125 MHz -> 62.5 MHz)
@@ -625,6 +624,12 @@ begin  -- architecture rtl
       clk_62m5_sys_o <= clk_sys_out;
       pll_locked_o   <= pll_dmtd_locked and pll_sys_locked;
 
+      gen_kintex7_artix7_dmtd_pll : if (g_direct_dmtd = FALSE) generate
+
+        signal clk_20m_vcxo_buf : std_logic;
+        signal clk_dmtd_fb      : std_logic;
+
+      begin
       -- DMTD PLL (20 MHz -> ~62,5 MHz)
       cmp_dmtd_clk_pll : MMCME2_ADV
         generic map (
@@ -682,6 +687,22 @@ begin  -- architecture rtl
           O => clk_20m_vcxo_buf,
           I => clk_20m_vcxo_i);
 
+      end generate gen_kintex7_artix7_dmtd_pll;
+
+      gen_kintex7_artix7_direct_dmtd : if (g_direct_dmtd = TRUE) generate
+
+      begin
+      -- DMTD Div2 (124.9920 MHz -> 62,496 MHz)
+        process(clk_125m_dmtd_i)
+        begin
+          if rising_edge(clk_125m_dmtd_i) then
+            clk_dmtd <= not clk_dmtd;
+          end if;
+        end process;
+        
+        pll_dmtd_locked <= '1';
+      end generate gen_kintex7_artix7_direct_dmtd;
+
       -- DMTD PLL output clock buffer
       cmp_clk_dmtd_buf_o : BUFG
         port map (
@@ -689,7 +710,7 @@ begin  -- architecture rtl
           I => clk_dmtd);
 
       -- External 10MHz reference PLL for Kintex7
-      gen_kintex7_ext_ref_pll : if (g_with_external_clock_input = TRUE) generate
+      gen_kintex7_artix7_ext_ref_pll : if (g_with_external_clock_input = TRUE) generate
         
         signal clk_ext_fbi : std_logic;
         signal clk_ext_fbo : std_logic;
@@ -772,243 +793,10 @@ begin  -- architecture rtl
             pulse_i    => ext_ref_rst_i,
             extended_o => pll_ext_rst);
 
-      end generate gen_kintex7_ext_ref_pll;
+      end generate gen_kintex7_artix7_ext_ref_pll;
 
-    end generate gen_kintex7_default_plls;
+    end generate gen_kintex7_artix7_default_plls;
 
-    ---------------------------------------------------------------------------
-    --   Artix7 PLLs
-    ---------------------------------------------------------------------------
-    gen_artix7_default_plls : if (g_fpga_family = "artix7") generate
-
-      signal clk_sys          : std_logic;
-      signal clk_sys_out      : std_logic;
-      signal clk_sys_fb       : std_logic;
-      signal pll_sys_locked   : std_logic;
-      signal clk_dmtd         : std_logic := '0'; -- initialize for simulation
---      signal clk_dmtd_fb      : std_logic;
---      signal pll_dmtd_locked  : std_logic;
---      signal clk_20m_vcxo_buf : std_logic;
-
-    begin
-      -- System PLL (125 MHz -> 62.5 MHz)
-      cmp_sys_clk_pll : MMCME2_ADV
-        generic map (
-          BANDWIDTH            => "OPTIMIZED",
-          CLKOUT4_CASCADE      => false,
-          COMPENSATION         => "ZHOLD",
-          STARTUP_WAIT         => false,
-          DIVCLK_DIVIDE        => 1,
-          CLKFBOUT_MULT_F      => 8.000,     -- 125 MHz x 8.
-          CLKFBOUT_PHASE       => 0.000,
-          CLKFBOUT_USE_FINE_PS => false,
-
-          CLKOUT0_DIVIDE_F    => 16.000,     -- 62.5 MHz sys clock
-          CLKOUT0_PHASE       => 0.000,
-          CLKOUT0_DUTY_CYCLE  => 0.500,
-          CLKOUT0_USE_FINE_PS => false,
-
-          CLKIN1_PERIOD => 8.000,            -- 8 ns means 125 MHz
-          REF_JITTER1   => 0.010)
-        port map (
-          -- Output clocks
-          CLKFBOUT     => clk_sys_fb,
-          CLKOUT0      => clk_sys,
-          -- Input clock control
-          CLKFBIN      => clk_sys_fb,
-          CLKIN1       => clk_125m_pllref_buf,
-          CLKIN2       => '0',
-          -- Tied to always select the primary input clock
-          CLKINSEL     => '1',
-          -- Ports for dynamic reconfiguration
-          DADDR        => (others => '0'),
-          DCLK         => '0',
-          DEN          => '0',
-          DI           => (others => '0'),
-          DO           => open,
-          DRDY         => open,
-          DWE          => '0',
-          -- Ports for dynamic phase shift
-          PSCLK        => '0',
-          PSEN         => '0',
-          PSINCDEC     => '0',
-          PSDONE       => open,
-          -- Other control and status signals
-          LOCKED       => pll_sys_locked,
-          CLKINSTOPPED => open,
-          CLKFBSTOPPED => open,
-          PWRDWN       => '0',
-          RST          => pll_arst);
-
-      -- System PLL output clock buffer
-      cmp_clk_sys_buf_o : BUFG
-      port map (
-        I => clk_sys,
-        O => clk_sys_out);
-
-      clk_62m5_sys_o <= clk_sys_out;
---      pll_locked_o   <= pll_dmtd_locked and pll_sys_locked;
-      pll_locked_o   <= pll_sys_locked;
-
---      -- DMTD PLL (20 MHz -> ~62,5 MHz)
---      cmp_dmtd_clk_pll : MMCME2_ADV
---        generic map (
---          BANDWIDTH            => "OPTIMIZED",
---          CLKOUT4_CASCADE      => false,
---          COMPENSATION         => "ZHOLD",
---          STARTUP_WAIT         => false,
---          DIVCLK_DIVIDE        => 1,
---          CLKFBOUT_MULT_F      => 50.000,    -- 20 MHz -> 1 GHz
---          CLKFBOUT_PHASE       => 0.000,
---          CLKFBOUT_USE_FINE_PS => false,
---          CLKOUT0_DIVIDE_F     => 16.000,    -- 1GHz/16 -> 62.5 MHz
---          CLKOUT0_PHASE        => 0.000,
---          CLKOUT0_DUTY_CYCLE   => 0.500,
---          CLKOUT0_USE_FINE_PS  => false,
---          CLKOUT1_DIVIDE       => 16,        -- 1GHz/16 -> 62.5 MHz
---          CLKOUT1_PHASE        => 0.000,
---          CLKOUT1_DUTY_CYCLE   => 0.500,
---          CLKOUT1_USE_FINE_PS  => false,
---          CLKIN1_PERIOD        => 50.000,    -- 50ns for 20 MHz
---          REF_JITTER1          => 0.010)
---        port map (
---          -- Output clocks
---          CLKFBOUT     => clk_dmtd_fb,
---          CLKOUT0      => clk_dmtd,
---          -- Input clock control
---          CLKFBIN      => clk_dmtd_fb,
---          CLKIN1       => clk_20m_vcxo_buf,
---          CLKIN2       => '0',
---          -- Tied to always select the primary input clock
---          CLKINSEL     => '1',
---          -- Ports for dynamic reconfiguration
---          DADDR        => (others => '0'),
---          DCLK         => '0',
---          DEN          => '0',
---          DI           => (others => '0'),
---          DO           => open,
---          DRDY         => open,
---          DWE          => '0',
---          -- Ports for dynamic phase shift
---          PSCLK        => '0',
---          PSEN         => '0',
---          PSINCDEC     => '0',
---          PSDONE       => open,
---          -- Other control and status signals
---          LOCKED       => pll_dmtd_locked,
---          CLKINSTOPPED => open,
---          CLKFBSTOPPED => open,
---          PWRDWN       => '0',
---          RST          => pll_arst);
---
---      -- DMTD PLL input clock buffer
---      cmp_clk_dmtd_buf_i : BUFG
---        port map (
---          O => clk_20m_vcxo_buf,
---          I => clk_20m_vcxo_i);
---
-
-      -- DMTD Div2 (124.9920 MHz -> 62,496 MHz)
-      process(clk_125m_dmtd_i)
-      begin
-        if rising_edge(clk_125m_dmtd_i) then
-          clk_dmtd <= not clk_dmtd;
-        end if;
-      end process;
-
-      -- DMTD PLL output clock buffer
-      cmp_clk_dmtd_buf_o : BUFG
-        port map (
-          O => clk_62m5_dmtd_o,
-          I => clk_dmtd);
-
-      -- External 10MHz reference PLL for Artix7
-      gen_artix7_ext_ref_pll : if (g_with_external_clock_input = TRUE) generate
-        
-        signal clk_ext_fbi : std_logic;
-        signal clk_ext_fbo : std_logic;
-        signal clk_ext_buf : std_logic;
-        signal clk_ext_mul : std_logic;
-        signal pll_ext_rst : std_logic;
-
-      begin
-        mmcm_adv_inst : MMCME2_ADV
-          generic map (
-            BANDWIDTH            => "OPTIMIZED",
-            CLKOUT4_CASCADE      => FALSE,
-            COMPENSATION         => "ZHOLD",
-            STARTUP_WAIT         => FALSE,
-            DIVCLK_DIVIDE        => 1,
-            CLKFBOUT_MULT_F      => 62.500,
-            CLKFBOUT_PHASE       => 0.000,
-            CLKFBOUT_USE_FINE_PS => FALSE,
-            CLKOUT0_DIVIDE_F     => 10.000,
-            CLKOUT0_PHASE        => 0.000,
-            CLKOUT0_DUTY_CYCLE   => 0.500,
-            CLKOUT0_USE_FINE_PS  => FALSE,
-            CLKIN1_PERIOD        => 100.000,
-            REF_JITTER1          => 0.005)
-          port map (
-            -- Output clocks
-            CLKFBOUT  => clk_ext_fbo,
-            CLKOUT0   => clk_ext_mul,
-            -- Input clock control
-            CLKFBIN   => clk_ext_fbi,
-            CLKIN1    => clk_ext_buf,
-            CLKIN2    => '0',
-            -- Tied to always select the primary input clock
-            CLKINSEL  => '1',
-            -- Ports for dynamic reconfiguration
-            DADDR     => (others => '0'),
-            DCLK      => '0',
-            DEN       => '0',
-            DI        => (others => '0'),
-            DO        => open,
-            DRDY      => open,
-            DWE       => '0',
-            -- Ports for dynamic phase shift
-            PSCLK     => '0',
-            PSEN      => '0',
-            PSINCDEC  => '0',
-            PSDONE    => open, -- Other control and status signals
-            LOCKED    => ext_ref_mul_locked_o,
-            CLKINSTOPPED => ext_ref_mul_stopped_o,
-            CLKFBSTOPPED => open,
-            PWRDWN   => '0',
-            RST      => pll_ext_rst);
-
-        -- External reference input buffer
-        cmp_clk_ext_buf_i : BUFG
-          port map (
-            O => clk_ext_buf,
-            I => clk_10m_ext_i);
-
-        clk_10m_ext_o <= clk_ext_buf;
-
-        -- External reference feedback buffer
-        cmp_clk_ext_buf_fb : BUFG
-          port map (
-            O => clk_ext_fbi,
-            I => clk_ext_fbo);
-
-        -- External reference output buffer
-        cmp_clk_ext_buf_o : BUFG
-          port map (
-            O => ext_ref_mul_o,
-            I => clk_ext_mul);
-
-        cmp_extend_ext_reset : gc_extend_pulse
-          generic map (
-            g_width => 1000)
-          port map (
-            clk_i      => clk_sys_out,
-            rst_n_i    => pll_sys_locked,
-            pulse_i    => ext_ref_rst_i,
-            extended_o => pll_ext_rst);
-
-      end generate gen_artix7_ext_ref_pll;
-
-    end generate gen_artix7_default_plls;
     ---------------------------------------------------------------------------
     
     gen_no_ext_ref_pll : if (g_with_external_clock_input = FALSE) generate

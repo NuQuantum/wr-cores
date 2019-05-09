@@ -52,6 +52,7 @@ package wr_xilinx_pkg is
   component xwrc_platform_xilinx is
     generic (
       g_fpga_family               : string  := "spartan6";
+      g_direct_dmtd               : boolean := FALSE;
       g_with_external_clock_input : boolean := FALSE;
       g_use_default_plls          : boolean := TRUE;
       g_aux_pll_cfg               : t_auxpll_cfg_array := c_AUXPLL_CFG_ARRAY_DEFAULT;
