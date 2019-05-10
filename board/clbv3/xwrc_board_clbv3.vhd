@@ -311,6 +311,7 @@ begin  -- architecture struct
   cmp_xwrc_platform : xwrc_platform_xilinx
     generic map (
       g_fpga_family               => "artix7",
+      g_direct_dmtd               => TRUE,
       g_with_external_clock_input => g_with_external_clock_input,
       g_use_default_plls          => TRUE,
       g_simulation                => g_simulation)
@@ -428,7 +429,7 @@ begin  -- architecture struct
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => g_with_external_clock_input,
-      g_board_name                => "CLB2",
+      g_board_name                => "CLB3",
       g_phys_uart                 => TRUE,
       g_virtual_uart              => TRUE,
       g_aux_clks                  => g_aux_clks,
