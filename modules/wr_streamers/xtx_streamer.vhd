@@ -199,6 +199,7 @@ architecture rtl of xtx_streamer is
 
   signal tag_cycles                   : std_logic_vector(27 downto 0);
   signal tag_valid, tag_valid_latched : std_logic;
+  signal tag_error                    : std_logic;
 
   signal link_ok_delay_cnt         : unsigned(25 downto 0);
   signal link_ok_delay_expired : std_logic;

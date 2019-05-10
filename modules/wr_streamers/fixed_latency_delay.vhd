@@ -227,9 +227,11 @@ begin
       ts_tai_i        => fifo_target_ts_tai,
       ts_cycles_i     => fifo_target_ts_cycles,
       ts_latency_i    => rx_streamer_cfg_i.fixed_latency,
+      ts_timeout_i    => rx_streamer_cfg_i.fixed_latency_timeout,
       tm_time_valid_i => tm_time_valid_i,
       tm_tai_i        => tm_tai_i,
       tm_cycles_i     => tm_cycles_i,
+      timeout_o       => delay_timeout,
       match_o         => delay_match,
       late_o          => delay_miss);
 

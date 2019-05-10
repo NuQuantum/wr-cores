@@ -107,9 +107,11 @@ begin
     if g_clk_ref_rate = 62500000 then
       tm_cycles_scaled <= unsigned(tm_cycles_i & '0');
       ts_latency_scaled <= unsigned(ts_latency_i & '0');
+      ts_timeout_scaled <= unsigned(ts_timeout_i & '0');
     elsif g_clk_ref_rate = 125000000 then
       tm_cycles_scaled <= unsigned('0' & tm_cycles_i);
       ts_latency_scaled <= unsigned('0' & ts_latency_i);
+      ts_timeout_scaled <= unsigned('0' & ts_timeout_i);
     else
       report "Unsupported g_clk_ref_rate (62.5 / 125 MHz)" severity failure;
     end if;
@@ -182,7 +184,7 @@ begin
               ts_timeout_tai    <= ts_timeout_tai + 1;
             end if;
 
-            State <= CHECK_LATE;
+            state <= CHECK_LATE;
 
           when CHECK_LATE =>
 
