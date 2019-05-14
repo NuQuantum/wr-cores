@@ -11,7 +11,7 @@ modules = { "local" : ["../../..",
                        "../../../modules/wr_streamers",
                        "../../../top/spec_1_1/wr_streamers_demo",
                        "../../../ip_cores/general-cores"]}
-					  
-files = ["main.sv"]
+
+files = ["main.sv","synthesis_descriptor.vhd"]
 
 
