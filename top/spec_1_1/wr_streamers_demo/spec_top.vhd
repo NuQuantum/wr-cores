@@ -1,3 +1,13 @@
+-------------------------------------------------------------------------------
+-- Title      : WR Streamers demo
+-- Project    : WR PTP Core
+-- URL        : http://www.ohwr.org/projects/wr-cores/wiki/Wrpc_core
+-------------------------------------------------------------------------------
+-- File       : spec_top.vhd
+-- Author(s)  : Tomasz Wlostowski (re-done by Maciej Lipinski, based on spec_top)
+-- Company    : CERN (BE-CO-HT)
+-------------------------------------------------------------------------------
+-- Description:
 --
 -- White Rabbit Core Hands-On Course
 --
@@ -16,6 +26,29 @@
 -- I/O 1 - PPS output
 -- I/O 2 - trigger pulse input
 -- I/O 3 - recovered pulse output
+--
+-------------------------------------------------------------------------------
+-- Copyright (c) 2016-2019 CERN
+-------------------------------------------------------------------------------
+-- GNU LESSER GENERAL PUBLIC LICENSE
+--
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
+--
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
+--
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+--
+-------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -25,38 +58,31 @@ use ieee.numeric_std.all;
 library UNISIM;
 use UNISIM.vcomponents.all;
 
--- Use the WR Core package, with xwr_core component defined inside.
-use work.wrcore_pkg.all;
+library work;
 -- Use the General Cores package (for gc_extend_pulse)
 use work.gencores_pkg.all;
--- Use the Xilinx White Rabbit platform-specific package (for wr_gtp_phy_spartan6)
-use work.wr_xilinx_pkg.all;
--- Use the WR Fabric interface package For WR Fabric interface type definitions
-use work.wr_fabric_pkg.all;
--- Use the streamers package for streamer component declarations
+-- Use the streamers package for streamer configuration declarations
 use work.streamers_pkg.all;
 -- -- needed for c_etherbone_sdb
 -- use work.etherbone_pkg.all;
 -- needed for PIPELINED
 use work.wishbone_pkg.all;
+-- Needed for generic board support
+use work.wr_board_pkg.all;
+-- Needed for SPEC-specific board support
+use work.wr_spec_pkg.all;
+-- Needed for SDB description
+use work.synthesis_descriptor.all;
 
 entity spec_top is
   generic (
-    -- setting g_dpram_initf to file path will result in syntesis/simulation using the
-    -- content of this file to run LM32 microprocessor
-    -- setting g_dpram_init to empty string (i.e."") will result in synthesis/simulation
-    -- with empty RAM for the LM32 (it will not work until code is loaded)
-    -- NOTE: the path is correct when used from the synthesis folder (this is where
-    --       ISE calls the function to find the file, the path is not correct for where
-    --       this file is stored, i.e. in the top/ folder)
-    g_dpram_initf : string  := "../../../bin/wrpc/wrc_phy8.bram";
-    -- Simulation mode enable parameter. Set by default (synthesis) to 0, and
+    g_dpram_initf : string := "../../bin/wrpc/wrc_phy8.bram";
+    -- Simulation-mode enable parameter. Set by default (synthesis) to 0, and
     -- changed to non-zero in the instantiation of the top level DUT in the testbench.
     -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
     g_simulation : integer := 0
     );
   port (
-
     ---------------------------------------------------------------------------
     -- Clock signals
     ---------------------------------------------------------------------------
@@ -69,8 +95,8 @@ entity spec_top is
 
     -- Dedicated clock for the Xilinx GTP transceiver. Same physical clock as
     -- clk_125m_pllref, just coming from another output of CDCM61004 PLL.
-    fpga_pll_ref_clk_101_p_i : in std_logic;
-    fpga_pll_ref_clk_101_n_i : in std_logic;
+    clk_125m_gtp_n_i : in std_logic;
+    clk_125m_gtp_p_i : in std_logic;
 
     -- Clock input, used to derive the DDMTD clock (check out the general presentation
     -- of WR for explanation of its purpose). The clock is produced by the
@@ -78,32 +104,59 @@ entity spec_top is
     -- dac_helper output of the WR Core)
     clk_20m_vcxo_i : in std_logic;
 
-    -- Reset input, active low. Comes from the Gennum PCI-Express bridge.
-    l_rst_n : in std_logic := 'H';
+    ---------------------------------------------------------------------------
+    -- GN4124 PCIe bridge signals
+    ---------------------------------------------------------------------------
+    -- From GN4124 Local bus
+    gn_rst_n : in std_logic; -- Reset from GN4124 (RSTOUT18_N)
+    -- PCIe to Local [Inbound Data] - RX
+    gn_p2l_clk_n  : in  std_logic;       -- Receiver Source Synchronous Clock-
+    gn_p2l_clk_p  : in  std_logic;       -- Receiver Source Synchronous Clock+
+    gn_p2l_rdy    : out std_logic;       -- Rx Buffer Full Flag
+    gn_p2l_dframe : in  std_logic;       -- Receive Frame
+    gn_p2l_valid  : in  std_logic;       -- Receive Data Valid
+    gn_p2l_data   : in  std_logic_vector(15 downto 0);  -- Parallel receive data
+    -- Inbound Buffer Request/Status
+    gn_p_wr_req   : in  std_logic_vector(1 downto 0);  -- PCIe Write Request
+    gn_p_wr_rdy   : out std_logic_vector(1 downto 0);  -- PCIe Write Ready
+    gn_rx_error   : out std_logic;                     -- Receive Error
+    -- Local to Parallel [Outbound Data] - TX
+    gn_l2p_clkn   : out std_logic;       -- Transmitter Source Synchronous Clock-
+    gn_l2p_clkp   : out std_logic;       -- Transmitter Source Synchronous Clock+
+    gn_l2p_dframe : out std_logic;       -- Transmit Data Frame
+    gn_l2p_valid  : out std_logic;       -- Transmit Data Valid
+    gn_l2p_edb    : out std_logic;       -- Packet termination and discard
+    gn_l2p_data   : out std_logic_vector(15 downto 0);  -- Parallel transmit data
+    -- Outbound Buffer Status
+    gn_l2p_rdy    : in std_logic;                     -- Tx Buffer Full Flag
+    gn_l_wr_rdy   : in std_logic_vector(1 downto 0);  -- Local-to-PCIe Write
+    gn_p_rd_d_rdy : in std_logic_vector(1 downto 0);  -- PCIe-to-Local Read Response Data Ready
+    gn_tx_error   : in std_logic;                     -- Transmit Error
+    gn_vc_rdy     : in std_logic_vector(1 downto 0);  -- Channel ready
+    -- General Purpose Interface
+    gn_gpio : inout std_logic_vector(1 downto 0);  -- gn_gpio[0] -> GN4124 GPIO8
+                                                   -- gn_gpio[1] -> GN4124 GPIO9
 
-    -- Button 1 on the SPEC card. In our case, used as an external reset trigger.
-    button1_n_i : in std_logic := 'H';
-
-    -------------------------------------------------------------------------
+    ---------------------------------------------------------------------------
     -- SFP pins
-    -------------------------------------------------------------------------
+    ---------------------------------------------------------------------------
 
     -- TX gigabit output
-    sfp_txp_o : out std_logic;
-    sfp_txn_o : out std_logic;
+    sfp_txp_o : out   std_logic;
+    sfp_txn_o : out   std_logic;
 
     -- RX gigabit input
-    sfp_rxp_i : in std_logic;
-    sfp_rxn_i : in std_logic;
+    sfp_rxp_i : in    std_logic;
+    sfp_rxn_i : in    std_logic;
 
     -- SFP MOD_DEF0 pin (used as a tied-to-ground SFP insertion detect line)
-    sfp_det_i         : in    std_logic;
+    sfp_mod_def0_i    : in    std_logic;          -- sfp detect
     -- SFP MOD_DEF1 pin (SCL line of the I2C EEPROM inside the SFP)
-    sfp_scl_b         : inout std_logic;
-    -- SFP MOD_DEF1 pin (SDA line of the I2C EEPROM inside the SFP)
-    sfp_sda_b         : inout std_logic;
+    sfp_mod_def1_b    : inout std_logic;          -- scl
+     -- SFP MOD_DEF1 pin (SDA line of the I2C EEPROM inside the SFP)
+    sfp_mod_def2_b    : inout std_logic;          -- sda
     -- SFP RATE_SELECT pin. Unused for most SFPs, in our case tied to 0.
-    sfp_rate_select_b : inout std_logic;
+    sfp_rate_select_o : out   std_logic;
     -- SFP laser fault detection pin. Unused in our design.
     sfp_tx_fault_i    : in    std_logic;
     -- SFP laser disable line. In our case, tied to GND.
@@ -112,44 +165,61 @@ entity spec_top is
     -- has its own loss-of-sync detection mechanism.
     sfp_los_i         : in    std_logic;
 
-    -- Green LED next to the SFP: indicates if the link is up.
-    sfp_led_green_o : out std_logic;
-
-    -- Red LED next to the SFP: blinking indicates that packets are being
-    -- transferred.
-    sfp_led_red_o : out std_logic;
-
     ---------------------------------------------------------------------------
     -- Oscillator control pins
     ---------------------------------------------------------------------------
 
     -- A typical SPI bus shared betwen two AD5662 DACs. The first one (CS1) tunes
     -- the clk_ref oscillator, the second (CS2) - the clk_dmtd VCXO.
-    dac_sclk_o  : out std_logic;
-    dac_din_o   : out std_logic;
-    dac_cs1_n_o : out std_logic;
-    dac_cs2_n_o : out std_logic;
+    plldac_sclk_o     : out std_logic;
+    plldac_din_o      : out std_logic;
+    pll25dac_cs_n_o : out std_logic; --cs1
+    pll20dac_cs_n_o : out std_logic; --cs2
 
     ---------------------------------------------------------------------------
-    -- Miscellanous WR Core pins
+    -- Onewire interface
     ---------------------------------------------------------------------------
-
-    -- I2C bus connected to the EEPROM on the DIO mezzanine. This EEPROM is used
-    -- for storing WR Core's configuration parameters.
-    fmc_scl_b : inout std_logic;
-    fmc_sda_b : inout std_logic;
-
     -- One-wire interface to DS18B20 temperature sensor, which also provides an
     -- unique serial number, that WRPC uses to assign itself a unique MAC address.
-    thermo_id_b : inout std_logic;
+    onewire_b : inout std_logic;
 
+    ---------------------------------------------------------------------------
+    -- UART
+    ---------------------------------------------------------------------------
     -- UART pins (connected to the mini-USB port)
-    uart_txd_o : out std_logic;
     uart_rxd_i : in  std_logic;
+    uart_txd_o : out std_logic;
 
-    -------------------------------------------------------------------------
-    -- Necessary Digital I/O mezzanine pins
-    -------------------------------------------------------------------------
+    ---------------------------------------------------------------------------
+    -- Flash memory SPI interface
+    ---------------------------------------------------------------------------
+
+    flash_sclk_o : out std_logic;
+    flash_ncs_o  : out std_logic;
+    flash_mosi_o : out std_logic;
+    flash_miso_i : in  std_logic;
+
+    ---------------------------------------------------------------------------
+    -- Miscellanous SPEC pins
+    ---------------------------------------------------------------------------
+    -- Red LED next to the SFP: blinking indicates that packets are being
+    -- transferred.
+    led_act_o   : out std_logic;
+    -- Green LED next to the SFP: indicates if the link is up.
+    led_link_o : out std_logic;
+
+    button1_i   : in  std_logic;
+
+    ---------------------------------------------------------------------------
+    -- Digital I/O FMC Pins
+    -- used in this design to output WR-aligned 1-PPS (in Slave mode) and input
+    -- 10MHz & 1-PPS from external reference (in GrandMaster mode).
+    ---------------------------------------------------------------------------
+
+    -- Clock input from LEMO 5 on the mezzanine front panel. Used as 10MHz
+    -- external reference input.
+    dio_clk_p_i : in std_logic;
+    dio_clk_n_i : in std_logic;
 
     -- Differential inputs, dio_p_i(N) inputs the current state of I/O (N+1) on
     -- the mezzanine front panel.
@@ -170,26 +240,51 @@ entity spec_top is
     -- panel is 50-ohm terminated
     dio_term_en_o : out std_logic_vector(4 downto 0);
 
-    -- Two LEDs on the mezzanine panel
+    -- Two LEDs on the mezzanine panel. Only Top one is currently used - to
+    -- blink 1-PPS.
     dio_led_top_o : out std_logic;
-    dio_led_bot_o : out std_logic
-    );
-end spec_top;
+    dio_led_bot_o : out std_logic;
 
-architecture rtl of spec_top is
+    -- I2C interface for accessing FMC EEPROM. Deprecated, was used in
+    -- pre-v3.0 releases to store WRPC configuration. Now we use Flash for this.
+    dio_scl_b : inout std_logic;
+    dio_sda_b : inout std_logic
+
+  );
+end entity spec_top;
+
+architecture top of spec_top is
 
   -----------------------------------------------------------------------------
   -- Constants
   -----------------------------------------------------------------------------
-
-  -- Ethertype we are going to use for the streamer protocol. Value 0xdbff
-  -- is default for standard WR Core CPU firmware. Other values need re-configuring
-  -- the WR Core packet filter.
-  constant c_STREAMER_ETHERTYPE : std_logic_vector(15 downto 0) := x"dbff";
-
   -- Trigger-to-output value, in 8 ns ticks. Set by default to 20us to work
   -- for 10km+ fibers.
   constant c_PULSE_DELAY : integer := 30000/8;
+
+  constant tx_streamer_params : t_tx_streamer_params := (
+      -- We send each timestamp (40 TAI bits + 28
+      -- cycle bits) as a single parallel data word of 68 bits. Since data width
+      -- must be a multiple of 16 bits, we round it up to 80 bits).
+      data_width          => 80,
+      buffer_size         => 256,--default
+      -- TX threshold = 4 data words. (it's anyway ignored because of
+      -- g_tx_timeout setting  below)
+      threshold           => 4,
+      max_words_per_frame => 256,--default
+      -- minimum timeout: sends packets asap to minimize latency (but it's not
+      -- good for large amounts of data due to encapsulation overhead)
+      timeout             => 1,
+      escape_code_disable => FALSE--default
+      );
+  constant rx_streamer_params : t_rx_streamer_params := (
+      -- data width must be identical as in the TX streamer - otherwise, we'll be receiving
+      -- rubbish
+      data_width            => 80,
+      buffer_size           => 256,  --default
+      escape_code_disable   => FALSE,--default
+      expected_words_number => 0     --default
+      );
 
   -----------------------------------------------------------------------------
   -- Component declarations
@@ -252,51 +347,45 @@ architecture rtl of spec_top is
       q_cycles_o : out std_logic_vector(27 downto 0));
   end component;
 
-
   -----------------------------------------------------------------------------
-  -- Signals declarations
+  -- Signals
   -----------------------------------------------------------------------------
 
-  -- System reset
-  signal rst_n : std_logic;
+  -- clock and reset
+  signal clk_sys_62m5   : std_logic;
+  signal rst_sys_62m5_n : std_logic;
+  signal rst_ref_125m_n : std_logic;
+  signal clk_ref_125m   : std_logic;
+  signal clk_ref_div2   : std_logic;
+  signal clk_ext_10m    : std_logic;
 
-  -- System clock (62.5 MHz)
-  signal clk_sys : std_logic;
+  -- I2C EEPROM
+  signal eeprom_sda_in  : std_logic;
+  signal eeprom_sda_out : std_logic;
+  signal eeprom_scl_in  : std_logic;
+  signal eeprom_scl_out : std_logic;
 
-  -- White Rabbit reference clock (125 MHz)
-  signal clk_ref : std_logic;
+  -- SFP
+  signal sfp_sda_in  : std_logic;
+  signal sfp_sda_out : std_logic;
+  signal sfp_scl_in  : std_logic;
+  signal sfp_scl_out : std_logic;
 
-  -- White Rabbit DDMTD helper clock (62.5-and-something MHz)
-  signal clk_dmtd : std_logic;
+  -- OneWire
+  signal onewire_data : std_logic;
+  signal onewire_oe   : std_logic;
 
-  -- 125 MHz GTP clock coming from a dedicated input pin (same as clk_ref)
-  signal clk_gtp : std_logic;
+  -- LEDs and GPIO
+  signal wrc_abscal_txts_out : std_logic;
+  signal wrc_abscal_rxts_out : std_logic;
+  signal wrc_pps_out : std_logic;
+  signal wrc_pps_led : std_logic;
+  signal wrc_pps_in  : std_logic;
+  signal svec_led    : std_logic_vector(15 downto 0);
 
-  -- PLL & clock buffer wiring
-  signal clk_20m_vcxo_buf     : std_logic;
-  signal pllout_clk_sys       : std_logic;
-  signal pllout_clk_fb_pllref : std_logic;
-  signal pllout_clk_dmtd      : std_logic;
-  signal pllout_clk_fb_dmtd   : std_logic;
-
-  -- Oscillator control DAC wiring
-  signal dac_hpll_load_p1 : std_logic;
-  signal dac_dpll_load_p1 : std_logic;
-  signal dac_hpll_data    : std_logic_vector(15 downto 0);
-  signal dac_dpll_data    : std_logic_vector(15 downto 0);
-
-  -- PHY wiring
-  signal phy_tx_data      : std_logic_vector(7 downto 0);
-  signal phy_tx_k         : std_logic_vector(0 downto 0);
-  signal phy_tx_disparity : std_logic;
-  signal phy_tx_enc_err   : std_logic;
-  signal phy_rx_data      : std_logic_vector(7 downto 0);
-  signal phy_rx_rbclk     : std_logic;
-  signal phy_rx_k         : std_logic_vector(0 downto 0);
-  signal phy_rx_enc_err   : std_logic;
-  signal phy_rx_bitslide  : std_logic_vector(3 downto 0);
-  signal phy_rst          : std_logic;
-  signal phy_loopen       : std_logic;
+  -- DIO Mezzanine
+  signal dio_in  : std_logic_vector(4 downto 0);
+  signal dio_out : std_logic_vector(4 downto 0);
 
   -- Timing interface
   signal tm_time_valid : std_logic;
@@ -319,26 +408,10 @@ architecture rtl of spec_top is
   signal adjusted_ts_tai    : std_logic_vector(39 downto 0);
   signal adjusted_ts_cycles : std_logic_vector(27 downto 0);
 
+  signal pulse_out, pulse_out_long, pulse_in, pulse_in_synced, pps_long : std_logic;
 
-  -- Digital I/O mezzanine wiring
-  signal dio_in  : std_logic_vector(4 downto 0);
-  signal dio_out : std_logic_vector(4 downto 0);
-
-  -- Misc signals
-  signal pps_p, pps_long : std_logic;
-
-  signal sfp_scl_out, sfp_sda_out   : std_logic;
-  signal fmc_scl_out, fmc_sda_out   : std_logic;
-  signal owr_enable, owr_in         : std_logic_vector(1 downto 0);
-  signal pulse_out, pulse_in_synced : std_logic;
-
-
-  -- Fabric interface signals, passing packets between the WR Core and the streamers
-  signal wrcore_snk_out : t_wrf_sink_out;
-  signal wrcore_snk_in  : t_wrf_sink_in;
-  signal wrcore_src_out : t_wrf_source_out;
-  signal wrcore_src_in  : t_wrf_source_in;
-
+  signal tx_streamer_cfg      : t_tx_streamer_cfg := c_tx_streamer_cfg_default;
+  signal rx_streamer_cfg      : t_rx_streamer_cfg := c_rx_streamer_cfg_default;
 
   -- ChipScope for histogram readout/debugging
 
@@ -360,325 +433,109 @@ architecture rtl of spec_top is
   signal control0                   : std_logic_vector(35 downto 0);
   signal trig0, trig1, trig2, trig3 : std_logic_vector(31 downto 0);
 
-  signal rx_latency       : std_logic_vector(27 downto 0);
-  signal rx_latency_valid : std_logic;
-  
-begin
+
+
+begin  -- architecture top
 
   -----------------------------------------------------------------------------
-  -- System/reference clock buffers and PLL
+  -- The WR PTP core board package
   -----------------------------------------------------------------------------
 
-  -- Input differential buffer on the 125 MHz reference clock
-  U_Reference_Clock_Buffer : IBUFGDS
-    generic map (
-      DIFF_TERM    => true,             -- Differential Termination
-      IBUF_LOW_PWR => true,      -- Low power (TRUE) vs. performance (FALSE)
-      IOSTANDARD   => "DEFAULT")  -- take the I/O standard from the UCF file
-    port map (
-      O  => clk_ref,                    -- Buffer output
-      I  => clk_125m_pllref_p_i,  -- Diff_p buffer input (connect directly to top-level port)
-      IB => clk_125m_pllref_n_i  -- Diff_n buffer input (connect directly to top-level port)
-      );
-
-  -- ... and the PLL that derives 62.5 MHz system clock from the 125 MHz reference
-  U_System_Clock_PLL : PLL_BASE
-    generic map (
-      BANDWIDTH          => "OPTIMIZED",
-      CLK_FEEDBACK       => "CLKFBOUT",
-      COMPENSATION       => "INTERNAL",
-      DIVCLK_DIVIDE      => 1,
-      CLKFBOUT_MULT      => 8,
-      CLKFBOUT_PHASE     => 0.000,
-      CLKOUT0_DIVIDE     => 16,  -- Output 0: 125 MHz * 8 / 16 = 62.5 MHz
-      CLKOUT0_PHASE      => 0.000,
-      CLKOUT0_DUTY_CYCLE => 0.500,
-      CLKOUT1_DIVIDE     => 16,
-      CLKOUT1_PHASE      => 0.000,
-      CLKOUT1_DUTY_CYCLE => 0.500,
-      CLKOUT2_DIVIDE     => 16,
-      CLKOUT2_PHASE      => 0.000,
-      CLKOUT2_DUTY_CYCLE => 0.500,
-      CLKIN_PERIOD       => 8.0,
-      REF_JITTER         => 0.016)
-    port map (
-      CLKFBOUT => pllout_clk_fb_pllref,
-      CLKOUT0  => pllout_clk_sys,
-      CLKOUT1  => open,
-      CLKOUT2  => open,
-      CLKOUT3  => open,
-      CLKOUT4  => open,
-      CLKOUT5  => open,
-      LOCKED   => open,
-      RST      => '0',
-      CLKFBIN  => pllout_clk_fb_pllref,
-      CLKIN    => clk_ref);
-
-  -- A buffer to drive system clock generated by the PLL above as a global
-  -- clock net.
-  U_System_Clock_Buffer : BUFG
-    port map (
-      O => clk_sys,
-      I => pllout_clk_sys);
-
-  -----------------------------------------------------------------------------
-  -- DMTD clock buffers and PLL
-  -----------------------------------------------------------------------------
-
-  -- A global clock buffer to drive the PLL input pin from the 20 MHz VCXO clock
-  -- input pin on the FPGA
-  U_DMTD_VCXO_Clock_Buffer : BUFG
-    port map (
-      O => clk_20m_vcxo_buf,
-      I => clk_20m_vcxo_i);
-
-  -- The PLL that multiplies the 20 MHz VCXO input to obtain the DDMTD
-  -- clock, that is sligthly offset in frequency wrs to the reference 125 MHz clock.
-  -- The WR core additionally requires the DDMTD clock frequency to be divided
-  -- by 2 (so instead of 125-point-something MHz we get 62.5-point-something
-  -- MHz). This is to improve internal DDMTD phase detector timing.
-  U_DMTD_Clock_PLL : PLL_BASE
-    generic map (
-      BANDWIDTH          => "OPTIMIZED",
-      CLK_FEEDBACK       => "CLKFBOUT",
-      COMPENSATION       => "INTERNAL",
-      DIVCLK_DIVIDE      => 1,
-      CLKFBOUT_MULT      => 50,
-      CLKFBOUT_PHASE     => 0.000,
-      CLKOUT0_DIVIDE     => 16,         -- 62.5 MHz
-      CLKOUT0_PHASE      => 0.000,
-      CLKOUT0_DUTY_CYCLE => 0.500,
-      CLKOUT1_DIVIDE     => 16,         -- 62.5 MHz
-      CLKOUT1_PHASE      => 0.000,
-      CLKOUT1_DUTY_CYCLE => 0.500,
-      CLKOUT2_DIVIDE     => 8,
-      CLKOUT2_PHASE      => 0.000,
-      CLKOUT2_DUTY_CYCLE => 0.500,
-      CLKIN_PERIOD       => 50.0,
-      REF_JITTER         => 0.016)
-    port map (
-      CLKFBOUT => pllout_clk_fb_dmtd,
-      CLKOUT0  => pllout_clk_dmtd,
-      CLKOUT1  => open,
-      CLKOUT2  => open,
-      CLKOUT3  => open,
-      CLKOUT4  => open,
-      CLKOUT5  => open,
-      LOCKED   => open,
-      RST      => '0',
-      CLKFBIN  => pllout_clk_fb_dmtd,
-      CLKIN    => clk_20m_vcxo_buf);
-
-  -- A buffer to drive system clock generated by the PLL above as a global
-  -- clock net.
-  U_DMTD_Clock_Buffer : BUFG
-    port map (
-      O => clk_dmtd,
-      I => pllout_clk_dmtd);
-
-
-  ------------------------------------------------------------------------------
-  -- Dedicated clock for GTP
-  ------------------------------------------------------------------------------
-  U_Dedicated_GTP_Clock_Buffer : IBUFGDS
-    generic map(
-      DIFF_TERM    => true,
-      IBUF_LOW_PWR => true,
-      IOSTANDARD   => "DEFAULT")
-    port map (
-      O  => clk_gtp,
-      I  => fpga_pll_ref_clk_101_p_i,
-      IB => fpga_pll_ref_clk_101_n_i
-      );
-
-  -----------------------------------------------------------------------------
-  -- Reset signal generator
-  -----------------------------------------------------------------------------
-
-  -- Produces a clean reset signal upon the following
-  -- conditions:
-  -- - device is powered up
-  -- - a PCI-Express bus reset is requested
-  -- - button 1 is pressed.
-  U_Reset_Gen : spec_reset_gen
-    port map (
-      clk_sys_i        => clk_sys,
-      rst_pcie_n_a_i   => L_RST_N,
-      rst_button_n_a_i => button1_n_i,
-      rst_n_o          => rst_n);
-
-  -----------------------------------------------------------------------------
-  -- The WR Core part. The simplest functional instantiation.
-  -----------------------------------------------------------------------------
-
-  U_The_WR_Core : xwr_core
+  cmp_xwrc_board_spec : xwrc_board_spec
     generic map (
       g_simulation                => g_simulation,
-      g_with_external_clock_input => true,
-      --
-      g_phys_uart                 => true,
-      g_virtual_uart              => true,
-      g_aux_clks                  => 0,
-      g_ep_rxbuf_size             => 1024,
-      g_tx_runt_padding           => true,
-      g_pcs_16bit                 => false,
+      g_with_external_clock_input => TRUE,
       g_dpram_initf               => g_dpram_initf,
---       g_aux_sdb                   => c_etherbone_sdb, --ML
-      g_dpram_size                => 131072/4,
-      g_interface_mode            => PIPELINED,
-      g_address_granularity       => BYTE)
+      g_fabric_iface              => STREAMERS,
+      g_tx_streamer_params        => tx_streamer_params,
+      g_rx_streamer_params        => rx_streamer_params)
     port map (
-      -- Clocks & resets connections
-      clk_sys_i  => clk_sys,
-      clk_ref_i  => clk_ref,
-      clk_dmtd_i => clk_dmtd,
-      rst_n_i    => rst_n,
+      areset_n_i          => button1_i,
+      areset_edge_n_i     => gn_rst_n,
+      clk_20m_vcxo_i      => clk_20m_vcxo_i,
+      clk_125m_pllref_p_i => clk_125m_pllref_p_i,
+      clk_125m_pllref_n_i => clk_125m_pllref_n_i,
+      clk_125m_gtp_n_i    => clk_125m_gtp_n_i,
+      clk_125m_gtp_p_i    => clk_125m_gtp_p_i,
+      clk_10m_ext_i       => clk_ext_10m,
+      clk_sys_62m5_o      => clk_sys_62m5,
+      clk_ref_125m_o      => clk_ref_125m,
+      rst_sys_62m5_n_o    => rst_sys_62m5_n,
+      rst_ref_125m_n_o    => rst_ref_125m_n,
 
-      -- Fabric interface pins
-      wrf_snk_i => wrcore_snk_in,
-      wrf_snk_o => wrcore_snk_out,
-      wrf_src_i => wrcore_src_in,
-      wrf_src_o => wrcore_src_out,
+      plldac_sclk_o       => plldac_sclk_o,
+      plldac_din_o        => plldac_din_o,
+      pll25dac_cs_n_o     => pll25dac_cs_n_o,
+      pll20dac_cs_n_o     => pll20dac_cs_n_o,
 
-      -- Timing interface pins
-      tm_time_valid_o => tm_time_valid,
-      tm_tai_o        => tm_tai,
-      tm_cycles_o     => tm_cycles,
+      sfp_txp_o           => sfp_txp_o,
+      sfp_txn_o           => sfp_txn_o,
+      sfp_rxp_i           => sfp_rxp_i,
+      sfp_rxn_i           => sfp_rxn_i,
+      sfp_det_i           => sfp_mod_def0_i,
+      sfp_sda_i           => sfp_sda_in,
+      sfp_sda_o           => sfp_sda_out,
+      sfp_scl_i           => sfp_scl_in,
+      sfp_scl_o           => sfp_scl_out,
+      sfp_rate_select_o   => sfp_rate_select_o,
+      sfp_tx_fault_i      => sfp_tx_fault_i,
+      sfp_tx_disable_o    => sfp_tx_disable_o,
+      sfp_los_i           => sfp_los_i,
 
-      -- PHY connections
-      phy_ref_clk_i      => clk_ref,
-      phy_tx_data_o      => phy_tx_data,
-      phy_tx_k_o         => phy_tx_k,
-      phy_tx_disparity_i => phy_tx_disparity,
-      phy_tx_enc_err_i   => phy_tx_enc_err,
-      phy_rx_data_i      => phy_rx_data,
-      phy_rx_rbclk_i     => phy_rx_rbclk,
-      phy_rx_k_i         => phy_rx_k,
-      phy_rx_enc_err_i   => phy_rx_enc_err,
-      phy_rx_bitslide_i  => phy_rx_bitslide,
-      phy_rst_o          => phy_rst,
-      phy_loopen_o       => phy_loopen,
+      eeprom_sda_i        => eeprom_sda_in,
+      eeprom_sda_o        => eeprom_sda_out,
+      eeprom_scl_i        => eeprom_scl_in,
+      eeprom_scl_o        => eeprom_scl_out,
 
-      -- Oscillator control DACs connections
-      dac_hpll_load_p1_o => dac_hpll_load_p1,
-      dac_hpll_data_o    => dac_hpll_data,
-      dac_dpll_load_p1_o => dac_dpll_load_p1,
-      dac_dpll_data_o    => dac_dpll_data,
+      onewire_i           => onewire_data,
+      onewire_oen_o       => onewire_oe,
+      -- Uart
+      uart_rxd_i          => uart_rxd_i,
+      uart_txd_o          => uart_txd_o,
+      -- SPI Flash
+      flash_sclk_o        => flash_sclk_o,
+      flash_ncs_o         => flash_ncs_o,
+      flash_mosi_o        => flash_mosi_o,
+      flash_miso_i        => flash_miso_i,
 
-      -- Miscellanous pins
-      uart_rxd_i => uart_rxd_i,
-      uart_txd_o => uart_txd_o,
+      wrs_tx_data_i       => tx_data,
+      wrs_tx_valid_i      => tx_valid,
+      wrs_tx_dreq_o       => tx_dreq,
+      -- every data word we send is the last one, as a single transfer in our
+      -- case contains only one 80-bit data word.
+      wrs_tx_last_i       => '1',
+      wrs_tx_flush_i      => '0',
+      wrs_rx_first_o      => open,
+      wrs_rx_last_o       => open,
+      wrs_rx_data_o       => rx_data,
+      wrs_rx_valid_o      => rx_valid,
+      wrs_rx_dreq_i       => '1',
+      wrs_tx_cfg_i        => tx_streamer_cfg,
+      wrs_rx_cfg_i        => rx_streamer_cfg,
 
-      scl_o => fmc_scl_out,
-      scl_i => fmc_scl_b,
-      sda_o => fmc_sda_out,
-      sda_i => fmc_sda_b,
+      tm_link_up_o        => open,
+      tm_time_valid_o     => tm_time_valid,
+      tm_tai_o            => tm_tai,
+      tm_cycles_o         => tm_cycles,
 
-      sfp_scl_o => sfp_scl_out,
-      sfp_scl_i => sfp_scl_b,
-      sfp_sda_o => sfp_sda_out,
-      sfp_sda_i => sfp_sda_b,
+      abscal_txts_o       => wrc_abscal_txts_out,
+      abscal_rxts_o       => wrc_abscal_rxts_out,
 
-      sfp_det_i => sfp_det_i,
+      pps_ext_i           => wrc_pps_in,
+      pps_p_o             => wrc_pps_out,
+      pps_led_o           => wrc_pps_led,
+      led_link_o          => led_link_o,
+      led_act_o           => led_act_o);
 
-      led_link_o => sfp_led_green_o,
-      led_act_o  => sfp_led_red_o,
+  -- Tristates for SFP EEPROM
+  sfp_mod_def1_b <= '0' when sfp_scl_out = '0' else 'Z';
+  sfp_mod_def2_b <= '0' when sfp_sda_out = '0' else 'Z';
+  sfp_scl_in     <= sfp_mod_def1_b;
+  sfp_sda_in     <= sfp_mod_def2_b;
 
-      owr_en_o => owr_enable,
-      owr_i    => owr_in,
-
-      -- The PPS output, which we'll drive to the DIO mezzanine channel 1.
-      pps_p_o => pps_p
-      );
-
-
-  -----------------------------------------------------------------------------
-  -- Dual channel SPI DAC driver
-  -----------------------------------------------------------------------------
-  
-  U_DAC_ARB : spec_serial_dac_arb
-    generic map (
-      g_invert_sclk    => false,        -- configured for 2xAD5662. Don't
-                                        -- change the parameters.
-      g_num_extra_bits => 8)
-
-    port map (
-      clk_i   => clk_sys,
-      rst_n_i => rst_n,
-
-      -- DAC 1 controls the main (clk_ref) oscillator
-      val1_i  => dac_dpll_data,
-      load1_i => dac_dpll_load_p1,
-
-      -- DAC 2 controls the helper (clk_ddmtd) oscillator
-      val2_i  => dac_hpll_data,
-      load2_i => dac_hpll_load_p1,
-
-      dac_cs_n_o(0) => dac_cs1_n_o,
-      dac_cs_n_o(1) => dac_cs2_n_o,
-      dac_sclk_o    => dac_sclk_o,
-      dac_din_o     => dac_din_o);
-
-
-  -----------------------------------------------------------------------------
-  -- Gigabit Ethernet PHY using Spartan-6 GTP transceviver.
-  -----------------------------------------------------------------------------
-  
-  U_GTP : wr_gtp_phy_spartan6
-    generic map (
-      g_enable_ch0 => 0,
-      -- each GTP has two channels, so does the PHY module.
-      -- The SFP on the SPEC is connected to the 2nd channel. 
-      g_enable_ch1 => 1,
-      g_simulation => g_simulation)
-    port map (
-      gtp0_clk_i => '0',
-      gtp1_clk_i => clk_gtp,
-
-      ch1_ref_clk_i => clk_ref,
-
-      -- TX code stream
-      ch1_tx_data_i      => phy_tx_data,
-      -- TX control/data select
-      ch1_tx_k_i         => phy_tx_k(0),
-      -- TX disparity of the previous symbol
-      ch1_tx_disparity_o => phy_tx_disparity,
-      -- TX encoding error
-      ch1_tx_enc_err_o   => phy_tx_enc_err,
-
-      -- RX recovered byte clock
-      ch1_rx_rbclk_o    => phy_rx_rbclk,
-      -- RX data stream
-      ch1_rx_data_o     => phy_rx_data,
-      -- RX control/data select
-      ch1_rx_k_o        => phy_rx_k(0),
-      -- RX encoding error detection
-      ch1_rx_enc_err_o  => phy_rx_enc_err,
-      -- RX path comma alignment bit slide delay (crucial for accuracy!)
-      ch1_rx_bitslide_o => phy_rx_bitslide,
-
-      -- Channel reset
-      ch1_rst_i    => phy_rst,
-      -- Loopback mode enable
-      ch1_loopen_i => phy_loopen,
-
-      pad_txn1_o => sfp_txn_o,
-      pad_txp1_o => sfp_txp_o,
-      pad_rxn1_i => sfp_rxn_i,
-      pad_rxp1_i => sfp_rxp_i);
-
-  -- pps_p signal from the WR core is 8ns- (single clk_ref cycle) wide. This is
-  -- too short to drive outputs such as LEDs. Let's extend its length to some
-  -- human-noticeable value
-  U_Extend_PPS : gc_extend_pulse
-    generic map (
-      g_width => 10000000)              -- output length: 10000000x8ns = 80 ms.
-
-    port map (
-      clk_i      => clk_ref,
-      rst_n_i    => rst_n,
-      pulse_i    => pps_p,
-      extended_o => pps_long);
+  -- tri-state onewire access
+  onewire_b    <= '0' when (onewire_oe = '1') else 'Z';
+  onewire_data <= onewire_b;
 
   -----------------------------------------------------------------------------
   -- Trigger distribution stuff - timestamping & packet transmission part
@@ -688,10 +545,10 @@ begin
     generic map (
       g_ref_clk_rate => 125000000)
     port map (
-      clk_ref_i => clk_ref,
-      clk_sys_i => clk_sys,
-      rst_n_i   => rst_n,
-      pulse_a_i => dio_in(1),           -- I/O 2 = our pulse input
+      clk_ref_i       => clk_ref_125m,
+      clk_sys_i       => clk_sys_62m5,
+      rst_n_i         => rst_sys_62m5_n,
+      pulse_a_i       => pulse_in,           -- I/O 2 = our pulse input
 
       tm_time_valid_i => tm_time_valid,  -- timing ports of the WR Core
       tm_tai_i        => tm_tai,
@@ -700,45 +557,6 @@ begin
       tag_tai_o    => tx_tag_tai,       -- time tag of the latest pulse
       tag_cycles_o => tx_tag_cycles,
       tag_valid_o  => tx_tag_valid);
-
-  -- Streamer instantiation. 
-  -- default config: accept broadcast and streamers' Ethertype
-  U_TX_Streamer : xtx_streamer
-    generic map (
-      -- We send each timestamp (40 TAI bits + 28
-      -- cycle bits) as a single parallel data word of 68 bits. Since data width
-      -- must be a multiple of 16 bits, we round it up to 80 bits).
-      g_data_width => 80,
-
-      -- TX threshold = 4 data words. (it's anyway ignored because of
-      -- g_tx_timeout setting  below)
-      g_tx_threshold => 4,
-
-      -- minimum timeout: sends packets asap to minimize latency (but it's not
-      -- good for large amounts of data due to encapsulation overhead)
-      g_tx_timeout => 1,
-      
-      -- when simulating, the startup countdown is shorter
-      g_simulation => g_simulation)
-    port map (
-      clk_sys_i => clk_sys,
-      rst_n_i   => rst_n,
-      -- Wire the packet source of the streamer to the packet sink of the WR Core
-      src_i     => wrcore_snk_out,
-      src_o     => wrcore_snk_in,
-
-      clk_ref_i => clk_ref,
-      tm_time_valid_i => tm_time_valid,
-      tm_tai_i        => tm_tai,
-      tm_cycles_i     => tm_cycles,
-
-      tx_data_i  => tx_data,
-      tx_valid_i => tx_valid,
-      tx_dreq_o  => tx_dreq,
-      -- every data word we send is the last one, as a single transfer in our
-      -- case contains only one 80-bit data word.
-      tx_last_p1_i  => '1');
-
 
   -- Pack the time stamp into a 80-bit data word for the streamer
   tx_data(27 downto 0)       <= tx_tag_cycles;
@@ -753,51 +571,23 @@ begin
 
   -- tx_dreq_o output of the streamer is asserted one clock cycle in advance,
   -- while the line above drives the valid signal combinatorially. We need a delay.
-  process(clk_sys)
+  process(clk_sys_62m5)
   begin
-    if rising_edge(clk_sys) then
+    if rising_edge(clk_sys_62m5) then
       tx_dreq_d0 <= tx_dreq;
     end if;
   end process;
 
-
   -----------------------------------------------------------------------------
   -- Trigger distribution stuff - packet reception and pulse generation
   -----------------------------------------------------------------------------
-
-  -- Streamer instantiation
-  -- default config: accept broadcast and streamers' Ethertype
-  U_RX_Streamer : xrx_streamer
-    generic map (
-      -- data width must be identical as in the TX streamer - otherwise, we'll be receiving
-      -- rubbish
-      g_data_width        => 80)
-    port map (
-      clk_sys_i => clk_sys,
-      rst_n_i   => rst_n,
-
-      -- Wire the packet sink of the streamer to the packet source of the WR Core
-      snk_i => wrcore_src_out,
-      snk_o => wrcore_src_in,
-
-      clk_ref_i => clk_ref,
-      tm_time_valid_i => tm_time_valid,
-      tm_tai_i        => tm_tai,
-      tm_cycles_i     => tm_cycles,
-
-      rx_data_o               => rx_data,
-      rx_valid_o              => rx_valid,
-      rx_dreq_i               => '1',
-      rx_latency_o            => rx_latency,
-      rx_latency_valid_o      => rx_latency_valid);
-
   -- Add a fixed delay to the reveived trigger timestamp
   U_Add_Delay1 : timestamp_adder
     generic map (
       g_ref_clk_rate => 125000000)
     port map (
-      clk_i   => clk_sys,
-      rst_n_i => rst_n,
+      clk_i   => clk_sys_62m5,
+      rst_n_i => rst_sys_62m5_n,
       valid_i => rx_valid,
 
       a_tai_i    => rx_data(32 + 39 downto 32),
@@ -816,9 +606,9 @@ begin
     generic map (
       g_ref_clk_rate => 125000000)
     port map (
-      clk_ref_i       => clk_ref,
-      clk_sys_i       => clk_sys,
-      rst_n_i         => rst_n,
+      clk_ref_i       => clk_ref_125m,
+      clk_sys_i       => clk_sys_62m5,
+      rst_n_i         => rst_sys_62m5_n,
       pulse_o         => pulse_out,
       tm_time_valid_i => tm_time_valid,
       tm_tai_i        => tm_tai,
@@ -826,6 +616,28 @@ begin
       trig_tai_i      => adjusted_ts_tai,
       trig_cycles_i   => adjusted_ts_cycles,
       trig_valid_i    => adjusted_ts_valid);
+
+
+
+  -- pps_p signal from the WR core is 8ns- (single clk_ref cycle) wide. This is
+  -- too short to drive outputs such as LEDs. Let's extend its length to some
+  -- human-noticeable value
+  U_Extend_PPS : gc_extend_pulse
+    generic map (
+      g_width => 10000000)              -- output length: 10000000x8ns = 80 ms.
+
+    port map (
+      clk_i      => clk_ref_125m,
+      rst_n_i    => rst_ref_125m_n,
+      pulse_i    => wrc_pps_out,
+      extended_o => pps_long);
+
+  U_Sync_Trigger_Pulse : gc_sync_ffs
+    port map (
+      clk_i    => clk_ref_125m,
+      rst_n_i  => rst_ref_125m_n,
+      data_i   => pulse_in,
+      synced_o => pulse_in_synced);
 
   -- pulse_gen above generates pulses that are single-cycle long. This is too
   -- short to observe on a scope, particularly with slower time base (to see 2
@@ -835,58 +647,40 @@ begin
       -- 1000 * 8ns = 8 us
       g_width => 1000)
     port map (
-      clk_i      => clk_ref,
-      rst_n_i    => rst_n,
+      clk_i      => clk_ref_125m,
+      rst_n_i    => rst_ref_125m_n,
       pulse_i    => pulse_out,
-      extended_o => dio_out(2));
+      extended_o => pulse_out_long);
 
-  -----------------------------------------------------------------------------
-  -- Differential buffers for the Digital I/O Mezzanine
-  -----------------------------------------------------------------------------
-  gen_dio_iobufs : for i in 0 to 4 generate
-    U_Input_Buffer : IBUFDS
+
+  ------------------------------------------------------------------------------
+  -- Digital I/O FMC Mezzanine connections
+  ------------------------------------------------------------------------------
+  gen_dio_iobufs: for I in 0 to 4 generate
+    U_ibuf: IBUFDS
       generic map (
         DIFF_TERM => true)
       port map (
         O  => dio_in(i),
         I  => dio_p_i(i),
-        IB => dio_n_i(i)
-        );
+        IB => dio_n_i(i));
 
-    U_Output_Buffer : OBUFDS
+    U_obuf : OBUFDS
       port map (
         I  => dio_out(i),
         O  => dio_p_o(i),
-        OB => dio_n_o(i)
-        );
-  end generate gen_dio_iobufs;
+        OB => dio_n_o(i));
+  end generate;
 
-  -----------------------------------------------------------------------------
-  -- Combinatorial pins, tristate buffers, etc.
-  -----------------------------------------------------------------------------
-
-  -- The SFP is permanently enabled
-  sfp_tx_disable_o  <= '0';
-  sfp_rate_select_b <= '0';
-
-  -- Open-drain driver for the Onewire bus
-  thermo_id_b <= '0' when owr_enable(0) = '1' else 'Z';
-  owr_in(0)   <= thermo_id_b;
-
-  -- Open-drain drivers for the I2C busses
-  fmc_scl_b <= '0' when fmc_scl_out = '0' else 'Z';
-  fmc_sda_b <= '0' when fmc_sda_out = '0' else 'Z';
-
-  sfp_scl_b <= '0' when sfp_scl_out = '0' else 'Z';
-  sfp_sda_b <= '0' when sfp_sda_out = '0' else 'Z';
-
-  -- Connect the PPS output to the I/O 1 of the Digital I/O mezzanine
-  dio_out(0) <= pps_long;
-
-  -- Drive unused DIO outputs to 0.
-  dio_out(4) <= dio_out(2);
-  dio_out(3) <= dio_out(2);
-  dio_out(1) <= '0';
+  -- DIO_0: (extended) PPS out
+  dio_out(0)    <= pps_long;
+  -- DIO_1: TX trigger pulse in
+  pulse_in      <= dio_in(1);
+  dio_out(1)    <= '0';
+  -- DIO_2: (extended) Pulse out (delayed streamer reception)
+  dio_out(2)    <= pulse_out_long;
+  dio_out(3)    <= pulse_out_long;
+  dio_out(4)    <= pulse_out_long;
 
   -- all DIO connectors except I/O 2 (trigger input) are outputs
   dio_oe_n_o(0)          <= '0';
@@ -898,31 +692,43 @@ begin
   dio_oe_n_o(1)          <= '1';
   dio_oe_n_o(4 downto 2) <= (others => '0');
 
-  dio_term_en_o(1)          <= '1';
   dio_term_en_o(0)          <= '0';
+  dio_term_en_o(1)          <= '1';
   dio_term_en_o(4 downto 2) <= (others => '0');
 
 
-  -- Drive one of the LEDs on the mezzanine with out PPS signal (pps_led is a
-  -- longer version that can be used to directly drive a LED)
-  dio_led_top_o <= pps_long;
+  -- EEPROM I2C tri-states
+  dio_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
+  eeprom_sda_in <= dio_sda_b;
+  dio_scl_b <= '0' when (eeprom_scl_out = '0') else 'Z';
+  eeprom_scl_in <= dio_scl_b;
 
-  -- The other LED on the DIO serves as an indicator of incoming trigger pulses.
+  -- Div by 2 reference clock to LEMO connector
+  process(clk_ref_125m)
+  begin
+    if rising_edge(clk_ref_125m) then
+      clk_ref_div2 <= not clk_ref_div2;
+    end if;
+  end process;
 
-  U_Sync_Trigger_Pulse : gc_sync_ffs
+  cmp_ibugds_extref: IBUFGDS
+    generic map (
+      DIFF_TERM => true)
     port map (
-      clk_i    => clk_ref,
-      rst_n_i  => rst_n,
-      data_i   => dio_in(1),
-      synced_o => pulse_in_synced);
+      O  => clk_ext_10m,
+      I  => dio_clk_p_i,
+      IB => dio_clk_n_i);
+
+  -- LEDs
+  dio_led_top_o <= pps_long;
 
   U_Extend_Trigger_Pulse : gc_extend_pulse
     generic map (
       -- 1000 * 8ns = 8 us
       g_width => 1000)
     port map (
-      clk_i      => clk_ref,
-      rst_n_i    => rst_n,
+      clk_i      => clk_ref_125m,
+      rst_n_i    => rst_ref_125m_n,
       pulse_i    => pulse_in_synced,
       extended_o => dio_led_bot_o);
 
@@ -932,14 +738,13 @@ begin
   CS_ILA : chipscope_ila
     port map (
       CONTROL => CONTROL0,
-      CLK     => clk_sys,
+      CLK     => clk_sys_62m5,
       TRIG0   => TRIG0,
       TRIG1   => TRIG1,
       TRIG2   => TRIG2,
       TRIG3   => TRIG3);
 
-  trig0(27 downto 0) <= rx_latency;
-  trig0(31) <= rx_latency_valid;
+
 
   trig1(31) <= tm_time_valid;
   trig1(27 downto 0) <= tm_cycles;
@@ -952,6 +757,5 @@ begin
   trig3(31) <= rx_valid;
   trig3(27 downto 0) <= rx_data(27 downto 0);
   trig3(30 downto 28) <= rx_data(32 + 2 downto 32);
-  
-  
-end rtl;
+
+end architecture top;
