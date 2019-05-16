@@ -98,7 +98,6 @@ add wave -noupdate -group FixDelay /main/U_RX_Streamer/U_FixLatencyDelay/d_data_
 add wave -noupdate -group FixDelay /main/U_RX_Streamer/U_FixLatencyDelay/d_last_i
 add wave -noupdate -group FixDelay /main/U_RX_Streamer/U_FixLatencyDelay/d_sync_i
 add wave -noupdate -group FixDelay /main/U_RX_Streamer/U_FixLatencyDelay/d_target_ts_en_i
-add wave -noupdate -group FixDelay /main/U_RX_Streamer/U_FixLatencyDelay/d_target_ts_i
 add wave -noupdate -group FixDelay /main/U_RX_Streamer/U_FixLatencyDelay/d_valid_i
 add wave -noupdate -group FixDelay /main/U_RX_Streamer/U_FixLatencyDelay/d_drop_i
 add wave -noupdate -group FixDelay /main/U_RX_Streamer/U_FixLatencyDelay/d_accept_i
@@ -133,22 +132,38 @@ add wave -noupdate -group FixDelay /main/U_RX_Streamer/U_FixLatencyDelay/delay_m
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/clk_i
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/rst_n_i
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/arm_i
-add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/ts_origin_i
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/ts_latency_i
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/tm_time_valid_i
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/tm_tai_i
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/tm_cycles_i
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/match_o
-add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/miss_o
-add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/ts_adjusted
-add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/target_cycles
-add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/delta
-add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/arm_d
-add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/armed
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/tm_cycles_scaled
 add wave -noupdate -expand -group TSCompare /main/U_RX_Streamer/U_FixLatencyDelay/U_Compare/ts_latency_scaled
+add wave -noupdate -expand -group Top /main/clk_ref
+add wave -noupdate -expand -group Top /main/clk_sys
+add wave -noupdate -expand -group Top /main/rst
+add wave -noupdate -expand -group Top /main/tx_streamer_dvalid
+add wave -noupdate -expand -group Top /main/tx_streamer_data
+add wave -noupdate -expand -group Top /main/tx_streamer_flush
+add wave -noupdate -expand -group Top /main/tx_streamer_last
+add wave -noupdate -expand -group Top /main/tx_streamer_dreq
+add wave -noupdate -expand -group Top /main/tx_streamer_sync
+add wave -noupdate -expand -group Top /main/rx_streamer_dreq
+add wave -noupdate -expand -group Top /main/rx_streamer_data
+add wave -noupdate -expand -group Top /main/rx_streamer_dvalid
+add wave -noupdate -expand -group Top /main/rx_streamer_lost
+add wave -noupdate -expand -group Top /main/rx_latency
+add wave -noupdate -expand -group Top /main/rx_latency_valid
+add wave -noupdate -expand -group Top /main/tm_cycles
+add wave -noupdate -expand -group Top /main/tm_tai
+add wave -noupdate -expand -group Top /main/tx_counter
+add wave -noupdate -expand -group Top /main/rx_streamer_cfg
+add wave -noupdate -expand -group Top /main/tx_streamer_cfg
+add wave -noupdate -expand -group Top /main/src_out
+add wave -noupdate -expand -group Top /main/src_in
+add wave -noupdate -expand -group Top /main/tx_delay_count
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {155661017 ps} 0}
+WaveRestoreCursors {{Cursor 1} {2269068 ps} 0}
 configure wave -namecolwidth 191
 configure wave -valuecolwidth 152
 configure wave -justifyvalue left
@@ -163,4 +178,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {672 us}
+WaveRestoreZoom {0 ps} {10500 ns}

@@ -71,7 +71,7 @@ module main;
    // Size of data record to be used by the streamers - in our case, a 64-bit
    // word.
    parameter g_record_size = 64;
-   parameter g_wr_cycles_per_second = 10000;
+   parameter g_wr_cycles_per_second = 625000;
    
 
    
@@ -295,6 +295,8 @@ module main;
                // Got a record? Compare it against the copy stored in queue.
                automatic t_queue_entry qe = queue.pop_front();
 	       automatic time ts_rx = $time, delta;
+	       const time c_pipeline_delay = 64ns;
+	       
 
 	       if( rx_streamer_data != qe.data )
 		 begin
@@ -302,14 +304,12 @@ module main;
 		 end
 
 
-	       //$display("Tx ts %t rx ts %t", qe.ts, ts_rx);
+//	       $display("Tx ts %t rx ts %t", qe.ts, ts_rx);
 	       
-	       delta = ts_rx - qe.ts - rx_streamer_cfg.fixed_latency * 8ns;
-	       
-	       
+	       delta = ts_rx - qe.ts - rx_streamer_cfg.fixed_latency * 16ns - c_pipeline_delay;
 	       
 	       
-               $display("delta: %t", delta);
+               $display("delta: %.3f us %t", real'(delta) / real'(1us), delta );
                
             end // if (rx_streamer_dvalid)
        end // else: !if(!rst)
