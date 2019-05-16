@@ -1,29 +1,39 @@
+--------------------------------------------------------------------------------
+-- CERN
+-- wr-cores/timing
+-- https://www.ohwr.org/project/wr-cores
+--------------------------------------------------------------------------------
+--
+-- unit name  : pulse_stamper_sync.vhd
+-- author     : Tomasz Wlostowski, based on pulse_stamper by Javier Serrano
+-- description:
+--
+-- this module allows to time stamp pulses that are synchronous to clk_ref
+-- domain, so in the domain of the WR time (i.e. tm_tai_i and tm_cycles_i).
+-- The generated timestamp is then made available in the clk_sys domain.
+--
+--------------------------------------------------------------------------------
+-- Copyright (c) 2019 CERN BE/CO/HT
+--------------------------------------------------------------------------------
+-- GNU LESSER GENERAL PUBLIC LICENSE
+--------------------------------------------------------------------------------
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
+--
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details
+--
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+--
 -------------------------------------------------------------------------------
--- Entity: pulse_stamper
--- File: pulse_stamper.vhd
--- Description: a time-tagger which associates a time-tag with an asyncrhonous
--- input pulse.
--- Author: Javier Serrano (Javier.Serrano@cern.ch)
--- Date: 24 January 2012
--- Version: 0.01
--- Todo: Factor out syncrhonizer in a separate reusable block.
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
---               GNU LESSER GENERAL PUBLIC LICENSE                             
---              -----------------------------------                            
--- This source file is free software; you can redistribute it and/or modify it
--- under the terms of the GNU Lesser General Public License as published by the
--- Free Software Foundation; either version 2.1 of the License, or (at your
--- option) any later version.                           
--- This source is distributed in the hope that it will be useful, but WITHOUT
--- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
--- FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
--- for more details. You should have received a copy of the GNU Lesser General
--- Public License along with this source; if not, download it from
--- http://www.gnu.org/licenses/lgpl-2.1.html                  
--------------------------------------------------------------------------------
-
 
 
 library ieee;
