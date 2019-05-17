@@ -123,14 +123,18 @@ architecture rtl of fixed_latency_delay is
   signal fifo_valid                              : std_logic;
   signal rx_valid : std_logic;
 
-  signal delay_arm : std_logic;
-  signal delay_match : std_logic;
-  signal delay_miss : std_logic;
-  signal delay_timeout : std_logic;
+  signal delay_arm_p : std_logic;
+  signal delay_match_p : std_logic;
+  signal delay_miss_p : std_logic;
+  signal delay_timeout_p : std_logic;
 
   signal fifo_target_ts_error : std_logic;
   signal fifo_target_ts_tai : std_logic_vector(39 downto 0);
   signal fifo_target_ts_cycles : std_logic_vector(27 downto 0);  
+
+  signal clk_data : std_logic;
+  signal rst_n_data : std_logic;
+  
 begin
 
 
@@ -141,11 +145,8 @@ begin
       data_i   => rst_n_i,
       synced_o => rst_n_ref);
 
---  clk_data   <= clk_sys_i when g_use_ref_clock_for_data = 0 else clk_ref_i;
---  rst_n_data <= rst_n_i   when g_use_ref_clock_for_data = 0 else rst_n_ref;
-
---  clk_data   <= clk_ref_i;
---  rst_n_data <= rst_n_ref;
+  clk_data   <= clk_sys_i when g_use_ref_clock_for_data = 0 else clk_ref_i;
+  rst_n_data <= rst_n_i   when g_use_ref_clock_for_data = 0 else rst_n_ref;
   
   dbuf_d(g_data_width-1 downto 0) <= d_data_i;
   dbuf_d(g_data_width) <= d_last_i;
@@ -187,15 +188,15 @@ begin
       d_i        => dbuf_q,
       we_i       => dbuf_q_valid,
       wr_full_o  => wr_full,
-      clk_rd_i   => clk_ref_i,
+      clk_rd_i   => clk_data,
       q_o        => fifo_q,
       rd_i       => fifo_rd,
       rd_empty_o => fifo_empty);
 
-  p_fsm_seq: process(clk_ref_i)
+  p_fsm_seq: process(clk_data)
   begin
-    if rising_edge(clk_ref_i) then
-      if rst_n_ref = '0' then
+    if rising_edge(clk_data) then
+      if rst_n_data = '0' then
         state <= IDLE;
         fifo_valid <= '0';
       else
@@ -226,7 +227,7 @@ begin
 
 
           when TS_WAIT_MATCH =>
-            if delay_miss = '1' or delay_match = '1' or delay_timeout = '1' then
+            if delay_miss_p = '1' or delay_match_p = '1' or delay_timeout_p = '1' then
               if fifo_last = '1' and fifo_empty = '0' then
                 state <= TS_SETUP_MATCH;
               else
@@ -255,11 +256,14 @@ begin
     generic map (
       g_clk_ref_rate => g_clk_ref_rate,
       g_sim_cycle_counter_range => g_sim_cycle_counter_range,
-      g_simulation => g_simulation)
+      g_simulation => g_simulation,
+      g_use_ref_clock_for_data => g_use_ref_clock_for_data)
     port map (
-      clk_i           => clk_ref_i,
-      rst_n_i         => rst_n_ref,
-      arm_i           => delay_arm,
+      clk_ref_i           => clk_ref_i,
+      clk_data_i => clk_data,
+      rst_ref_n_i         => rst_n_ref,
+      rst_data_n_i => rst_n_data,
+      arm_p_i           => delay_arm_p,
       ts_tai_i        => fifo_target_ts_tai,
       ts_cycles_i     => fifo_target_ts_cycles,
       ts_latency_i    => rx_streamer_cfg_i.fixed_latency,
@@ -267,36 +271,36 @@ begin
       tm_time_valid_i => tm_time_valid_i,
       tm_tai_i        => tm_tai_i,
       tm_cycles_i     => tm_cycles_i,
-      timeout_o       => delay_timeout,
-      match_o         => delay_match,
-      late_o          => delay_miss);
+      timeout_p_o       => delay_timeout_p,
+      match_p_o         => delay_match_p,
+      late_p_o          => delay_miss_p);
 
-  p_fsm_comb: process(state, rx_dreq_i, fifo_empty, delay_miss, fifo_last, delay_match, delay_timeout, fifo_target_ts_en, fifo_valid)
+  p_fsm_comb: process(state, rx_dreq_i, fifo_empty, delay_miss_p, fifo_last, delay_match_p, delay_timeout_p, fifo_target_ts_en, fifo_valid)
   begin
     case state is
       when IDLE =>
-        delay_arm <= '0';
+        delay_arm_p <= '0';
         fifo_rd   <= not fifo_empty;
         rx_valid  <= '0';
         rx_late_o <= '0';
         rx_timeout_o <= '0';
 
       when TS_SETUP_MATCH =>
-        delay_arm <= fifo_valid and fifo_target_ts_en;
+        delay_arm_p <= fifo_valid and fifo_target_ts_en;
         fifo_rd   <= '0';
         rx_valid  <= '0';
         rx_late_o <= '0';
         rx_timeout_o <= '0';
 
       when TS_WAIT_MATCH =>
-        delay_arm <= '0';
-        fifo_rd   <= (delay_match or delay_miss or delay_timeout) and not fifo_empty;
-        rx_valid  <= delay_match or delay_miss;
-        rx_late_o <= delay_miss;
-        rx_timeout_o <= delay_timeout;
+        delay_arm_p <= '0';
+        fifo_rd   <= (delay_match_p or delay_miss_p or delay_timeout_p) and not fifo_empty;
+        rx_valid  <= delay_match_p or delay_miss_p;
+        rx_late_o <= delay_miss_p;
+        rx_timeout_o <= delay_timeout_p;
 
       when SEND =>
-        delay_arm <= '0';
+        delay_arm_p <= '0';
         fifo_rd   <= (rx_dreq_i or (fifo_last and fifo_valid)) and not fifo_empty;
         rx_valid  <= fifo_valid;
         rx_late_o <= '0';
@@ -308,29 +312,29 @@ begin
 
   U_Sync_RXMatch_Pulse : gc_pulse_synchronizer2
     port map (
-      clk_in_i    => clk_ref_i,
-      rst_in_n_i  => rst_n_ref,
+      clk_in_i    => clk_data,
+      rst_in_n_i  => rst_n_data,
       clk_out_i   => clk_sys_i,
       rst_out_n_i => rst_n_i,
-      d_p_i       => delay_match,
+      d_p_i       => delay_match_p,
       q_p_o       => stat_match_p1_o);
 
   U_Sync_RXLate_Pulse : gc_pulse_synchronizer2
     port map (
-      clk_in_i    => clk_ref_i,
-      rst_in_n_i  => rst_n_ref,
+      clk_in_i    => clk_data,
+      rst_in_n_i  => rst_n_data,
       clk_out_i   => clk_sys_i,
       rst_out_n_i => rst_n_i,
-      d_p_i       => delay_miss,
+      d_p_i       => delay_miss_p,
       q_p_o       => stat_late_p1_o);
   
   U_Sync_RXTimeout_Pulse : gc_pulse_synchronizer2
     port map (
-      clk_in_i    => clk_ref_i,
-      rst_in_n_i  => rst_n_ref,
+      clk_in_i    => clk_data,
+      rst_in_n_i  => rst_n_data,
       clk_out_i   => clk_sys_i,
       rst_out_n_i => rst_n_i,
-      d_p_i       => delay_timeout,
+      d_p_i       => delay_timeout_p,
       q_p_o       => stat_timeout_p1_o);
 
   fifo_data         <= fifo_q(g_data_width-1 downto 0);
