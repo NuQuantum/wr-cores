@@ -286,6 +286,9 @@ begin
     rcvd_frame_cnt_out       <= (others => '0');
     lost_frame_cnt_out       <= (others => '0');
     lost_block_cnt_out       <= (others => '0');
+    rx_stat_match_cnt_out    <= (others => '0');
+    rx_stat_late_cnt_out     <= (others => '0');
+    rx_stat_timeout_cnt_out  <= (others => '0');
     latency_cnt_out          <= (others => '0');
     latency_acc_overflow_out <= '0';
     latency_acc_out          <= (others => '0');

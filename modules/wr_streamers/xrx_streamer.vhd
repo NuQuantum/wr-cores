@@ -415,12 +415,9 @@ begin  -- rtl
         rx_frame_p1_o          <= '0';
         rx_lost_frames_cnt_o   <= (others => '0');
         frames_lost            <= '0';
-        rx_latency             <= (others=>'0');
-        rx_latency_valid       <= '0';
         blocks_lost            <= '0';
         pack_data              <= (others=>'0');
         is_vlan                <= '0';
-        rx_tag_valid_stored  <= '0';
         tx_tag_present       <= '0';
         tx_tag_valid         <= '0';
       else
@@ -578,7 +575,6 @@ begin  -- rtl
           when PAYLOAD =>
             frames_lost <= '0';
             rx_lost_frames_cnt_o <= (others => '0');
-            rx_latency_valid <= '0';
             fifo_sync <= got_next_subframe;
 
             if(fsm_in.eof = '1') then
@@ -704,6 +700,7 @@ begin  -- rtl
         rx_latency_valid         <= '0';
         rx_tag_valid_stored      <= '0';
         timestamp_pushed_to_fifo <= '0';
+        rx_latency               <= (others => '0');
       else
 
         case state is

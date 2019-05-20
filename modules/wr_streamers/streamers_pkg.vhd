@@ -241,6 +241,8 @@ package streamers_pkg is
       rx_last_p1_o            : out std_logic;
       rx_data_o               : out std_logic_vector(g_data_width-1 downto 0);
       rx_valid_o              : out std_logic;
+      rx_late_o               : out std_logic;
+      rx_timeout_o            : out std_logic;
       rx_dreq_i               : in  std_logic;
       rx_lost_p1_o            : out std_logic := '0';
       rx_lost_blocks_p1_o     : out std_logic := '0';
@@ -248,6 +250,10 @@ package streamers_pkg is
       rx_lost_frames_cnt_o    : out std_logic_vector(14 downto 0);
       rx_latency_o            : out std_logic_vector(27 downto 0);
       rx_latency_valid_o      : out std_logic;
+      rx_stat_overflow_p1_o   : out std_logic;
+      rx_stat_match_p1_o      : out std_logic;
+      rx_stat_late_p1_o       : out std_logic;
+      rx_stat_timeout_p1_o    : out std_logic;
       rx_frame_p1_o           : out std_logic;
       rx_streamer_cfg_i       : in t_rx_streamer_cfg := c_rx_streamer_cfg_default);
   end component;
@@ -272,6 +278,9 @@ package streamers_pkg is
       lost_frames_cnt_i      : in std_logic_vector(14 downto 0);
       rcvd_latency_i         : in  std_logic_vector(27 downto 0);
       rcvd_latency_valid_i   : in  std_logic;
+      rx_stat_match_p1_i     : in std_logic;
+      rx_stat_late_p1_i      : in std_logic;
+      rx_stat_timeout_p1_i   : in std_logic;
       clk_ref_i              : in std_logic;
       tm_time_valid_i        : in std_logic := '0';
       tm_tai_i               : in std_logic_vector(39 downto 0) := x"0000000000";
@@ -285,6 +294,9 @@ package streamers_pkg is
       lost_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
       lost_block_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
       latency_cnt_o          : out std_logic_vector(g_cnt_width-1 downto 0);
+      rx_stat_match_cnt_o    : out std_logic_vector(g_cnt_width-1 downto 0);
+      rx_stat_late_cnt_o     : out std_logic_vector(g_cnt_width-1 downto 0);
+      rx_stat_timeout_cnt_o  : out std_logic_vector(g_cnt_width-1 downto 0);
       latency_acc_overflow_o : out std_logic;
       latency_acc_o          : out std_logic_vector(g_acc_width-1  downto 0);
       latency_max_o          : out std_logic_vector(27  downto 0);
