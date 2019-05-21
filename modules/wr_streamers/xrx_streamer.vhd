@@ -712,6 +712,14 @@ begin  -- rtl
         case state is
           when IDLE =>
             timestamp_pushed_to_fifo <= '0';
+            rx_tag_valid_stored      <= '0';-- prepare for next timestamp
+
+          when HEADER =>
+
+            -- remember that we got timestamp, it can happen only when receiving header
+            if(rx_tag_valid = '1') then
+               rx_tag_valid_stored   <= '1';
+            end if;
 
           when PAYLOAD =>
 
@@ -729,6 +737,7 @@ begin  -- rtl
             -- latency measurement
             if(tx_tag_present = '1' and rx_tag_valid_stored = '1') then
               rx_latency_valid <= '1';
+              rx_tag_valid_stored <= '0';
               if(unsigned(tx_tag_cycles) > unsigned(rx_tag_cycles)) then
                 rx_latency <= unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles) + to_unsigned(125000000, 28);
               else
@@ -737,7 +746,6 @@ begin  -- rtl
             else
               rx_latency_valid <= '0';
             end if;
-            rx_tag_valid_stored <= '0';
 
           when others => null;
         end case;
