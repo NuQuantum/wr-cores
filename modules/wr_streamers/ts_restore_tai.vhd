@@ -123,7 +123,6 @@ begin
           tm_tai_ref     <= tm_tai_ref_d;
           tm_valid_ref    <= tm_valid_ref_d;
 
-        
         if tm_sample_cnt = g_tm_sample_period-1 then
           tm_sample_p_ref <= '1';
           tm_cycles_ref_d   <= tm_cycles_i;
@@ -189,10 +188,4 @@ begin
     end if;
   end process;
 
-
-
-
-
 end rtl;
-
-

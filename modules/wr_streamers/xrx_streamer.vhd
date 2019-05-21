@@ -78,10 +78,17 @@ entity xrx_streamer is
     -- in the future, more frequences might be supported..
     g_clk_ref_rate : integer := 125000000;
 
+    -- indicate that we are simulating so that some processes can be made to take less 
+    -- time, e.g. below
     g_simulation : integer := 0;
 
+    -- shorten the duration of second to see TAI seconds for simulation only (i.e.
+    -- only if g_simulation = 1)
     g_sim_cycle_counter_range : integer := 125000000;
 
+    -- when non-zero, the datapath (tx_/rx_ ports) are in the clk_ref_i clock
+    -- domain instead of clk_sys_i. This is a must for fixed latency mode if
+    -- clk_sys_i is asynchronous (i.e. not locked) to the WR timing.
     g_use_ref_clock_for_data : integer := 0
     );
 
@@ -99,7 +106,6 @@ entity xrx_streamer is
     -- WRC Timing interface, used for latency measurement
     -- Caution: uses clk_ref_i clock domain!
     ---------------------------------------------------------------------------
-
 
     -- Time valid flag
     tm_time_valid_i : in std_logic := '0';

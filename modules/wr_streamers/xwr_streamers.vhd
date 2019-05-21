@@ -80,7 +80,7 @@ entity xwr_streamers is
     -- domain instead of clk_sys_i. This is a must for fixed latency mode if
     -- clk_sys_i is asynchronous (i.e. not locked) to the WR timing.
     g_use_ref_clock_for_data : integer := 0;
-    
+
     -----------------------------------------------------------------------------------------
     -- Transmission/reception parameters
     -----------------------------------------------------------------------------------------
@@ -99,8 +99,13 @@ entity xwr_streamers is
     -----------------------------------------------------------------------------------------
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
     g_slave_granularity        : t_wishbone_address_granularity := BYTE;
+
+    -- indicate that we are simulating so that some processes can be made to take less time
     g_simulation               : integer := 0;
-    g_sim_cycle_counter_range : integer := 125000
+
+    -- shorten the duration of second to see TAI seconds for simulation only (i.e.
+    -- only if g_simulation = 1)
+    g_sim_cycle_counter_range  : integer := 125000
     );
 
   port (

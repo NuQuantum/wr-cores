@@ -76,18 +76,17 @@ begin
         elsif rd_i = '1' then
           valid_int <= not fifo_empty_i;
         end if;
-        
       end if;
     end if;
   end process;
-  
+
   rd <= not fifo_empty_i when valid_int = '0' else rd_i and not fifo_empty_i;
-  
+
   q_o <= fifo_q_i; 
 
   fifo_rd_o <= rd;
   valid_o <= valid_int;
-  
+
 end rtl;
 
 

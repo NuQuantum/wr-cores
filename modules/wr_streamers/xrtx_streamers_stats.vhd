@@ -127,22 +127,17 @@ end xrtx_streamers_stats;
 
 architecture rtl of xrtx_streamers_stats is
 
-  signal reset_time_tai    : std_logic_vector(39 downto 0);
-  signal reset_time_cycles : std_logic_vector(27 downto 0);
+  signal reset_time_tai           : std_logic_vector(39 downto 0);
+  signal reset_time_cycles        : std_logic_vector(27 downto 0);
 
---  signal sent_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
---  signal rcvd_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
---  signal lost_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
---  signal lost_block_cnt    : unsigned(g_cnt_width-1  downto 0);
-  signal rx_stat_match_cnt_out   : std_logic_vector(g_cnt_width-1 downto 0);
-  signal rx_stat_timeout_cnt_out : std_logic_vector(g_cnt_width-1 downto 0);
-  signal rx_stat_late_cnt_out    : std_logic_vector(g_cnt_width-1 downto 0);
---  signal latency_cnt       : unsigned(g_cnt_width-1  downto 0);
+  signal rx_stat_match_cnt_out    : std_logic_vector(g_cnt_width-1 downto 0);
+  signal rx_stat_timeout_cnt_out  : std_logic_vector(g_cnt_width-1 downto 0);
+  signal rx_stat_late_cnt_out     : std_logic_vector(g_cnt_width-1 downto 0);
 
-  signal latency_max       : std_logic_vector(27  downto 0);
-  signal latency_min       : std_logic_vector(27  downto 0);
-  signal latency_acc       : unsigned(g_acc_width-1+1  downto 0);
-  signal latency_acc_overflow: std_logic;
+  signal latency_max              : std_logic_vector(27  downto 0);
+  signal latency_min              : std_logic_vector(27  downto 0);
+  signal latency_acc              : unsigned(g_acc_width-1+1  downto 0);
+  signal latency_acc_overflow     : std_logic;
 
   signal sent_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
   signal rcvd_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
@@ -167,7 +162,7 @@ architecture rtl of xrtx_streamers_stats is
   signal snapshot_remote_ena  : std_logic;
   signal snapshot_ena      : std_logic;
   signal snapshot_ena_d1   : std_logic;
-  
+
   -- for code cleanness
   constant c_cw              : integer := g_cnt_width;
   constant c_aw              : integer := g_acc_width;
