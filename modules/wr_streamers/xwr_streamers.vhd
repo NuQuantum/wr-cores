@@ -76,10 +76,7 @@ entity xwr_streamers is
     -- in the future, more frequences might be supported..
     g_clk_ref_rate             : integer := 125000000;
 
-    -- when non-zero, the datapath (tx_/rx_ ports) are in the clk_ref_i clock
-    -- domain instead of clk_sys_i. This is a must for fixed latency mode if
-    -- clk_sys_i is asynchronous (i.e. not locked) to the WR timing.
-    g_use_ref_clock_for_data : integer := 0;
+
 
     -----------------------------------------------------------------------------------------
     -- Transmission/reception parameters
@@ -114,12 +111,12 @@ entity xwr_streamers is
     ---------------------------------------------------------------------------
 
     -- System clock. Used always for the WR fabric interface (src/snk) and
-    -- for the data path (tx_/rx_ ports) if g_use_ref_clock_for_data = 0.
+    -- for the data path (tx_/rx_ ports) if use_ref_clk_for_data = 0.
     clk_sys_i                  : in std_logic;
 
     -- WR Reference clock, 62.5 or 125 MHz. Frequency must match g_ref_clk_rate
     -- generic. Used for latency measurement and timestamping (tm_ ports).
-    -- It also clocks Tx_/rx_ interfaces if g_use_ref_clock_for_data != 0.
+    -- It also clocks Tx_/rx_ interfaces if use_ref_clk_for_data != 0.
     clk_ref_i                  : in std_logic := '0';
     rst_n_i                    : in std_logic;
 
@@ -256,7 +253,7 @@ begin
         g_escape_code_disable    => g_tx_streamer_params.escape_code_disable,
         g_simulation             => g_simulation,
         g_clk_ref_rate           => g_clk_ref_rate,
-        g_use_ref_clock_for_data => g_use_ref_clock_for_data)
+        g_use_ref_clock_for_data => g_tx_streamer_params.use_ref_clk_for_data)
       port map(
         clk_sys_i                => clk_sys_i,
         clk_ref_i                => clk_ref_i,
@@ -296,7 +293,7 @@ begin
         g_clk_ref_rate           => g_clk_ref_rate,
         g_simulation => g_simulation,
         g_sim_cycle_counter_range => g_sim_cycle_counter_range,
-        g_use_ref_clock_for_data => g_use_ref_clock_for_data
+        g_use_ref_clock_for_data => g_rx_streamer_params.use_ref_clk_for_data
         )
       port map(
         clk_sys_i                => clk_sys_i,

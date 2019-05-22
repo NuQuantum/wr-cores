@@ -75,6 +75,11 @@ package streamers_pkg is
     -- legacy: the streamers initially used in Btrain did not check/insert the escape
     -- code. This is justified if only one block of a known number of words is sent/expected
     escape_code_disable   : boolean;
+
+    -- when non-zero, the datapath (tx port) are in the clk_ref_i clock
+    -- domain instead of clk_sys_i. This is a must for fixed latency mode if
+    -- clk_sys_i is asynchronous (i.e. not locked) to the WR timing.
+    use_ref_clk_for_data  : integer;
   end record;
 
   -----------------------------------------------------------------------------------------
@@ -105,6 +110,11 @@ package streamers_pkg is
     -- In combination with the g_escape_code_disable generic set to TRUE, the behaviour of
     -- the "Btrain streamers" can be recreated.
     expected_words_number : integer;
+
+    -- when non-zero, the datapath (rx port) are in the clk_ref_i clock
+    -- domain instead of clk_sys_i. This is a must for fixed latency mode if
+    -- clk_sys_i is asynchronous (i.e. not locked) to the WR timing.
+    use_ref_clk_for_data  : integer;
   end record;
 
   constant c_tx_streamer_params_defaut: t_tx_streamer_params :=(
@@ -113,12 +123,14 @@ package streamers_pkg is
       threshold             => 128,
       max_words_per_frame   => 256,
       timeout               => 1024,
+      use_ref_clk_for_data  => 0,
       escape_code_disable   => FALSE);
 
   constant c_rx_streamer_params_defaut: t_rx_streamer_params :=(
       data_width            => 32,
       buffer_size           => 256,
       escape_code_disable   => FALSE,
+      use_ref_clk_for_data  => 0,
       expected_words_number => 0);
 
   type t_rx_streamer_cfg is record
@@ -323,7 +335,6 @@ package streamers_pkg is
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
     g_slave_granularity        : t_wishbone_address_granularity := BYTE;
     g_simulation               : integer := 0;
-    g_use_ref_clock_for_data   : integer := 0;
     g_sim_cycle_counter_range  : integer := 125000
     );
 
