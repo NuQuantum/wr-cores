@@ -664,9 +664,9 @@ peripheral {
 		 name = "Rx statistics";
 		 prefix = "RX_STAT15";
 		 field {
-				name = "WR Streamer RX Late Frames Count";
+				name = "WR Streamer RX Late Frames Count (LSB)";
 				description = "Number of RX frames that missed their fixed-latency deadline";
-				prefix = "RX_LATE_FRAMES_CNT";
+				prefix = "RX_LATE_FRAMES_CNT_LSB";
 				type = SLV;
 				size = 32;
 				access_bus = READ_ONLY;
@@ -678,9 +678,9 @@ peripheral {
 		 name = "Rx statistics";
 		 prefix = "RX_STAT16";
 		 field {
-				name = "WR Streamer RX Timed-out Frames Count";
-				description = "Number of RX frames that had their execution timestamp too far in the future (exceeding the RX_CFG6 value)";
-				prefix = "RX_TIMEOUT_FRAMES_CNT";
+				name = "WR Streamer RX Late Frames Count (MSB)";
+				description = "Number of RX frames that missed their fixed-latency deadline";
+				prefix = "RX_LATE_FRAMES_CNT_MSB";
 				type = SLV;
 				size = 32;
 				access_bus = READ_ONLY;
@@ -692,15 +692,56 @@ peripheral {
 		 name = "Rx statistics";
 		 prefix = "RX_STAT17";
 		 field {
-				name = "WR Streamer RX OK Frames Count";
-				description = "Number of RX executed on time in the fixed latency mode";
-				prefix = "RX_MATCH_FRAMES_CNT";
+				name = "WR Streamer RX Timed-out Frames Count (LSB)";
+				description = "Number of RX frames that had their execution timestamp too far in the future (exceeding the RX_CFG6 value)";
+				prefix = "RX_TIMEOUT_FRAMES_CNT_LSB";
 				type = SLV;
 				size = 32;
 				access_bus = READ_ONLY;
 				access_dev = WRITE_ONLY;
 		 };
   };
+
+	reg {
+		 name = "Rx statistics";
+		 prefix = "RX_STAT18";
+		 field {
+				name = "WR Streamer RX Timed-out Frames Count (MSB)";
+				description = "Number of RX frames that had their execution timestamp too far in the future (exceeding the RX_CFG6 value)";
+				prefix = "RX_TIMEOUT_FRAMES_CNT_MSB";
+				type = SLV;
+				size = 32;
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+		 };
+  };
+	reg {
+		 name = "Rx statistics";
+		 prefix = "RX_STAT19";
+		 field {
+				name = "WR Streamer RX OK Frames Count (LSB)";
+				description = "Number of RX executed on time in the fixed latency mode";
+				prefix = "RX_MATCH_FRAMES_CNT_LSB";
+				type = SLV;
+				size = 32;
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+		 };
+  };
+	reg {
+		 name = "Rx statistics";
+		 prefix = "RX_STAT20";
+		 field {
+				name = "WR Streamer RX OK Frames Count (MSB)";
+				description = "Number of RX executed on time in the fixed latency mode";
+				prefix = "RX_MATCH_FRAMES_CNT_MSB";
+				type = SLV;
+				size = 32;
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+		 };
+  };
+
 
   reg {
     name = "Rx Config Reg 6";

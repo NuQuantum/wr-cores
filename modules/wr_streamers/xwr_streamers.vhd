@@ -401,9 +401,13 @@ begin
   to_wb.rx_stat12_rx_latency_acc_cnt_lsb_i                     <= latency_cnt       (31     downto 0);
   to_wb.rx_stat13_rx_latency_acc_cnt_msb_i(c_cw-32-1 downto 0) <= latency_cnt       (c_cw-1 downto 32);
 
-  to_wb.rx_stat15_rx_late_frames_cnt_i    <= rx_stat_late_cnt(31 downto 0);
-  to_wb.rx_stat16_rx_timeout_frames_cnt_i <= rx_stat_timeout_cnt(31 downto 0);
-  to_wb.rx_stat17_rx_match_frames_cnt_i   <= rx_stat_match_cnt(31 downto 0);
+  -- new stuff added for fixed-latency
+  to_wb.rx_stat15_rx_late_frames_cnt_lsb_i                         <= rx_stat_late_cnt(31      downto 0);
+  to_wb.rx_stat16_rx_late_frames_cnt_msb_i (c_cw-32-1 downto 0)    <= rx_stat_late_cnt(c_cw-1  downto 32);
+  to_wb.rx_stat17_rx_timeout_frames_cnt_lsb_i                      <= rx_stat_timeout_cnt(31     downto 0);
+  to_wb.rx_stat18_rx_timeout_frames_cnt_msb_i (c_cw-32-1 downto 0) <= rx_stat_timeout_cnt(c_cw-1 downto 32);
+  to_wb.rx_stat19_rx_match_frames_cnt_lsb_i                        <= rx_stat_match_cnt(31     downto 0);
+  to_wb.rx_stat20_rx_match_frames_cnt_msb_i(c_cw-32-1 downto 0)    <= rx_stat_match_cnt(c_cw-1 downto 32);
 
 
   rx_data_o  <= rx_data;
