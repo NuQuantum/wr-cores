@@ -706,10 +706,11 @@ peripheral {
     name = "Rx Config Reg 6";
     prefix = "RX_CFG6";
     field {
-      name = "RX Fixed Latency Timeout";
+      name = "RX Fixed Latency Timeout (Default: 0x1000000=~134ms)";
       prefix = "RX_FIXED_LATENCY_TIMEOUT";
       type = SLV;
       size = 28;
+      reset_value = 0x1000000;
       access_bus = READ_WRITE;
       access_dev = READ_ONLY;
       };
