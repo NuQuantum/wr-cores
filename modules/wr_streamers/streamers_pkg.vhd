@@ -270,7 +270,7 @@ package streamers_pkg is
       rx_streamer_cfg_i       : in t_rx_streamer_cfg := c_rx_streamer_cfg_default);
   end component;
 
-  constant c_WRS_STATS_ARR_SIZE_OUT : integer := 18;
+  constant c_WRS_STATS_ARR_SIZE_OUT : integer := 24;
   constant c_WRS_STATS_ARR_SIZE_IN  : integer := 1;
 
   component xrtx_streamers_stats is

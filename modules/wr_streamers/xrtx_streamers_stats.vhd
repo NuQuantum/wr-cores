@@ -306,9 +306,6 @@ begin
   rx_stat_late_cnt_o       <= rx_stat_late_cnt_out;
   rx_stat_match_cnt_o      <= rx_stat_match_cnt_out;
 
-
-  -- fixme: add rx late/miss/match stats to SNMP array
-
   -------------------------------------------------------------------------------------------
   -- SNMP remote output
   -- Generic communication with WRPC that allows SNMP access via generic array of 32-bits 
@@ -357,6 +354,18 @@ begin
     snmp_array_o(14)(c_cw-1    downto       0) <= latency_cnt_out;
     snmp_array_o(14)(31        downto    c_cw) <= (others => '0');
     snmp_array_o(15)(31        downto       0) <= (others => '0');
+
+    snmp_array_o(18)(c_cw-1    downto       0) <= rx_stat_match_cnt_out;
+    snmp_array_o(19)(31        downto    c_cw) <= (others => '0');
+    snmp_array_o(19)(31        downto       0) <= (others => '0');
+
+    snmp_array_o(20)(c_cw-1    downto       0) <= rx_stat_late_cnt_out;
+    snmp_array_o(21)(31        downto    c_cw) <= (others => '0');
+    snmp_array_o(21)(31        downto       0) <= (others => '0');
+
+    snmp_array_o(22)(c_cw-1    downto       0) <= rx_stat_timeout_cnt_out;
+    snmp_array_o(23)(31        downto    c_cw) <= (others => '0');
+    snmp_array_o(23)(31        downto       0) <= (others => '0');
   end generate;
   ACC_SINGLE_WORD_gen: if(c_aw < 33) generate
     snmp_array_o(16)(c_aw-1    downto       0) <= latency_acc_out;
@@ -385,6 +394,18 @@ begin
     snmp_array_o(14)(31        downto       0) <= latency_cnt_out(31     downto 0);
     snmp_array_o(15)(c_cw-32-1 downto       0) <= latency_cnt_out(c_cw-1 downto 32);
     snmp_array_o(15 )(31       downto c_cw-32) <= (others => '0');
+
+    snmp_array_o(18)(31        downto       0) <= rx_stat_match_cnt_out(31     downto 0);
+    snmp_array_o(19)(c_cw-32-1 downto       0) <= rx_stat_match_cnt_out(c_cw-1 downto 32);
+    snmp_array_o(19)(31        downto c_cw-32) <= (others => '0');
+
+    snmp_array_o(20)(31        downto       0) <= rx_stat_late_cnt_out(31     downto 0);
+    snmp_array_o(21)(c_cw-32-1 downto       0) <= rx_stat_late_cnt_out(c_cw-1 downto 32);
+    snmp_array_o(21)(31        downto c_cw-32) <= (others => '0');
+
+    snmp_array_o(22)(31        downto       0) <= rx_stat_timeout_cnt_out(31     downto 0);
+    snmp_array_o(23)(c_cw-32-1 downto       0) <= rx_stat_timeout_cnt_out(c_cw-1 downto 32);
+    snmp_array_o(23)(31        downto c_cw-32) <= (others => '0');
   end generate;
   ACC_TWO_WORDs_gen:   if(c_aw > 32) generate
     snmp_array_o(16)(31        downto       0) <= latency_acc_out(31     downto 0);
