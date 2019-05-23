@@ -173,6 +173,7 @@ architecture rtl of xtx_streamer is
   signal tx_fifo_q_int, tx_fifo_q_reg : std_logic_vector(g_data_width downto 0);
   signal tx_fifo_q_valid : std_logic;
   signal tx_fifo_q, tx_fifo_d                                              : std_logic_vector(g_data_width downto 0);
+  signal tx_flush, tx_flush_p2                                             : std_logic;
   signal state                                                             : t_tx_state;
   signal seq_no, count                                                     : unsigned(14 downto 0);
   signal ser_count                                                         : unsigned(7 downto 0);
@@ -343,6 +344,7 @@ begin  -- rtl
 
     clk_data <= clk_sys_i;
     stamper_pulse_a <= fsm_out.sof;
+    tx_flush <= tx_flush_p1_i;
 
   end generate gen_use_sys_clock_for_data;
 
@@ -410,6 +412,22 @@ begin  -- rtl
         end if;
       end if;
     end process;
+
+    U_Extend: entity work.gc_extend_pulse
+      generic map(
+        g_width     => 2)
+      port map(
+        clk_i       => clk_ref_i,
+        rst_n_i     => rst_n_ref,
+        pulse_i     => tx_flush_p1_i,
+        extended_o  => tx_flush_p2);
+
+    U_Sync: entity work.gc_sync_ffs
+      port map (
+        clk_i       => clk_sys_i,
+        rst_n_i     => rst_int_n,
+        data_i      => tx_flush_p2,
+        synced_o    => tx_flush);
 
   end generate gen_use_ref_clock_for_data;
 
@@ -513,7 +531,7 @@ begin  -- rtl
           seq_no <= (others => '0');
         end if;
 
-        if tx_flush_p1_i = '1' or tx_timeout_hit = '1' then
+        if tx_flush = '1' or tx_timeout_hit = '1' then
           tx_flush_latched  <= '1';
         end if;
 
