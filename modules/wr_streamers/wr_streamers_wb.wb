@@ -28,7 +28,7 @@ peripheral {
   -----------------------------------------------------------------";
   prefix = "wr_streamers";
   hdl_entity = "wr_streamers_wb";
-  version= 1;
+  version= 2;
 
   reg {
     name = "Statistics status and ctrl register";
@@ -644,21 +644,6 @@ peripheral {
 			 type = MONOSTABLE;
     };
 	};
-
-
-	reg {
-		 name = "Rx statistics";
-		 prefix = "RX_STAT14";
-		 field {
-				name = "WR Streamer RX Buffer Overflow Count";
-				description = "Number of RX buffer overflow events";
-				prefix = "RX_BUF_OVERFLOW_CNT";
-				type = SLV;
-				size = 32;
-				access_bus = READ_ONLY;
-				access_dev = WRITE_ONLY;
-		 };
-  };
 
 	reg {
 		 name = "Rx statistics";
