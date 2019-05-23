@@ -297,7 +297,7 @@ begin
         rx_timeout_o <= '0';
 
       when TS_SETUP_MATCH =>
-        delay_arm_p  <= fifo_valid and fifo_target_ts_en; --ML need to add "not fifo_target_ts_error"?
+        delay_arm_p  <= fifo_valid and fifo_target_ts_en and not fifo_target_ts_error;
         fifo_rd      <= '0';
         rx_valid     <= '0';
         rx_late_o    <= '0';
