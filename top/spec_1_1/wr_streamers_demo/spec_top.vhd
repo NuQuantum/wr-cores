@@ -275,6 +275,7 @@ architecture top of spec_top is
       -- minimum timeout: sends packets asap to minimize latency (but it's not
       -- good for large amounts of data due to encapsulation overhead)
       timeout             => 1,
+      use_ref_clk_for_data=> 0,   --default
       escape_code_disable => FALSE--default
       );
   constant rx_streamer_params : t_rx_streamer_params := (
@@ -283,6 +284,7 @@ architecture top of spec_top is
       data_width            => 80,
       buffer_size           => 256,  --default
       escape_code_disable   => FALSE,--default
+      use_ref_clk_for_data  => 0,    --default
       expected_words_number => 0     --default
       );
 
