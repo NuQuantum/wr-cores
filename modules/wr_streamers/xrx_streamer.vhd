@@ -713,7 +713,7 @@ begin  -- rtl
           when IDLE =>
             timestamp_pushed_to_fifo <= '0';
             rx_tag_valid_stored      <= '0';-- prepare for next timestamp
-
+            fifo_target_ts_en        <= '0';
           when HEADER =>
 
             -- remember that we got timestamp, it can happen only when receiving header
