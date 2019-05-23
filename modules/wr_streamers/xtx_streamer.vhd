@@ -498,7 +498,7 @@ begin  -- rtl
   p_latch_timestamp : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i)    then
-      if rst_int_n = '0' or state = IDLE then
+      if rst_int_n = '0' or state = FRAME_SEQ_ID then
         tag_valid_latched <= '0';
       elsif tag_valid = '1' then
         tag_valid_latched <= '1';
