@@ -3,15 +3,17 @@ target= "xilinx"
 syn_device="xc6slx45t"
 sim_tool="modelsim"
 top_module="main"
+sim_top="main"
 
-fetchto="../../ip_cores"
-vlog_opt="+incdir+../../../sim +incdir"
+vcom_opt="-mixedsvvh l"
+
+fetchto="../../../ip_cores"
+
+include_dirs=["../../../sim"]
 
 modules = { "local" : ["../../..",
                        "../../../modules/wr_streamers",
-                       "../../../top/spec_1_1/wr_streamers_demo",
                        "../../../ip_cores/general-cores"]}
-
-files = ["main.sv","synthesis_descriptor.vhd"]
-
+					  
+files = ["main.sv"]
 

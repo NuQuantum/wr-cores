@@ -47,7 +47,7 @@ use work.wrcore_pkg.all;    -- needed for t_generic_word_array
 -- use work.wr_transmission_wbgen2_pkg.all;
 
 entity xtx_streamers_stats is
-  
+
   generic (
     -- Width of frame counters
     g_cnt_width            : integer := 32 -- minimum 15 bits, max 32
@@ -68,7 +68,7 @@ entity xtx_streamers_stats is
   );
 
 end xtx_streamers_stats;
-  
+
 architecture rtl of xtx_streamers_stats is
 
   signal sent_frame_cnt    : unsigned(g_cnt_width-1  downto 0);

@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2017-02-02
+-- Last update: 2018-10-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -116,34 +116,6 @@ entity ep_rx_path is
 end ep_rx_path;
 
 architecture behavioral of ep_rx_path is
-
-  type t_rx_deframer_state is (RXF_IDLE, RXF_DATA, RXF_FLUSH_STALL, RXF_FINISH_CYCLE, RXF_THROW_ERROR);
-
-  signal state : t_rx_deframer_state;
-
-  signal gap_cntr : unsigned(3 downto 0);
-
-  -- new sigs
-  signal counter : unsigned(7 downto 0);
-
-  signal rxdata_saved : std_logic_vector(15 downto 0);
-  signal next_hdr     : std_logic;
-  signal is_pause     : std_logic;
-
-  signal data_firstword : std_logic;
-
-
-  signal flush_stall : std_logic;
-  signal stb_int     : std_logic;
-
-  signal fab_int  : t_ep_internal_fabric;
-  signal dreq_int : std_logic;
-
-  signal ack_count   : unsigned(7 downto 0);
-  signal src_out_int : t_wrf_source_out;
-
-  signal tmp_sel : std_logic;
-  signal tmp_dat : std_logic_vector(15 downto 0);
 
 
   signal fab_pipe  : t_fab_pipe(0 to 9);

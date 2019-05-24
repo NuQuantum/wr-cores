@@ -491,7 +491,8 @@ begin  -- architecture struct
         g_streamers_op_mode  => g_streamers_op_mode,
         g_tx_streamer_params => g_tx_streamer_params,
         g_rx_streamer_params => g_rx_streamer_params,
-        g_simulation         => g_simulation)
+        g_simulation         => g_simulation,
+        g_clk_ref_rate       => f_pick_clk_ref_rate(g_pcs_16bit))
       port map (
         clk_sys_i       => clk_sys_i,
         rst_n_i         => rst_n_i,

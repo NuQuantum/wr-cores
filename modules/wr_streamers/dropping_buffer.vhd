@@ -58,7 +58,8 @@ entity dropping_buffer is
 
       d_o       : out std_logic_vector(g_data_width-1 downto 0);
       d_valid_o : out std_logic;
-      d_req_i   : in  std_logic);
+      d_req_i   : in  std_logic;
+      d_full_o : out std_logic);
 
 
 end dropping_buffer;
@@ -104,6 +105,7 @@ begin  -- behavioral
   full       <= '1' when (wr_ptr + 1 = rd_ptr) else '0';
 
   d_req_o <= not full;
+  d_full_o <= full;
 
   p_empty_reg : process(clk_i)
   begin

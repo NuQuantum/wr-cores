@@ -93,7 +93,7 @@ architecture behavioral of ep_rx_crc_size_check is
 
   signal crc_gen_enable        : std_logic;
   signal crc_gen_reset         : std_logic;
-  signal crc_match, crc_match2 : std_logic;
+  signal crc_match : std_logic;
 
   signal crc_cur         : std_logic_vector(31 downto 0);
   signal crc_in_data     : std_logic_vector(15 downto 0);
@@ -106,7 +106,6 @@ architecture behavioral of ep_rx_crc_size_check is
 
   signal state : t_state;
 
-  signal q_flush, q_empty : std_logic;
   signal q_purge          : std_logic;
   signal q_in, q_out      : std_logic_vector(17 downto 0);
   signal q_bytesel        : std_logic;
@@ -306,6 +305,7 @@ begin  -- behavioral
                 src_fab_o.error <= '1';
                 q_purge         <= '1';
               elsif(snk_fab_i.eof = '1') then
+                q_purge <= '1';
                 state         <= ST_WAIT_FRAME;
               else
                 state       <= ST_OOB;
@@ -324,6 +324,7 @@ begin  -- behavioral
            
             if(src_dreq_i = '1' and snk_fab_i.eof='1') then
               state         <= ST_WAIT_FRAME;
+              q_purge <= '1';
             end if;
             
         end case;

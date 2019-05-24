@@ -72,9 +72,15 @@ package streamers_priv_pkg is
       tm_time_valid_i        : in  std_logic;
       snapshot_ena_i         : in std_logic := '0';
       reset_stats_i          : in std_logic;
+      rx_stat_match_p1_i     : in std_logic;
+      rx_stat_late_p1_i      : in std_logic;
+      rx_stat_timeout_p1_i   : in std_logic;
       rcvd_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
       lost_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
       lost_block_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
+      rx_stat_match_cnt_o    : out std_logic_vector(g_cnt_width-1 downto 0);
+      rx_stat_late_cnt_o     : out std_logic_vector(g_cnt_width-1 downto 0);
+      rx_stat_timeout_cnt_o  : out std_logic_vector(g_cnt_width-1 downto 0);
       latency_cnt_o          : out std_logic_vector(g_cnt_width-1 downto 0);
       latency_acc_overflow_o : out std_logic;
       latency_acc_o          : out std_logic_vector(g_acc_width-1  downto 0);
@@ -82,26 +88,10 @@ package streamers_priv_pkg is
       latency_min_o          : out std_logic_vector(27  downto 0));
   end component;
 
-  component  wr_streamers_wb is
-    port (
-      rst_n_i                                  : in     std_logic;
-      clk_sys_i                                : in     std_logic;
-      wb_adr_i                                 : in     std_logic_vector(5 downto 0);
-      wb_dat_i                                 : in     std_logic_vector(31 downto 0);
-      wb_dat_o                                 : out    std_logic_vector(31 downto 0);
-      wb_cyc_i                                 : in     std_logic;
-      wb_sel_i                                 : in     std_logic_vector(3 downto 0);
-      wb_stb_i                                 : in     std_logic;
-      wb_we_i                                  : in     std_logic;
-      wb_ack_o                                 : out    std_logic;
-      wb_stall_o                               : out    std_logic;
-      regs_i                                   : in     t_wr_streamers_in_registers;
-      regs_o                                   : out    t_wr_streamers_out_registers
-    );
-  end component;
-
   -- component from wr-core/modules/timing
   component pulse_stamper
+    generic (
+      g_ref_clk_rate  : integer := 125000000);
     port (
       clk_ref_i       : in  std_logic;
       clk_sys_i       : in  std_logic;

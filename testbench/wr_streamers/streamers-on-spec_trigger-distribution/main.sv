@@ -46,8 +46,8 @@ module main;
            .clk_125m_pllref_p_i (clk_ref),
            .clk_125m_pllref_n_i (~clk_ref),
 
-           .fpga_pll_ref_clk_101_p_i (clk_ref),
-           .fpga_pll_ref_clk_101_n_i (~clk_ref),
+           .clk_125m_gtp_p_i (clk_ref),
+           .clk_125m_gtp_n_i (~clk_ref),
 
            .clk_20m_vcxo_i(clk_20m),
 
@@ -71,8 +71,8 @@ module main;
            .clk_125m_pllref_p_i (clk_ref),
            .clk_125m_pllref_n_i (~clk_ref),
 
-           .fpga_pll_ref_clk_101_p_i (clk_ref),
-           .fpga_pll_ref_clk_101_n_i (~clk_ref),
+           .clk_125m_gtp_p_i (clk_ref),
+           .clk_125m_gtp_n_i (~clk_ref),
 
            .clk_20m_vcxo_i(clk_20m),
 
@@ -91,8 +91,8 @@ module main;
    
 
    // observe the link LEDs on both sides, and tell us when the link is ready.
-   wire link_up_a = SPEC_A.U_The_WR_Core.led_link_o;
-   wire link_up_b = SPEC_B.U_The_WR_Core.led_link_o;
+   wire link_up_a = SPEC_A.cmp_xwrc_board_spec.led_link_o;
+   wire link_up_b = SPEC_B.cmp_xwrc_board_spec.led_link_o;
 
   initial begin
       // wait until both SPECs see the Ethernet link. Otherwise the packet we're going 

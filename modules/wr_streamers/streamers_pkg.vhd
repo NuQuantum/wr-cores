@@ -75,6 +75,11 @@ package streamers_pkg is
     -- legacy: the streamers initially used in Btrain did not check/insert the escape
     -- code. This is justified if only one block of a known number of words is sent/expected
     escape_code_disable   : boolean;
+
+    -- when non-zero, the datapath (tx port) are in the clk_ref_i clock
+    -- domain instead of clk_sys_i. This is a must for fixed latency mode if
+    -- clk_sys_i is asynchronous (i.e. not locked) to the WR timing.
+    use_ref_clk_for_data  : integer;
   end record;
 
   -----------------------------------------------------------------------------------------
@@ -105,6 +110,11 @@ package streamers_pkg is
     -- In combination with the g_escape_code_disable generic set to TRUE, the behaviour of
     -- the "Btrain streamers" can be recreated.
     expected_words_number : integer;
+
+    -- when non-zero, the datapath (rx port) are in the clk_ref_i clock
+    -- domain instead of clk_sys_i. This is a must for fixed latency mode if
+    -- clk_sys_i is asynchronous (i.e. not locked) to the WR timing.
+    use_ref_clk_for_data  : integer;
   end record;
 
   constant c_tx_streamer_params_defaut: t_tx_streamer_params :=(
@@ -113,12 +123,14 @@ package streamers_pkg is
       threshold             => 128,
       max_words_per_frame   => 256,
       timeout               => 1024,
+      use_ref_clk_for_data  => 0,
       escape_code_disable   => FALSE);
 
   constant c_rx_streamer_params_defaut: t_rx_streamer_params :=(
       data_width            => 32,
       buffer_size           => 256,
       escape_code_disable   => FALSE,
+      use_ref_clk_for_data  => 0,
       expected_words_number => 0);
 
   type t_rx_streamer_cfg is record
@@ -139,6 +151,13 @@ package streamers_pkg is
     filter_remote          : std_logic;
     -- value in cycles of fixed-latency enforced on data
     fixed_latency          : std_logic_vector(27 downto 0);
+
+    -- value in cycles of fixed-latency timeout (if it takes longer than this value
+    -- to output the packet, it's dropped)
+    fixed_latency_timeout  : std_logic_vector(27 downto 0);
+
+    -- software controlled reset
+    sw_reset : std_logic;
   end record;
 
   type t_tx_streamer_cfg is record
@@ -156,6 +175,8 @@ package streamers_pkg is
     qtag_vid               : std_logic_vector(11 downto 0);
     -- priority used to tag
     qtag_prio              : std_logic_vector(2  downto 0);
+    -- software controlled reset
+    sw_reset : std_logic;
   end record;
 
   constant c_rx_streamer_cfg_default: t_rx_streamer_cfg :=(
@@ -164,7 +185,9 @@ package streamers_pkg is
     ethertype              => x"dbff",
     accept_broadcasts      => '1',
     filter_remote          => '0',
-    fixed_latency          => x"0000000");
+    fixed_latency          => x"0000000",
+    fixed_latency_timeout          => x"1000000",
+    sw_reset => '0');
 
   constant c_tx_streamer_cfg_default: t_tx_streamer_cfg :=(
     mac_local              => x"000000000000",
@@ -172,7 +195,8 @@ package streamers_pkg is
     ethertype              => x"dbff",
     qtag_ena               => '0',
     qtag_vid               => x"000",
-    qtag_prio              => "000");
+    qtag_prio              => "000",
+    sw_reset => '0');
 
   component xtx_streamer
     generic (
@@ -183,13 +207,15 @@ package streamers_pkg is
       g_tx_timeout             : integer := 1024;
       g_escape_code_disable    : boolean := FALSE;
       g_simulation             : integer := 0;
-      g_sim_startup_cnt        : integer := 6250);--100us
+      g_sim_startup_cnt        : integer := 6250;--100us
+      g_clk_ref_rate           : integer := 125000000;
+      g_use_ref_clock_for_data : integer := 0);
     port (
       clk_sys_i        : in  std_logic;
+      clk_ref_i        : in  std_logic                     := '0';
       rst_n_i          : in  std_logic;
       src_i            : in  t_wrf_source_in;
       src_o            : out t_wrf_source_out;
-      clk_ref_i        : in  std_logic                     := '0';
       tm_time_valid_i  : in  std_logic                     := '0';
       tm_tai_i         : in  std_logic_vector(39 downto 0) := x"0000000000";
       tm_cycles_i      : in  std_logic_vector(27 downto 0) := x"0000000";
@@ -209,7 +235,11 @@ package streamers_pkg is
       g_data_width        : integer := 32;
       g_buffer_size       : integer := 256;
       g_escape_code_disable : boolean := FALSE;
-      g_expected_words_number : integer := 0);
+      g_expected_words_number : integer := 0;
+      g_clk_ref_rate      : integer := 125000000;
+      g_simulation              : integer := 0;
+      g_sim_cycle_counter_range : integer := 125000000;
+      g_use_ref_clock_for_data  : integer := 0);
     port (
       clk_sys_i               : in  std_logic;
       rst_n_i                 : in  std_logic;
@@ -223,6 +253,8 @@ package streamers_pkg is
       rx_last_p1_o            : out std_logic;
       rx_data_o               : out std_logic_vector(g_data_width-1 downto 0);
       rx_valid_o              : out std_logic;
+      rx_late_o               : out std_logic;
+      rx_timeout_o            : out std_logic;
       rx_dreq_i               : in  std_logic;
       rx_lost_p1_o            : out std_logic := '0';
       rx_lost_blocks_p1_o     : out std_logic := '0';
@@ -230,16 +262,21 @@ package streamers_pkg is
       rx_lost_frames_cnt_o    : out std_logic_vector(14 downto 0);
       rx_latency_o            : out std_logic_vector(27 downto 0);
       rx_latency_valid_o      : out std_logic;
+      rx_stat_overflow_p1_o   : out std_logic;
+      rx_stat_match_p1_o      : out std_logic;
+      rx_stat_late_p1_o       : out std_logic;
+      rx_stat_timeout_p1_o    : out std_logic;
       rx_frame_p1_o           : out std_logic;
       rx_streamer_cfg_i       : in t_rx_streamer_cfg := c_rx_streamer_cfg_default);
   end component;
 
-  constant c_WRS_STATS_ARR_SIZE_OUT : integer := 18;
+  constant c_WRS_STATS_ARR_SIZE_OUT : integer := 24;
   constant c_WRS_STATS_ARR_SIZE_IN  : integer := 1;
 
   component xrtx_streamers_stats is
     generic (
       g_streamers_op_mode    : t_streamers_op_mode  := TX_AND_RX;
+      g_clk_ref_rate         : integer := 125000000;
       g_cnt_width            : integer := 50;
       g_acc_width            : integer := 64
       );
@@ -253,6 +290,9 @@ package streamers_pkg is
       lost_frames_cnt_i      : in std_logic_vector(14 downto 0);
       rcvd_latency_i         : in  std_logic_vector(27 downto 0);
       rcvd_latency_valid_i   : in  std_logic;
+      rx_stat_match_p1_i     : in std_logic;
+      rx_stat_late_p1_i      : in std_logic;
+      rx_stat_timeout_p1_i   : in std_logic;
       clk_ref_i              : in std_logic;
       tm_time_valid_i        : in std_logic := '0';
       tm_tai_i               : in std_logic_vector(39 downto 0) := x"0000000000";
@@ -266,6 +306,9 @@ package streamers_pkg is
       lost_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
       lost_block_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
       latency_cnt_o          : out std_logic_vector(g_cnt_width-1 downto 0);
+      rx_stat_match_cnt_o    : out std_logic_vector(g_cnt_width-1 downto 0);
+      rx_stat_late_cnt_o     : out std_logic_vector(g_cnt_width-1 downto 0);
+      rx_stat_timeout_cnt_o  : out std_logic_vector(g_cnt_width-1 downto 0);
       latency_acc_overflow_o : out std_logic;
       latency_acc_o          : out std_logic_vector(g_acc_width-1  downto 0);
       latency_max_o          : out std_logic_vector(27  downto 0);
@@ -281,6 +324,7 @@ package streamers_pkg is
   component xwr_streamers is
   generic (
     g_streamers_op_mode        : t_streamers_op_mode  := TX_AND_RX;
+    g_clk_ref_rate             : integer := 125000000;
     --tx/rx
     g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
     g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
@@ -290,7 +334,8 @@ package streamers_pkg is
     -- WB i/f
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
     g_slave_granularity        : t_wishbone_address_granularity := BYTE;
-    g_simulation               : integer := 0
+    g_simulation               : integer := 0;
+    g_sim_cycle_counter_range  : integer := 125000
     );
 
   port (

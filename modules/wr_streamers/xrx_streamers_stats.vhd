@@ -65,14 +65,23 @@ entity xrx_streamers_stats is
     rcvd_latency_valid_i   : in  std_logic;
     tm_time_valid_i        : in  std_logic;
 
-    snapshot_ena_i         : in std_logic := '0';
-    reset_stats_i          : in std_logic;
+    snapshot_ena_i         : in  std_logic := '0';
+    reset_stats_i          : in  std_logic;
+
+    rx_stat_match_p1_i     : in std_logic;
+    rx_stat_late_p1_i      : in std_logic;
+    rx_stat_timeout_p1_i   : in std_logic;
+
     ----------------------- statistics ----------------------------------------
     -- output statistics: tx/rx counters
     rcvd_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
     lost_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
     lost_block_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
-    -- output statistics: latency
+    rx_stat_match_cnt_o    : out std_logic_vector(g_cnt_width-1 downto 0);
+    rx_stat_late_cnt_o     : out std_logic_vector(g_cnt_width-1 downto 0);
+    rx_stat_timeout_cnt_o  : out std_logic_vector(g_cnt_width-1 downto 0);
+
+-- output statistics: latency
     latency_cnt_o          : out std_logic_vector(g_cnt_width-1 downto 0);
     latency_acc_overflow_o : out std_logic;
     latency_acc_o          : out std_logic_vector(g_acc_width-1  downto 0);
@@ -88,6 +97,9 @@ architecture rtl of xrx_streamers_stats is
   signal rcvd_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
   signal lost_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
   signal lost_block_cnt    : unsigned(g_cnt_width-1  downto 0);
+  signal rx_stat_late_cnt    : unsigned(g_cnt_width-1 downto 0);
+  signal rx_stat_match_cnt   : unsigned(g_cnt_width-1 downto 0);
+  signal rx_stat_timeout_cnt : unsigned(g_cnt_width-1 downto 0);
   signal latency_cnt       : unsigned(g_cnt_width-1  downto 0);
 
   signal latency_max       : std_logic_vector(27  downto 0);
@@ -100,6 +112,9 @@ architecture rtl of xrx_streamers_stats is
   signal lost_frame_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
   signal lost_block_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
   signal latency_cnt_d1       : unsigned(g_cnt_width-1  downto 0);
+  signal rx_stat_late_cnt_d1    : unsigned(g_cnt_width-1 downto 0);
+  signal rx_stat_match_cnt_d1   : unsigned(g_cnt_width-1 downto 0);
+  signal rx_stat_timeout_cnt_d1 : unsigned(g_cnt_width-1 downto 0);
 
   signal latency_max_d1       : std_logic_vector(27  downto 0);
   signal latency_min_d1       : std_logic_vector(27  downto 0);
@@ -121,6 +136,10 @@ begin
         rcvd_frame_cnt        <= (others => '0');
         lost_frame_cnt        <= (others => '0');
         lost_block_cnt        <= (others => '0');
+        rx_stat_timeout_cnt   <= (others => '0');
+        rx_stat_late_cnt      <= (others => '0');
+        rx_stat_match_cnt     <= (others => '0');
+
       else
         -- count received frames
         if(rcvd_frame_i = '1') then
@@ -134,6 +153,19 @@ begin
         if(lost_block_i = '1') then
           lost_block_cnt <= lost_block_cnt + 1;
         end if;
+        -- count fixed latency on-time frames
+        if(rx_stat_match_p1_i = '1') then
+          rx_stat_match_cnt <= rx_stat_match_cnt + 1;
+        end if;
+        -- count fixed latency late frames
+        if(rx_stat_late_p1_i = '1') then
+          rx_stat_late_cnt <= rx_stat_late_cnt + 1;
+        end if;
+        -- count fixed latency timed-out frames
+        if(rx_stat_timeout_p1_i = '1') then
+          rx_stat_timeout_cnt <= rx_stat_timeout_cnt + 1;
+        end if;
+
       end if;
     end if;
   end process;
@@ -198,6 +230,10 @@ begin
          lost_block_cnt_d1       <= lost_block_cnt;
          latency_cnt_d1          <= latency_cnt;
 
+         rx_stat_timeout_cnt_d1  <= rx_stat_timeout_cnt;
+         rx_stat_match_cnt_d1    <= rx_stat_match_cnt;
+         rx_stat_late_cnt_d1     <= rx_stat_late_cnt;
+
          latency_max_d1          <= latency_max;
          latency_min_d1          <= latency_min;
          latency_acc_d1          <= latency_acc;
@@ -211,6 +247,13 @@ begin
   -------------------------------------------------------------------------------------------
   -- snapshot or current value
   -------------------------------------------------------------------------------------------
+
+  rx_stat_match_cnt_o    <= std_logic_vector(rx_stat_match_cnt_d1) when (snapshot_ena_d1 = '1') else
+                            std_logic_vector(rx_stat_match_cnt);
+  rx_stat_late_cnt_o     <= std_logic_vector(rx_stat_late_cnt_d1) when (snapshot_ena_d1 = '1') else
+                            std_logic_vector(rx_stat_late_cnt);
+  rx_stat_timeout_cnt_o  <= std_logic_vector(rx_stat_timeout_cnt_d1) when (snapshot_ena_d1 = '1') else
+                            std_logic_vector(rx_stat_timeout_cnt);
   rcvd_frame_cnt_o       <= std_logic_vector(rcvd_frame_cnt_d1) when (snapshot_ena_d1 = '1') else
                             std_logic_vector(rcvd_frame_cnt);
   lost_frame_cnt_o       <= std_logic_vector(lost_frame_cnt_d1) when (snapshot_ena_d1 = '1') else

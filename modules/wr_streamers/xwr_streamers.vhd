@@ -71,6 +71,13 @@ entity xwr_streamers is
     -- of them. An application that only receives or only transmits might want to use
     -- RX_ONLY or TX_ONLY mode to save resources.
     g_streamers_op_mode        : t_streamers_op_mode  := TX_AND_RX;
+    -- rate fo the White Rabbit referene clock. By default, this clock is
+    -- 125MHz for WR Nodes. There are some WR Nodes that work with 62.5MHz.
+    -- in the future, more frequences might be supported..
+    g_clk_ref_rate             : integer := 125000000;
+
+
+
     -----------------------------------------------------------------------------------------
     -- Transmission/reception parameters
     -----------------------------------------------------------------------------------------
@@ -89,15 +96,32 @@ entity xwr_streamers is
     -----------------------------------------------------------------------------------------
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
     g_slave_granularity        : t_wishbone_address_granularity := BYTE;
-    g_simulation               : integer := 0
+
+    -- indicate that we are simulating so that some processes can be made to take less time
+    g_simulation               : integer := 0;
+
+    -- shorten the duration of second to see TAI seconds for simulation only (i.e.
+    -- only if g_simulation = 1)
+    g_sim_cycle_counter_range  : integer := 125000
     );
 
   port (
+    ---------------------------------------------------------------------------
+    -- Clocks & Resets
+    ---------------------------------------------------------------------------
+
+    -- System clock. Used always for the WR fabric interface (src/snk) and
+    -- for the data path (tx_/rx_ ports) if use_ref_clk_for_data = 0.
     clk_sys_i                  : in std_logic;
+
+    -- WR Reference clock, 62.5 or 125 MHz. Frequency must match g_ref_clk_rate
+    -- generic. Used for latency measurement and timestamping (tm_ ports).
+    -- It also clocks Tx_/rx_ interfaces if use_ref_clk_for_data != 0.
+    clk_ref_i                  : in std_logic := '0';
     rst_n_i                    : in std_logic;
 
     ---------------------------------------------------------------------------
-    -- WR tx/rx interface
+    -- WR tx/rx interface (clk_sys clock domain)
     ---------------------------------------------------------------------------
     -- Tx
     src_i                      : in  t_wrf_source_in;
@@ -106,8 +130,9 @@ entity xwr_streamers is
     snk_i                      : in  t_wrf_sink_in;
     snk_o                      : out t_wrf_sink_out;
 
+   
     ---------------------------------------------------------------------------
-    -- User tx interface
+    -- User tx interface (clk_data clock domain)
     ---------------------------------------------------------------------------
     -- Data word to be sent.
     tx_data_i                  : in std_logic_vector(g_tx_streamer_params.data_width-1 downto 0);
@@ -138,12 +163,13 @@ entity xwr_streamers is
     -- data word in the subsequent clock cycle.
     rx_dreq_i                  : in  std_logic;
 
+    rx_late_o : out std_logic;
+    rx_timeout_o : out std_logic;
+    
     ---------------------------------------------------------------------------
     -- WRC Timing interface, used for latency measurement
     ---------------------------------------------------------------------------
 
-    -- White Rabbit reference clock
-    clk_ref_i                  : in std_logic := '0';
     -- Time valid flag
     tm_time_valid_i            : in std_logic := '0';
     -- TAI seconds
@@ -173,11 +199,12 @@ architecture rtl of xwr_streamers is
 
   signal to_wb              : t_wr_streamers_in_registers;
   signal from_wb            : t_wr_streamers_out_registers;
+
   signal dbg_word                : std_logic_vector(31 downto 0);
   signal start_bit               : std_logic_vector(from_wb.dbg_ctrl_start_byte_o'length-1+3 downto 0);
   signal rx_data                 : std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
   signal wb_regs_slave_in        : t_wishbone_slave_in;
-  signal wb_regs_slave_out       : t_wishbone_slave_out;  
+  signal wb_regs_slave_out       : t_wishbone_slave_out;
   signal tx_frame                : std_logic;
   signal reset_time_tai          : std_logic_vector(39 downto 0);
   signal latency_acc             : std_logic_vector(g_stats_acc_width-1 downto 0);
@@ -186,7 +213,11 @@ architecture rtl of xwr_streamers is
   signal rcvd_frame_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
   signal lost_frame_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
   signal lost_block_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal rx_stat_match_cnt       : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal rx_stat_timeout_cnt     : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal rx_stat_late_cnt        : std_logic_vector(g_stats_cnt_width-1 downto 0);
   signal rx_valid                : std_logic;
+
 
   signal rx_latency_valid        : std_logic;
   signal rx_latency              : std_logic_vector(27 downto 0);
@@ -194,6 +225,11 @@ architecture rtl of xwr_streamers is
   signal rx_lost_frames_cnt      : std_logic_vector(14 downto 0);
   signal rx_lost_blocks          : std_logic;
   signal rx_frame                : std_logic;
+
+  signal rx_stat_match_p1        : std_logic;
+  signal rx_stat_late_p1         : std_logic;
+  signal rx_stat_timeout_p1      : std_logic;
+
 
   signal tx_streamer_cfg         : t_tx_streamer_cfg;
   signal rx_streamer_cfg         : t_rx_streamer_cfg;
@@ -215,13 +251,15 @@ begin
         g_tx_max_words_per_frame => g_tx_streamer_params.max_words_per_frame,
         g_tx_timeout             => g_tx_streamer_params.timeout,
         g_escape_code_disable    => g_tx_streamer_params.escape_code_disable,
-        g_simulation             => g_simulation)
+        g_simulation             => g_simulation,
+        g_clk_ref_rate           => g_clk_ref_rate,
+        g_use_ref_clock_for_data => g_tx_streamer_params.use_ref_clk_for_data)
       port map(
         clk_sys_i                => clk_sys_i,
+        clk_ref_i                => clk_ref_i,
         rst_n_i                  => rst_n_i,
         src_i                    => src_i,
         src_o                    => src_o,
-        clk_ref_i                => clk_ref_i,
         tm_time_valid_i          => tm_time_valid_i,
         tm_tai_i                 => tm_tai_i,
         tm_cycles_i              => tm_cycles_i,
@@ -251,7 +289,11 @@ begin
         g_data_width             => g_rx_streamer_params.data_width,
         g_buffer_size            => g_rx_streamer_params.buffer_size,
         g_escape_code_disable    => g_rx_streamer_params.escape_code_disable,
-        g_expected_words_number  => g_rx_streamer_params.expected_words_number
+        g_expected_words_number  => g_rx_streamer_params.expected_words_number,
+        g_clk_ref_rate           => g_clk_ref_rate,
+        g_simulation => g_simulation,
+        g_sim_cycle_counter_range => g_sim_cycle_counter_range,
+        g_use_ref_clock_for_data => g_rx_streamer_params.use_ref_clk_for_data
         )
       port map(
         clk_sys_i                => clk_sys_i,
@@ -267,9 +309,15 @@ begin
         rx_data_o                => rx_data,
         rx_valid_o               => rx_valid,
         rx_dreq_i                => rx_dreq_i,
+        rx_late_o                => rx_late_o,
+        rx_timeout_o             => rx_timeout_o,
         rx_lost_p1_o             => rx_lost_blocks,
         rx_lost_frames_p1_o      => rx_lost_frames,
         rx_lost_frames_cnt_o     => rx_lost_frames_cnt,
+        rx_stat_match_p1_o       => rx_stat_match_p1,
+        rx_stat_late_p1_o        => rx_stat_late_p1,
+        rx_stat_timeout_p1_o     => rx_stat_timeout_p1,
+
         rx_latency_o             => rx_latency,
         rx_latency_valid_o       => rx_latency_valid,
         rx_frame_p1_o            => rx_frame,
@@ -290,9 +338,11 @@ begin
     generic map(
       g_streamers_op_mode      => g_streamers_op_mode,
       g_cnt_width              => g_stats_cnt_width,
-      g_acc_width              => g_stats_acc_width
+      g_acc_width              => g_stats_acc_width,
+      g_clk_ref_rate           => g_clk_ref_rate
       )
     port map(
+
       clk_i                    => clk_sys_i,
       rst_n_i                  => rst_n_i,
       sent_frame_i             => tx_frame,
@@ -314,6 +364,13 @@ begin
       rcvd_frame_cnt_o         => rcvd_frame_cnt_out,
       lost_frame_cnt_o         => lost_frame_cnt_out,
       lost_block_cnt_o         => lost_block_cnt_out,
+      rx_stat_timeout_cnt_o    => rx_stat_timeout_cnt,
+      rx_stat_match_cnt_o      => rx_stat_match_cnt,
+      rx_stat_late_cnt_o       => rx_stat_late_cnt,
+
+      rx_stat_match_p1_i       => rx_stat_match_p1,
+      rx_stat_late_p1_i        => rx_stat_late_p1,
+      rx_stat_timeout_p1_i     => rx_stat_timeout_p1,
       latency_cnt_o            => latency_cnt,
       latency_acc_o            => latency_acc,
       latency_max_o            => to_wb.rx_stat0_rx_latency_max_i,
@@ -343,6 +400,15 @@ begin
   to_wb.rx_stat11_rx_latency_acc_msb_i    (c_aw-32-1 downto 0) <= latency_acc       (c_aw-1 downto 32);
   to_wb.rx_stat12_rx_latency_acc_cnt_lsb_i                     <= latency_cnt       (31     downto 0);
   to_wb.rx_stat13_rx_latency_acc_cnt_msb_i(c_cw-32-1 downto 0) <= latency_cnt       (c_cw-1 downto 32);
+
+  -- new stuff added for fixed-latency
+  to_wb.rx_stat15_rx_late_frames_cnt_lsb_i                         <= rx_stat_late_cnt(31      downto 0);
+  to_wb.rx_stat16_rx_late_frames_cnt_msb_i (c_cw-32-1 downto 0)    <= rx_stat_late_cnt(c_cw-1  downto 32);
+  to_wb.rx_stat17_rx_timeout_frames_cnt_lsb_i                      <= rx_stat_timeout_cnt(31     downto 0);
+  to_wb.rx_stat18_rx_timeout_frames_cnt_msb_i (c_cw-32-1 downto 0) <= rx_stat_timeout_cnt(c_cw-1 downto 32);
+  to_wb.rx_stat19_rx_match_frames_cnt_lsb_i                        <= rx_stat_match_cnt(31     downto 0);
+  to_wb.rx_stat20_rx_match_frames_cnt_msb_i(c_cw-32-1 downto 0)    <= rx_stat_match_cnt(c_cw-1 downto 32);
+
 
   rx_data_o  <= rx_data;
   rx_valid_o <= rx_valid;
@@ -464,4 +530,11 @@ begin
                                        rx_streamer_cfg_i.filter_remote;
   rx_streamer_cfg.fixed_latency     <= from_wb.rx_cfg5_fixed_latency_o    when (from_wb.cfg_or_rx_fix_lat_o='1') else
                                        rx_streamer_cfg_i.fixed_latency;
+  rx_streamer_cfg.fixed_latency_timeout <= from_wb.rx_cfg6_rx_fixed_latency_timeout_o when (from_wb.cfg_or_rx_fix_lat_o = '1') else
+                                           rx_streamer_cfg_i.fixed_latency_timeout;
+
+
+  rx_streamer_cfg.sw_reset <= from_wb.rstr_rst_sw_o;
+  tx_streamer_cfg.sw_reset <= from_wb.rstr_rst_sw_o;
+
 end rtl;
