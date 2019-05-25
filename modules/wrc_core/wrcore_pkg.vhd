@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2019-02-01
+-- Last update: 2019-03-29
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -320,6 +320,7 @@ package wrcore_pkg is
       g_divide_input_by_2    : boolean;
       g_ref_clock_rate       : integer;
       g_ext_clock_rate       : integer;
+      g_use_sampled_ref_clocks : boolean := false;
       g_interface_mode       : t_wishbone_interface_mode;
       g_address_granularity  : t_wishbone_address_granularity);
     port (
@@ -330,6 +331,7 @@ package wrcore_pkg is
       rst_dmtd_n_i    : in  std_logic;
       clk_ref_i       : in  std_logic_vector(g_num_ref_inputs-1 downto 0);
       clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
+      clk_ref_sampled_i : in std_logic_vector(g_num_ref_inputs-1 downto 0) := (others => '0');
       clk_dmtd_i      : in  std_logic;
       clk_ext_i       : in  std_logic;
       clk_ext_mul_i        : in std_logic_vector(f_nonzero_vector(g_num_exts)-1 downto 0);
@@ -377,6 +379,7 @@ package wrcore_pkg is
       g_address_granularity       : t_wishbone_address_granularity := BYTE;
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_enable_debugger   : boolean                        := false;
+      g_softpll_use_sampled_ref_clocks : boolean := false;
       g_vuart_fifo_size           : integer                        := 1024;
       g_pcs_16bit                 : boolean                        := false;
       g_records_for_phy           : boolean                        := false;
@@ -422,6 +425,10 @@ package wrcore_pkg is
       phy_sfp_tx_fault_i   : in std_logic := '0';
       phy_sfp_los_i        : in std_logic := '0';
       phy_sfp_tx_disable_o : out std_logic;
+      phy_rx_rbclk_sampled_i : in std_logic := '0';
+      phy_debug_o : out std_logic_vector(15 downto 0);
+      phy_debug_i : in std_logic_vector(15 downto 0) := x"0000";
+
       -----------------------------------------
       -- PHY I/f - record-based
       -- selection done with g_records_for_phy
@@ -521,6 +528,7 @@ package wrcore_pkg is
       g_address_granularity       : t_wishbone_address_granularity := BYTE;
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_enable_debugger   : boolean                        := false;
+      g_softpll_use_sampled_ref_clocks : boolean := false;
       g_vuart_fifo_size           : integer                        := 1024;
       g_pcs_16bit                 : boolean                        := false;
       g_records_for_phy           : boolean                        := false;
@@ -591,6 +599,11 @@ package wrcore_pkg is
       phy_sfp_tx_fault_i   : in std_logic := '0';
       phy_sfp_los_i        : in std_logic := '0';
       phy_sfp_tx_disable_o : out std_logic;
+
+      phy_rx_rbclk_sampled_i : in std_logic := '0';
+      phy_debug_o : out std_logic_vector(15 downto 0);
+      phy_debug_i : in std_logic_vector(15 downto 0) := x"0000";
+
       -----------------------------------------
       -- PHY I/f - record-based
       -- selection done with g_records_for_phy

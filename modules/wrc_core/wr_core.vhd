@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2019-02-01
+-- Last update: 2019-03-29
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -92,6 +92,7 @@ entity wr_core is
     g_address_granularity       : t_wishbone_address_granularity := BYTE;
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
     g_softpll_enable_debugger   : boolean                        := false;
+    g_softpll_use_sampled_ref_clocks : boolean := false;
     g_vuart_fifo_size           : integer                        := 1024;
     g_pcs_16bit                 : boolean                        := false;
     g_records_for_phy           : boolean                        := false;
@@ -161,6 +162,11 @@ entity wr_core is
     phy_sfp_los_i        : in std_logic := '0';
     phy_sfp_tx_disable_o : out std_logic;
 
+    phy_rx_rbclk_sampled_i : in std_logic;
+    phy_debug_o : out std_logic_vector(15 downto 0);
+    phy_debug_i : in std_logic_vector(15 downto 0);
+
+    
     -- PHY I/F record-based
     phy8_o  : out t_phy_8bits_from_wrc;
     phy8_i  : in  t_phy_8bits_to_wrc  := c_dummy_phy8_to_wrc;
@@ -655,6 +661,7 @@ begin
       g_num_outputs          => 1 + g_aux_clks,
       g_num_exts             => f_num_ext_clks,
       g_ref_clock_rate       => f_refclk_rate(g_pcs_16bit),
+      g_use_sampled_ref_clocks => g_softpll_use_sampled_ref_clocks,
       g_ext_clock_rate       => 10000000)
     port map(
       clk_sys_i    => clk_sys_i,
@@ -665,6 +672,7 @@ begin
 
       -- Reference inputs (i.e. the RX clocks recovered by the PHYs)
       clk_ref_i(0) => phy_rx_clk,
+      clk_ref_sampled_i(0) => phy_rx_rbclk_sampled_i,
       -- Feedback clocks (i.e. the outputs of the main or aux oscillator)
       clk_fb_i     => clk_fb,
       -- DMTD Offset clock
@@ -777,6 +785,8 @@ begin
       phy_rx_k_i           => phy_rx_k_i,
       phy_rx_enc_err_i     => phy_rx_enc_err_i,
       phy_rx_bitslide_i    => phy_rx_bitslide_i,
+      phy_debug_o => phy_debug_o,
+      phy_debug_i => phy_debug_i,
 
       phy8_o  => phy8_o,
       phy8_i  => phy8_i,
