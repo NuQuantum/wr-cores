@@ -6,7 +6,7 @@
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
--- Last update: 2019-03-29
+-- Last update: 2019-04-18
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -266,8 +266,6 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   signal gtreset                      : std_logic;
 
   signal everything_ready             : std_logic;
-  signal rx_cdr_rst                   : std_logic;
-  signal rx_synced                    : std_logic;
   signal rst_done                     : std_logic;
   signal rst_done_n                   : std_logic;
  
