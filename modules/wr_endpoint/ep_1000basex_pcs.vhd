@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2017-02-20
+-- Last update: 2019-04-18
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -433,7 +433,8 @@ begin  -- rtl
   mdio_mcr_pdown <= mdio_mcr_pdown_cpu or (not link_ctr_i);
 
   -- keep PHY reset also when SFP reports LOS (DL)
-  serdes_rst_o <= (not pcs_reset_n) or mdio_mcr_pdown or serdes_sfp_los_i;
+  serdes_rst_o <= (not pcs_reset_n) or mdio_mcr_pdown
+                  ;
 
   U_MDIO_WB : ep_pcs_tbi_mdio_wb
     port map (
