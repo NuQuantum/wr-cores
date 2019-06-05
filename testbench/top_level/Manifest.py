@@ -8,7 +8,8 @@ top_module = "main"
 fetchto = "../../ip_cores"
 vlog_opt="+incdir+../../sim +incdir+gn4124_bfm"
 
-include_dirs = [ "../../sim", "gn4124_bfm" ]
+include_dirs = [ "../../sim", "gn4124_bfm", 
+        "../../ip_cores/general-cores/modules/wishbone/wb_lm32/src" ]
 
 files = [ "main.sv" ]
 

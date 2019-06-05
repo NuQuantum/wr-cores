@@ -10,7 +10,8 @@ vlog_opt = "+incdir+../../sim"
 
 files = [ "main.sv" ]
 
-include_dirs = [ "../../sim" ]
+include_dirs = [ "../../sim",
+        "../../ip_cores/general-cores/modules/wishbone/wb_lm32/src" ]
 
 modules = { "local" : [ "../../",
 			"../../modules/fabric",
