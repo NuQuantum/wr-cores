@@ -3,7 +3,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity gtx_comma_detect_lp is
+entity gtx_comma_detect_kintex7_lp is
   generic (
     g_ID : integer
     );
@@ -11,19 +11,17 @@ entity gtx_comma_detect_lp is
     clk_rx_i : in std_logic;
     rst_i    : in std_logic;
 
-    rx_data_raw_i : in std_logic_vector(19 downto 0);
+    rx_data_raw_i : in std_logic_vector(39 downto 0);
 
+    comma_target_pos_i : in std_logic_vector(7 downto 0);
+    
     link_up_o : out std_logic;
-    aligned_o : out std_logic;
-
-    rx_data_i : in std_logic_vector(15 downto 0);
-    rx_k_i : in std_logic_vector(1 downto 0);
-    rx_error_i : in std_logic
+    aligned_o : out std_logic
     );
 
-end gtx_comma_detect_lp;
+end gtx_comma_detect_kintex7_lp;
 
-architecture rtl of gtx_comma_detect_lp is
+architecture rtl of gtx_comma_detect_kintex7_lp is
 
   type t_state is (SYNC_LOST, SYNC_CHECK, SYNC_ACQUIRED);
 
@@ -33,13 +31,13 @@ architecture rtl of gtx_comma_detect_lp is
   constant c_COMMA_SHIFT_WE_WANT : std_logic_vector(6 downto 0) := "0110000";
 -- fixme
 
-  signal rx_data_d0     : std_logic_vector(19 downto 0);
-  signal rx_data_merged : std_logic_vector(49 downto 0);
+  signal rx_data_d0, rx_data_d1     : std_logic_vector(39 downto 0);
+  signal rx_data_merged : std_logic_vector(40*3-1 downto 0);
 
-  signal first_comma : std_logic_vector(4 downto 0);
+  signal first_comma : std_logic_vector(7 downto 0);
   signal cnt         : unsigned(15 downto 0);
   signal state       : t_state;
-  signal comma_found : std_logic_vector(19 downto 0);
+  signal comma_found : std_logic_vector(79 downto 0);
 
   component chipscope_ila_v6 is
     port (
@@ -69,14 +67,27 @@ architecture rtl of gtx_comma_detect_lp is
     return std_logic_vector(to_unsigned(0, output_bits));
   end f_onehot_encode;
 
+  function f_decimate(x: std_logic_vector; first : integer; count:integer;step:integer) return std_logic_vector is
+    variable rv: std_logic_vector(count -1 downto 0);
+  begin
+
+    for i in 0 to count-1 loop
+      rv(i) := x(first + step * i);
+    end loop;
+
+    return rv;
+  end function;
+  
+  
   constant c_K28_5_PLUS : std_logic_vector(9 downto 0) := "1010000011";
 
-  signal comma_pos            : std_logic_vector(4 downto 0);
-  signal prev_comma_pos       : std_logic_vector(4 downto 0);
+  signal comma_pos            : std_logic_vector(7 downto 0);
+  signal prev_comma_pos       : std_logic_vector(7 downto 0);
   signal prev_comma_pos_valid : std_logic;
   signal comma_pos_valid      : std_logic;
   signal link_up : std_logic;
   signal link_aligned : std_logic;
+
   
 begin
 
@@ -100,17 +111,25 @@ begin
 --    trig0 (43+15 downto 43) <= std_logic_vector(cnt);
 --  end generate gen1;
 
+
+  
   process(clk_rx_i)
+    variable lookup : std_logic_vector( 9 downto 0);
   begin
     if rising_edge(clk_rx_i) then
       if rst_i = '1' then
         comma_found <= (others => '0');
       else
         rx_data_d0                  <= rx_data_raw_i;
-        rx_data_merged(39 downto 0) <= rx_data_d0 & rx_data_raw_i;
-        for i in 0 to 19 loop
-          if rx_data_merged(i + 9 downto i) = c_K28_5_PLUS or
-            rx_data_merged(i + 9 downto i) = (not c_K28_5_PLUS) then
+        rx_data_d1 <= rx_data_d0;
+        rx_data_merged <= rx_data_d1 & rx_data_d0 & rx_data_raw_i;
+
+        -- 1 8b10b bits = 4 oversampled bits
+        for i in 0 to 79 loop
+          lookup := f_decimate(rx_data_merged, i, 10, 4 );
+
+          if lookup = c_K28_5_PLUS or
+            lookup = (not c_K28_5_PLUS) then
             comma_found(i) <= '1';
           else
             comma_found(i) <= '0';
@@ -164,7 +183,7 @@ begin
             link_up <= '1';
 
             if(comma_pos_valid = '1' and comma_pos = first_comma) then
-              if(unsigned(comma_pos) = 0) then
+              if(comma_pos = comma_target_pos_i) then
                 link_aligned <= '1';
               end if;
 
