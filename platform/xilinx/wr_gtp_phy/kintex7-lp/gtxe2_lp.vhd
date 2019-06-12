@@ -76,7 +76,7 @@ generic
     GT_SIM_GTRESET_SPEEDUP    : string     :=  "FALSE";        -- Set to "TRUE" to speed up sim reset
     RX_DFE_KL_CFG2_IN         : bit_vector :=   X"301148AC";
     SIM_CPLLREFCLK_SEL        : bit_vector :=   "001";
-    PMA_RSV_IN                : bit_vector :=  x"00018480";
+    PMA_RSV_IN                : bit_vector :=  x"001E7080";
     PCS_RSVD_ATTR_IN          : bit_vector :=   X"000000000000"
 );
 port 
@@ -234,13 +234,13 @@ begin
 
        ------------------RX Byte and Word Alignment Attributes---------------
         ALIGN_COMMA_DOUBLE                      =>     ("FALSE"),
-        ALIGN_COMMA_ENABLE                      =>     ("0001111111"),
-        ALIGN_COMMA_WORD                        =>     (2),
+        ALIGN_COMMA_ENABLE                      =>     ("1111111111"),
+        ALIGN_COMMA_WORD                        =>     (1),
         ALIGN_MCOMMA_DET                        =>     ("TRUE"),
         ALIGN_MCOMMA_VALUE                      =>     ("1010000011"),
         ALIGN_PCOMMA_DET                        =>     ("TRUE"),
         ALIGN_PCOMMA_VALUE                      =>     ("0101111100"),
-        SHOW_REALIGN_COMMA                      =>     ("FALSE"),
+        SHOW_REALIGN_COMMA                      =>     ("TRUE"),
         RXSLIDE_AUTO_WAIT                       =>     (7),
         RXSLIDE_MODE                            =>     ("OFF"),
         RX_SIG_VALID_DLY                        =>     (10),
@@ -252,22 +252,22 @@ begin
         DEC_VALID_COMMA_ONLY                    =>     ("FALSE"),
 
        ------------------------RX Clock Correction Attributes----------------------
-        CBCC_DATA_SOURCE_SEL                    =>     ("DECODED"),
+        CBCC_DATA_SOURCE_SEL                    =>     ("ENCODED"),
         CLK_COR_SEQ_2_USE                       =>     ("FALSE"),
         CLK_COR_KEEP_IDLE                       =>     ("FALSE"),
-        CLK_COR_MAX_LAT                         =>     (10),
-        CLK_COR_MIN_LAT                         =>     (8),
+        CLK_COR_MAX_LAT                         =>     (19),
+        CLK_COR_MIN_LAT                         =>     (15),
         CLK_COR_PRECEDENCE                      =>     ("TRUE"),
         CLK_COR_REPEAT_WAIT                     =>     (0),
         CLK_COR_SEQ_LEN                         =>     (1),
         CLK_COR_SEQ_1_ENABLE                    =>     ("1111"),
-        CLK_COR_SEQ_1_1                         =>     ("0000000000"),
+        CLK_COR_SEQ_1_1                         =>     ("0100000000"),
         CLK_COR_SEQ_1_2                         =>     ("0000000000"),
         CLK_COR_SEQ_1_3                         =>     ("0000000000"),
         CLK_COR_SEQ_1_4                         =>     ("0000000000"),
         CLK_CORRECT_USE                         =>     ("FALSE"),
         CLK_COR_SEQ_2_ENABLE                    =>     ("1111"),
-        CLK_COR_SEQ_2_1                         =>     ("0000000000"),
+        CLK_COR_SEQ_2_1                         =>     ("0100000000"),
         CLK_COR_SEQ_2_2                         =>     ("0000000000"),
         CLK_COR_SEQ_2_3                         =>     ("0000000000"),
         CLK_COR_SEQ_2_4                         =>     ("0000000000"),
@@ -372,7 +372,7 @@ begin
        --For SATA Gen2 GTP- set RXCDR_CFG=83'h0_0000_47FE_2060_2448_1010
 
        --For SATA Gen1 GTP- set RXCDR_CFG=83'h0_0000_47FE_1060_2448_1010
-        RXCDR_CFG                               =>     (x"03000023ff20400020"),
+        RXCDR_CFG                               =>     (x"03000023ff40200020"),
         RXCDR_FR_RESET_ON_EIDLE                 =>     ('0'),
         RXCDR_HOLD_DURING_EIDLE                 =>     ('0'),
         RXCDR_PH_RESET_ON_EIDLE                 =>     ('0'),
@@ -467,8 +467,8 @@ begin
         CPLL_INIT_CFG                           =>     (x"00001E"),
         CPLL_LOCK_CFG                           =>     (x"01E8"),
         CPLL_REFCLK_DIV                         =>     (1),
-        RXOUT_DIV                               =>     (1),
-        TXOUT_DIV                               =>     (1),
+        RXOUT_DIV                               =>     (2),
+        TXOUT_DIV                               =>     (2),
         SATA_CPLL_CFG                           =>     ("VCO_3000MHZ"),
 
        --------------RX Initialization and Reset Attributes-------------
@@ -512,15 +512,15 @@ begin
     )
     port map
     (
-                      --------------------------------- CPLL Ports -------------------------------
-        CPLLFBCLKLOST                   =>      CPLLFBCLKLOST_OUT,
-        CPLLLOCK                        =>      CPLLLOCK_OUT,
-        CPLLLOCKDETCLK                  =>      CPLLLOCKDETCLK_IN,
+        --------------------------------- CPLL Ports -------------------------------
+        CPLLFBCLKLOST                   =>      open,
+        CPLLLOCK                        =>      open,
+        CPLLLOCKDETCLK                  =>      tied_to_ground_i,
         CPLLLOCKEN                      =>      tied_to_vcc_i,
-        CPLLPD                          =>      tied_to_ground_i,
-        CPLLREFCLKLOST                  =>      CPLLREFCLKLOST_OUT,
+        CPLLPD                          =>      tied_to_vcc_i,
+        CPLLREFCLKLOST                  =>      open,
         CPLLREFCLKSEL                   =>      "001",
-        CPLLRESET                       =>      CPLLRESET_IN,
+        CPLLRESET                       =>      tied_to_ground_i,
         GTRSVD                          =>      "0000000000000000",
         PCSRSVDIN                       =>      "0000000000000000",
         PCSRSVDIN2                      =>      "00000",
@@ -534,7 +534,7 @@ begin
         GTGREFCLK                       =>      tied_to_ground_i,
         GTNORTHREFCLK0                  =>      tied_to_ground_i,
         GTNORTHREFCLK1                  =>      tied_to_ground_i,
-        GTREFCLK0                       =>      GTREFCLK0_IN,
+        GTREFCLK0                       =>      tied_to_ground_i,
         GTREFCLK1                       =>      tied_to_ground_i,
         GTSOUTHREFCLK0                  =>      tied_to_ground_i,
         GTSOUTHREFCLK1                  =>      tied_to_ground_i,
@@ -548,16 +548,16 @@ begin
         DRPWE                           =>      DRPWE_IN,
         ------------------------------- Clocking Ports -----------------------------
         GTREFCLKMONITOR                 =>      open,
-        QPLLCLK                         =>      QPLLCLK_IN,
-        QPLLREFCLK                      =>      QPLLREFCLK_IN,
-        RXSYSCLKSEL                     =>      "00",
-        TXSYSCLKSEL                     =>      "00",
+        QPLLCLK                         =>      qpllclk_in,
+        QPLLREFCLK                      =>      qpllrefclk_in,
+        RXSYSCLKSEL                     =>      "11",
+        TXSYSCLKSEL                     =>      "11",
         --------------------------- Digital Monitor Ports --------------------------
         DMONITOROUT                     =>      open,
         ----------------- FPGA TX Interface Datapath Configuration  ----------------
         TX8B10BEN                       =>      '0',
         ------------------------------- Loopback Ports -----------------------------
-        LOOPBACK                        =>      LOOPBACK_IN,
+        LOOPBACK                        =>      tied_to_ground_vec_i(2 downto 0), --LOOPBACK_IN,
         ----------------------------- PCI Express Ports ----------------------------
         PHYSTATUS                       =>      open,
         RXRATE                          =>      tied_to_ground_vec_i(2 downto 0),
@@ -599,7 +599,7 @@ begin
         ------------------- Receive Ports - Pattern Checker ports ------------------
         RXPRBSCNTRESET                  =>      tied_to_ground_i,
         -------------------- Receive Ports - RX  Equalizer Ports -------------------
-        RXDFEXYDEN                      =>      tied_to_ground_i,
+        RXDFEXYDEN                      =>      tied_to_vcc_i,
         RXDFEXYDHOLD                    =>      tied_to_ground_i,
         RXDFEXYDOVRDEN                  =>      tied_to_ground_i,
         --------------------------- Receive Ports - RX AFE -------------------------
@@ -643,7 +643,7 @@ begin
         RXDFEAGCOVRDEN                  =>      tied_to_ground_i,
         RXDFECM1EN                      =>      tied_to_ground_i,
         RXDFELFHOLD                     =>      tied_to_ground_i,
-        RXDFELFOVRDEN                   =>      tied_to_ground_i,
+        RXDFELFOVRDEN                   =>      tied_to_vcc_i,
         RXDFELPMRESET                   =>      tied_to_ground_i,
         RXDFETAP2HOLD                   =>      tied_to_ground_i,
         RXDFETAP2OVRDEN                 =>      tied_to_ground_i,
@@ -687,7 +687,7 @@ begin
         RXPCSRESET                      =>      tied_to_ground_i,
         RXPMARESET                      =>      RXPMARESET_IN,
         ------------------ Receive Ports - RX Margin Analysis ports ----------------
-        RXLPMEN                         =>      tied_to_vcc_i,
+        RXLPMEN                         =>      tied_to_ground_i,
         ------------------- Receive Ports - RX OOB Signaling ports -----------------
         RXCOMSASDET                     =>      open,
         RXCOMWAKEDET                    =>      open,
@@ -776,7 +776,7 @@ begin
         TXOUTCLK                        =>      TXOUTCLK_OUT,
         TXOUTCLKFABRIC                  =>      TXOUTCLKFABRIC_OUT,
         TXOUTCLKPCS                     =>      TXOUTCLKPCS_OUT,
-        TXOUTCLKSEL                     =>      "010",
+        TXOUTCLKSEL                     =>      "011",
         TXRATEDONE                      =>      open,
         --------------------- Transmit Ports - TX Gearbox Ports --------------------
         TXCHARISK(7 downto 2)           =>      tied_to_ground_vec_i(5 downto 0),
@@ -808,7 +808,7 @@ begin
         TXQPISENP                       =>      open
 
     );
- 
+
  end RTL;
 
 

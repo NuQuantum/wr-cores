@@ -6,7 +6,7 @@
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
--- Last update: 2019-06-05
+-- Last update: 2019-06-12
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -61,8 +61,12 @@ entity wr_gtx_phy_kintex7_lp is
     );
 
   port (
+
     -- Dedicated reference 125 MHz clock for the GTX transceiver
-    clk_gtx_i : in std_logic;
+    qpll_clk_i : in std_logic;
+    qpll_ref_clk_i : in std_logic;
+    qpll_locked_i : in std_logic;
+    
 
     -- DMTD clock for phase measurements (done in the PHY module as we need to
     -- multiplex between several GTX clock outputs)
@@ -176,9 +180,8 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
 
   signal tx_rst_done, rx_rst_done     : std_logic;
   signal txpll_lockdet, rxpll_lockdet : std_logic;
-  signal pll_lockdet                  : std_logic;
-  signal cpll_lockdet                 : std_logic;
-  signal gtreset                      : std_logic;
+--  signal pll_lockdet                  : std_logic;
+--  signal cpll_lockdet                 : std_logic;
 
   signal everything_ready             : std_logic;
   signal rst_done                     : std_logic;
@@ -239,6 +242,7 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   end function;
 
   signal comma_target_pos : std_logic_vector(7 downto 0);
+  signal comma_current_pos : std_logic_vector(7 downto 0);
   
 begin  -- rtl
 
@@ -342,7 +346,7 @@ begin  -- rtl
 
   gtx_rst <= rst_synced or std_logic(not reset_counter(reset_counter'left));
 
-  debug_o(0) <= '1'; -- was tx_reset_done
+  debug_o(0) <= qpll_locked_i; -- was tx_reset_done
   
   tx_enc_err_o <= '0';
 
@@ -351,8 +355,8 @@ begin  -- rtl
       I => tx_out_clk_bufin,
       O => tx_out_clk);
 
-   tx_clk_o <= tx_out_clk;
-   tx_locked_o  <= cpll_lockdet;
+  tx_clk_o <= tx_out_clk;
+  tx_locked_o  <= qpll_locked_i;
 
   U_BUF_RxRecClk : BUFG
     port map (
@@ -380,12 +384,12 @@ begin  -- rtl
     (
 		--------------------------------- CPLL Ports -------------------------------
 		CPLLFBCLKLOST_OUT          => open,
-		CPLLLOCK_OUT               => cpll_lockdet,
+		CPLLLOCK_OUT               => open,
 		CPLLLOCKDETCLK_IN          => '0',
 		CPLLREFCLKLOST_OUT         => open,
-		CPLLRESET_IN               => gtx_tx_reset_a,
+		CPLLRESET_IN               => '0',
 		-------------------------- Channel - Clocking Ports ------------------------
-		GTREFCLK0_IN               => clk_gtx_i,
+		GTREFCLK0_IN               => '0',
 		---------------------------- Channel - DRP Ports  --------------------------
 		DRPADDR_IN                 => (Others => '0'),
 		DRPCLK_IN                  => '0',
@@ -395,8 +399,8 @@ begin  -- rtl
 		DRPRDY_OUT                 => open,
 		DRPWE_IN                   => '0',
 		------------------------------- Clocking Ports -----------------------------
-		QPLLCLK_IN                 => '0',
-		QPLLREFCLK_IN              => '0',
+		QPLLCLK_IN                 => qpll_clk_i,
+		QPLLREFCLK_IN              => qpll_ref_clk_i,
 		------------------------------- Loopback Ports -----------------------------
 		LOOPBACK_IN                => gtx_loopback,
 		--------------------- RX Initialization and Reset Ports --------------------
@@ -428,7 +432,7 @@ begin  -- rtl
 		RXRESETDONE_OUT            => rx_rst_done,
 		--------------------- TX Initialization and Reset Ports --------------------
 		GTTXRESET_IN               => gtx_tx_reset_a,
-		TXUSERRDY_IN               => cpll_lockdet,
+		TXUSERRDY_IN               => qpll_locked_i,
 		------------------ Transmit Ports - FPGA TX Interface Ports ----------------
 		TXUSRCLK_IN                => tx_out_clk,
 		TXUSRCLK2_IN               => tx_out_clk,
@@ -450,13 +454,12 @@ begin  -- rtl
   
 
 
-  txpll_lockdet    <= cpll_lockdet;
+  txpll_lockdet    <= qpll_locked_i;
   rxpll_lockdet    <= rx_cdr_lock_filtered;
-  gtreset          <= not cpll_lockdet;
   rst_done         <= rx_rst_done and tx_rst_done;
   rst_done_n       <= not rst_done;
-  pll_lockdet      <= txpll_lockdet and rxpll_lockdet;
-  everything_ready <= rst_done and pll_lockdet;
+--  pll_lockdet      <= txpll_lockdet and rxpll_lockdet;
+  everything_ready <= rst_done and txpll_lockdet and rxpll_lockdet; --pll_lockdet;
   rdy_o            <= everything_ready;
 
 
@@ -508,7 +511,8 @@ begin  -- rtl
       clk_rx_i  => rx_rec_clk,
       rst_i     => gtx_rst,
       rx_data_raw_i => rx_data_raw,
-      comma_target_pos_i => 
+      comma_target_pos_i => comma_target_pos,
+      comma_current_pos_o => comma_current_pos,
       link_up_o => link_up,
       aligned_o => link_aligned);
 
@@ -541,6 +545,8 @@ begin  -- rtl
   debug_o(1) <= link_up;
   debug_o(2) <= link_aligned;
 
+  debug_o(14 downto 7) <= comma_current_pos;
+  
   p_gen_rx_outputs : process(rx_rec_clk, gtx_rst)
   begin
     if(gtx_rst = '1') then

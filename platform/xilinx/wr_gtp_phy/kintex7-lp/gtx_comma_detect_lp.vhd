@@ -14,6 +14,7 @@ entity gtx_comma_detect_kintex7_lp is
     rx_data_raw_i : in std_logic_vector(39 downto 0);
 
     comma_target_pos_i : in std_logic_vector(7 downto 0);
+    comma_current_pos_o : out std_logic_vector(7 downto 0);
     
     link_up_o : out std_logic;
     aligned_o : out std_logic
@@ -37,7 +38,7 @@ architecture rtl of gtx_comma_detect_kintex7_lp is
   signal first_comma : std_logic_vector(7 downto 0);
   signal cnt         : unsigned(15 downto 0);
   signal state       : t_state;
-  signal comma_found : std_logic_vector(79 downto 0);
+  signal comma_found : std_logic_vector(70 downto 0);
 
   component chipscope_ila_v6 is
     port (
@@ -120,12 +121,14 @@ begin
       if rst_i = '1' then
         comma_found <= (others => '0');
       else
+
+        
         rx_data_d0                  <= rx_data_raw_i;
         rx_data_d1 <= rx_data_d0;
         rx_data_merged <= rx_data_d1 & rx_data_d0 & rx_data_raw_i;
 
-        -- 1 8b10b bits = 4 oversampled bits
-        for i in 0 to 79 loop
+        -- 1 8b10b bit= 4 oversampled bits
+        for i in 0 to 70 loop
           lookup := f_decimate(rx_data_merged, i, 10, 4 );
 
           if lookup = c_K28_5_PLUS or
@@ -140,6 +143,7 @@ begin
 
         if unsigned(comma_found) /= 0 then
           comma_pos_valid <= '1';
+          comma_current_pos_o <= f_onehot_encode(comma_found, comma_pos'length); 
         else
           comma_pos_valid <= '0';
         end if;
@@ -151,8 +155,11 @@ begin
   begin
     if rising_edge(clk_rx_i) then
       if rst_i = '1' then
+        
         state <= SYNC_LOST;
       else
+
+
         case state is
           when SYNC_LOST =>
             link_up <= '0';
