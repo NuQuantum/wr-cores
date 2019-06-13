@@ -425,7 +425,7 @@ begin
         TXPH_CFG                                =>     (x"0780"),
         TXPHDLY_CFG                             =>     (x"084020"),
         TXPH_MONITOR_SEL                        =>     ("00000"),
-        TX_XCLK_SEL                             =>     ("TXUSR"),
+        TX_XCLK_SEL                             =>     ("TXOUT"),
 
        -------------------------FPGA TX Interface Attributes-------------------------
         TX_DATA_WIDTH                           =>     (40),

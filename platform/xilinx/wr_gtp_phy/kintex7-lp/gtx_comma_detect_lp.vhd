@@ -116,6 +116,7 @@ begin
   
   process(clk_rx_i)
     variable lookup : std_logic_vector( 9 downto 0);
+    variable comma_pos_comb : std_logic_vector(7 downto 0);
   begin
     if rising_edge(clk_rx_i) then
       if rst_i = '1' then
@@ -139,12 +140,15 @@ begin
           end if;
         end loop;
 
-        comma_pos <= f_onehot_encode(comma_found, comma_pos'length);
+        comma_pos_comb := f_onehot_encode(comma_found, comma_pos'length);
 
         if unsigned(comma_found) /= 0 then
           comma_pos_valid <= '1';
-          comma_current_pos_o <= f_onehot_encode(comma_found, comma_pos'length); 
+          comma_pos <= comma_pos_comb;
+          comma_current_pos_o(7) <= '1';
+          comma_current_pos_o(6 downto 0) <= comma_pos_comb(6 downto 0);
         else
+          comma_current_pos_o(7) <= '0';
           comma_pos_valid <= '0';
         end if;
       end if;
@@ -190,7 +194,7 @@ begin
             link_up <= '1';
 
             if(comma_pos_valid = '1' and comma_pos = first_comma) then
-              if(comma_pos = comma_target_pos_i) then
+              if( unsigned(comma_pos) = unsigned(comma_target_pos_i) ) then
                 link_aligned <= '1';
               end if;
 
