@@ -36,8 +36,8 @@ peripheral {
          name = "Adjust offset";
          description = "write 1: Starts adjusting PPS/UTC offsets by adding the values taken from ADJ_NSEC, ADJ_UTCLO, ADJ_UTCHI registers to the current PPS counter value. These registers need to be programmed prior to update.\
                         write 0: no effect\
-                        read 0: adjustment operation is done\
-                        read 1: adjustment operation is in progress";
+                        read 0: adjustment operation is in progress\
+                        read 1: adjustment operation is done";
 
          prefix = "CNT_ADJ";
          type = BIT;
