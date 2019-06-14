@@ -113,7 +113,7 @@ port
     RXUSRCLK_IN                             : in   std_logic;
     RXUSRCLK2_IN                            : in   std_logic;
     ------------------ Receive Ports - FPGA RX interface Ports -----------------
-    RXDATA_OUT                              : out  std_logic_vector(39 downto 0);
+    rxdata_out                              : out  std_logic_vector(19 downto 0);
     --------------------------- Receive Ports - RX AFE -------------------------
     GTXRXP_IN                               : in   std_logic;
     ------------------------ Receive Ports - RX AFE Ports ----------------------
@@ -135,7 +135,7 @@ port
     TXUSRCLK_IN                             : in   std_logic;
     TXUSRCLK2_IN                            : in   std_logic;
     ------------------ Transmit Ports - TX Data Path interface -----------------
-    TXDATA_IN                               : in   std_logic_vector(39 downto 0);
+    txdata_in                               : in   std_logic_vector(79 downto 0);
     ---------------- Transmit Ports - TX Driver and OOB signaling --------------
     GTXTXN_OUT                              : out  std_logic;
     GTXTXP_OUT                              : out  std_logic;
@@ -169,16 +169,16 @@ architecture RTL of whiterabbit_gtxe2_channel_wrapper_GT is
     -- RX Datapath signals
     signal rxdata_i                         :   std_logic_vector(63 downto 0);      
     signal rxchariscomma_float_i            :   std_logic_vector(5 downto 0);
-    signal rxcharisk_i                :   std_logic_vector(7 downto 0);
-    signal rxdisperr_i                :   std_logic_vector(7 downto 0);
     signal rxnotintable_float_i             :   std_logic_vector(5 downto 0);
     signal rxrundisp_float_i                :   std_logic_vector(5 downto 0);
-    
-    signal rxdata_out_i :std_logic_vector(39 downto 0);
+    signal rxdata_out_i                     :   std_logic_vector(19 downto 0);
+    signal rxcharisk_i                      :   std_logic_vector(7 downto 0);
+    signal rxdisperr_i                      :   std_logic_vector(7 downto 0);
+
 
     -- TX Datapath signals
     signal txdata_i                         :   std_logic_vector(63 downto 0);
-    signal txdata_in_i                      :   std_logic_vector(39 downto 0);
+    signal txdata_in_i                      :   std_logic_vector(79 downto 0);
     signal txchardispmode_i                 :   std_logic_vector(7 downto 0);
     signal txchardispval_i                  :   std_logic_vector(7 downto 0);
     signal txkerr_float_i                   :   std_logic_vector(2 downto 0);
@@ -197,25 +197,20 @@ begin
     -------------------  GT Datapath byte mapping  -----------------
 
     --The GT deserializes the rightmost parallel bit (LSb) first
-    RXDATA_OUT    <=   rxdata_out_i(39 downto 0);
-
+    RXDATA_OUT    <=   rxdata_out_i(19 downto 0);
 
     --The GT serializes the rightmost parallel bit (LSb) first
     txdata_in_i <=   TXDATA_IN;
 
+    -------------  GT RXDATA Assignments for 20 bit datapath  -------  
 
-    -------------  GT RXDATA Assignments for 40 bit datapath  -------  
+    rxdata_out_i    <= (rxdisperr_i(1) & rxcharisk_i(1) & rxdata_i(15 downto 8) & rxdisperr_i(0) & rxcharisk_i(0) & rxdata_i(7 downto 0));
 
-    rxdata_out_i    <= (rxdisperr_i(3) & rxcharisk_i(3) & rxdata_i(31 downto 24) & 
-                        rxdisperr_i(2) & rxcharisk_i(2) & rxdata_i(23 downto 16) &
-                        rxdisperr_i(1) & rxcharisk_i(1) & rxdata_i(15 downto 8) &
-                        rxdisperr_i(0) & rxcharisk_i(0) & rxdata_i(7 downto 0) );
+    -------------  GT txdata_i Assignments for 80 bit datapath  -------  
 
-    -------------  GT txdata_i Assignments for 40 bit datapath  -------  
-
-    txchardispmode_i  <= (tied_to_ground_vec_i(3 downto 0) & txdata_in_i(39) & txdata_in_i(29) & txdata_in_i(19) & txdata_in_i(9));
-    txchardispval_i   <= (tied_to_ground_vec_i(3 downto 0) & txdata_in_i(38) & txdata_in_i(28) & txdata_in_i(18) & txdata_in_i(8));
-    txdata_i          <= (tied_to_ground_vec_i(31 downto 0) & txdata_in_i(37 downto 30) & txdata_in_i(27 downto 20) & txdata_in_i(17 downto 10) & txdata_in_i(7 downto 0));
+    txchardispmode_i  <= (txdata_in_i(79) & txdata_in_i(69) & txdata_in_i(59) & txdata_in_i(49) & txdata_in_i(39) & txdata_in_i(29) & txdata_in_i(19) & txdata_in_i(9));
+    txchardispval_i   <= (txdata_in_i(78) & txdata_in_i(68) & txdata_in_i(58) & txdata_in_i(48) & txdata_in_i(38) & txdata_in_i(28) & txdata_in_i(18) & txdata_in_i(8));
+    txdata_i          <= (txdata_in_i(77 downto 70) & txdata_in_i(67 downto 60) & txdata_in_i(57 downto 50) & txdata_in_i(47 downto 40) & txdata_in_i(37 downto 30) & txdata_in_i(27 downto 20) & txdata_in_i(17 downto 10) & txdata_in_i(7 downto 0));
 
     ----------------------------- GTXE2 Instance  --------------------------   
 
@@ -255,8 +250,8 @@ begin
         CBCC_DATA_SOURCE_SEL                    =>     ("ENCODED"),
         CLK_COR_SEQ_2_USE                       =>     ("FALSE"),
         CLK_COR_KEEP_IDLE                       =>     ("FALSE"),
-        CLK_COR_MAX_LAT                         =>     (19),
-        CLK_COR_MIN_LAT                         =>     (15),
+        CLK_COR_MAX_LAT                         =>     (9),
+        CLK_COR_MIN_LAT                         =>     (7),
         CLK_COR_PRECEDENCE                      =>     ("TRUE"),
         CLK_COR_REPEAT_WAIT                     =>     (0),
         CLK_COR_SEQ_LEN                         =>     (1),
@@ -304,7 +299,7 @@ begin
         ES_VERT_OFFSET                          =>     ("000000000"),
 
        -------------------------FPGA RX Interface Attributes-------------------------
-        RX_DATA_WIDTH                           =>     (40),
+        RX_DATA_WIDTH                           =>     (20),
 
        ---------------------------PMA Attributes----------------------------
         OUTREFCLK_SEL_INV                       =>     ("11"),
@@ -372,7 +367,7 @@ begin
        --For SATA Gen2 GTP- set RXCDR_CFG=83'h0_0000_47FE_2060_2448_1010
 
        --For SATA Gen1 GTP- set RXCDR_CFG=83'h0_0000_47FE_1060_2448_1010
-        RXCDR_CFG                               =>     (x"03000023ff40200020"),
+        RXCDR_CFG                               =>     (x"03000023ff40080020"),
         RXCDR_FR_RESET_ON_EIDLE                 =>     ('0'),
         RXCDR_HOLD_DURING_EIDLE                 =>     ('0'),
         RXCDR_PH_RESET_ON_EIDLE                 =>     ('0'),
@@ -425,10 +420,10 @@ begin
         TXPH_CFG                                =>     (x"0780"),
         TXPHDLY_CFG                             =>     (x"084020"),
         TXPH_MONITOR_SEL                        =>     ("00000"),
-        TX_XCLK_SEL                             =>     ("TXOUT"),
+        TX_XCLK_SEL                             =>     ("TXUSR"),
 
        -------------------------FPGA TX Interface Attributes-------------------------
-        TX_DATA_WIDTH                           =>     (40),
+        TX_DATA_WIDTH                           =>     (80),
 
        -------------------------TX Configurable Driver Attributes-------------------------
         TX_DEEMPH0                              =>     ("00000"),
@@ -467,7 +462,7 @@ begin
         CPLL_INIT_CFG                           =>     (x"00001E"),
         CPLL_LOCK_CFG                           =>     (x"01E8"),
         CPLL_REFCLK_DIV                         =>     (1),
-        RXOUT_DIV                               =>     (2),
+        RXOUT_DIV                               =>     (8),
         TXOUT_DIV                               =>     (2),
         SATA_CPLL_CFG                           =>     ("VCO_3000MHZ"),
 
@@ -493,7 +488,7 @@ begin
         TX_CLKMUX_PD                            =>     ('1'),
 
        -------------------------FPGA RX Interface Attribute-------------------------
-        RX_INT_DATAWIDTH                        =>     (1),
+        RX_INT_DATAWIDTH                        =>     (0),
 
        -------------------------FPGA TX Interface Attribute-------------------------
         TX_INT_DATAWIDTH                        =>     (1),
@@ -776,7 +771,7 @@ begin
         TXOUTCLK                        =>      TXOUTCLK_OUT,
         TXOUTCLKFABRIC                  =>      TXOUTCLKFABRIC_OUT,
         TXOUTCLKPCS                     =>      TXOUTCLKPCS_OUT,
-        TXOUTCLKSEL                     =>      "011",
+        TXOUTCLKSEL                     =>      "010",
         TXRATEDONE                      =>      open,
         --------------------- Transmit Ports - TX Gearbox Ports --------------------
         TXCHARISK(7 downto 2)           =>      tied_to_ground_vec_i(5 downto 0),

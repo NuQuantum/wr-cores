@@ -6,7 +6,7 @@
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
--- Last update: 2019-06-12
+-- Last update: 2019-06-14
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -80,10 +80,10 @@ entity wr_gtx_phy_kintex7_lp is
     tx_locked_o  : out std_logic;
 
     -- data input (8 bits, not 8b10b-encoded)
-    tx_data_i : in std_logic_vector(7 downto 0);
+    tx_data_i : in std_logic_vector(15 downto 0);
 
     -- 1 when tx_data_i contains a control code, 0 when it's a data byte
-    tx_k_i : in std_logic_vector(0 downto 0);
+    tx_k_i : in std_logic_vector(1 downto 0);
 
     -- disparity of the currently transmitted 8b10b code (1 = plus, 0 = minus).
     -- Necessary for the PCS to generate proper frame termination sequences.
@@ -101,10 +101,10 @@ entity wr_gtx_phy_kintex7_lp is
     -- 8b10b-decoded data output. The data output must be kept invalid before
     -- the transceiver is locked on the incoming signal to prevent the EP from
     -- detecting a false carrier.
-    rx_data_o : out std_logic_vector(7 downto 0);
+    rx_data_o : out std_logic_vector(15 downto 0);
 
     -- 1 when the byte on rx_data_o is a control code
-    rx_k_o : out std_logic_vector(0 downto 0);
+    rx_k_o : out std_logic_vector(1 downto 0);
 
     -- encoding error indication
     rx_enc_err_o : out std_logic;
@@ -187,16 +187,22 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   signal rst_done                     : std_logic;
   signal rst_done_n                   : std_logic;
  
-  signal rx_k_o_int    : std_logic_vector(0 downto 0);
-  signal rx_data_o_int : std_logic_vector(7 downto 0);
-  signal rx_k_int    : std_logic_vector(0 downto 0);
-  signal rx_data_int : std_logic_vector(7 downto 0);
+  signal rx_k_o_int    : std_logic_vector(1 downto 0);
+  signal rx_data_o_int : std_logic_vector(15 downto 0);
+  signal rx_k_int    : std_logic_vector(1 downto 0);
+  signal rx_data_int : std_logic_vector(15 downto 0);
+
+  signal rx_data_wrap : std_logic_vector(15 downto 0);
+  signal rx_charisk_wrap : std_logic_vector(1 downto 0);
+  signal rx_disperr_wrap : std_logic_vector(1 downto 0);
+
+  signal rx_data_raw : std_logic_vector(19 downto 0);
 
   signal rx_enc_err_o_int : std_logic;
   signal rx_disp_err, rx_code_err     : std_logic_vector(1 downto 0);
 
-  signal tx_is_k_swapped              : std_logic_vector(0 downto 0);
-  signal tx_data_swapped              : std_logic_vector(7 downto 0);
+  signal tx_is_k_swapped              : std_logic_vector(1 downto 0);
+  signal tx_data_swapped              : std_logic_vector(15 downto 0);
 
   signal cur_disp                     : t_8b10b_disparity;
 
@@ -215,10 +221,7 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   signal rx_rec_clk_sampled, tx_out_clk_sampled : std_logic;
   signal gtx_loopback               : std_logic_vector(2 downto 0);
 
-
-  signal rx_data_raw : std_logic_vector(39 downto 0);
-
-  signal tx_data_8b10b : std_logic_vector(9 downto 0);
+  signal tx_data_8b10b : std_logic_vector(19 downto 0);
 
   function f_widen(x : std_logic_vector; ratio : integer) return std_logic_vector is
     variable rv : std_logic_vector(x'length * ratio -1 downto 0);
@@ -230,19 +233,17 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
     return rv;
   end function;
 
-  function f_decimate(x: std_logic_vector; first : integer; count:integer;step:integer) return std_logic_vector is
-    variable rv: std_logic_vector(count -1 downto 0);
-  begin
-
-    for i in 0 to count-1 loop
-      rv(i) := x(first + step * i);
-    end loop;
-
-    return rv;
-  end function;
 
   signal comma_target_pos : std_logic_vector(7 downto 0);
   signal comma_current_pos : std_logic_vector(7 downto 0);
+
+  signal tx_out_clk_div2 : std_logic;
+  signal gtx_rst_n_txdiv2 : std_logic;
+
+  signal run_disparity_q0, run_disparity_q1 : std_logic;
+  signal run_disparity_reg : std_logic;
+
+signal pll_clkfbout_bufin,tx_out_clk_div2_bufin, pll_clkfbout : std_logic;
   
 begin  -- rtl
 
@@ -261,6 +262,16 @@ begin  -- rtl
       rst_n_i  => '1',
       data_i   => tx_enable,
       synced_o => tx_enable_refclk
+      );
+
+  
+  U_SyncTxUsrcCLK2Reset : gc_sync_ffs
+    port map
+    (
+      clk_i    => tx_out_clk_div2,
+      rst_n_i  => gtx_rst_n,
+      data_i   => '1',
+      synced_o => gtx_rst_n_txdiv2
       );
 
   U_SyncRxEnable : gc_sync_ffs
@@ -350,12 +361,8 @@ begin  -- rtl
   
   tx_enc_err_o <= '0';
 
-  U_BUF_TxOutClk : BUFG
-    port map (
-      I => tx_out_clk_bufin,
-      O => tx_out_clk);
 
-  tx_clk_o <= tx_out_clk;
+  tx_clk_o <= tx_out_clk_div2;
   tx_locked_o  <= qpll_locked_i;
 
   U_BUF_RxRecClk : BUFG
@@ -367,12 +374,39 @@ begin  -- rtl
 
   U_Enc1 : entity work.gc_enc_8b10b
     port map (
-      clk_i       => tx_out_clk,
-      rst_n_i     => gtx_rst_n,
-      in_8b_i     => tx_data_i,
-      ctrl_i      => tx_k_i(0),
-      out_10b_o    => tx_data_8b10b);
+      clk_i       => tx_out_clk_div2,
+      rst_n_i     => gtx_rst_n_txdiv2,
+      in_8b_i     => tx_data_i(15 downto 8),
+      dispar_i => run_disparity_reg,
+      dispar_o => run_disparity_q0,
+      ctrl_i      => tx_k_i(1),
+      out_10b_o    => tx_data_8b10b(19 downto 10));
 
+  U_Enc2 : entity work.gc_enc_8b10b
+    port map (
+      clk_i       => tx_out_clk_div2,
+      rst_n_i     => gtx_rst_n_txdiv2,
+      in_8b_i     => tx_data_i(7 downto 0),
+      dispar_i => run_disparity_q0,
+      dispar_o => run_disparity_q1,
+      ctrl_i      => tx_k_i(0),
+      out_10b_o    => tx_data_8b10b(9 downto 0));
+
+  p_latch_disparity : process(tx_out_clk_div2)
+  begin
+
+    if rising_edge(tx_out_clk_div2) then
+      if tx_sw_reset = '1' then
+        run_disparity_reg <= '0';
+      else
+        run_disparity_reg <= run_disparity_q1;
+      end if;
+      
+    end if;
+  end process;
+  
+    
+  
   
   U_GTX_INST : entity work.WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
     generic map
@@ -435,7 +469,7 @@ begin  -- rtl
 		TXUSERRDY_IN               => qpll_locked_i,
 		------------------ Transmit Ports - FPGA TX Interface Ports ----------------
 		TXUSRCLK_IN                => tx_out_clk,
-		TXUSRCLK2_IN               => tx_out_clk,
+		TXUSRCLK2_IN               => tx_out_clk_div2,
 		------------------ Transmit Ports - TX Data Path interface -----------------
 		TXDATA_IN                  => f_widen(tx_data_8b10b, 4),
 		---------------- Transmit Ports - TX Driver and OOB signaling --------------
@@ -451,7 +485,48 @@ begin  -- rtl
                 TXPRBSSEL_IN               => "000" --tx_prbs_sel_i
                 );
 
+
+  U_GenTxUsrClk : PLLE2_ADV
+    generic map (
+      BANDWIDTH          =>"HIGH",
+      COMPENSATION         => "ZHOLD",
+      STARTUP_WAIT         => "FALSE",
+      DIVCLK_DIVIDE        => 1,
+      CLKFBOUT_MULT        => 14,
+      CLKFBOUT_PHASE       => 0.000,
+      CLKOUT0_DIVIDE       => 28,
+      CLKOUT0_PHASE        => 0.000,
+      CLKOUT0_DUTY_CYCLE   => 0.500,
+      CLKIN1_PERIOD        => 8.000)
+    port map (
+      CLKFBOUT            => pll_clkfbout_bufin,
+      CLKOUT0             => tx_out_clk_div2_bufin,
+      CLKFBIN             => pll_clkfbout,
+      CLKIN1              => tx_out_clk,
+      CLKIN2              => '0',
+      CLKINSEL            => '1',
+      DADDR => "0000000",
+      DI => x"0000",
+      DWE => '0',
+      PWRDWN => '0',
+      DCLK => '0',
+      DEN => '0',
+      RST                 => gtx_tx_reset_a);
   
+  U_BUF_TxOutClk : BUFG
+    port map (
+      I => tx_out_clk_bufin,
+      O => tx_out_clk);
+
+  U_BUF_TxOutClk2 : BUFG
+    port map (
+      I => tx_out_clk_div2_bufin,
+      O => tx_out_clk_div2);
+
+  U_BUF_TxOutClkFB : BUFG
+    port map (
+      I => pll_clkfbout_bufin,
+      O => pll_clkfbout);
 
 
   txpll_lockdet    <= qpll_locked_i;
@@ -463,18 +538,6 @@ begin  -- rtl
   rdy_o            <= everything_ready;
 
 
-  process(clk_ref_i)
-  begin
-    if rising_edge(clk_ref_i) then
-      if tx_enable_refclk = '0' then
-        tx_is_k_swapped <= "0";
-        tx_data_swapped <= (others => '0');
-      else
-        tx_is_k_swapped <= tx_k_i;
-        tx_data_swapped <= tx_data_i(7 downto 0);
-      end if;
-    end if;
-  end process;
 
   
 
@@ -517,28 +580,28 @@ begin  -- rtl
       aligned_o => link_aligned);
 
   
-  
+
   gtx_rst_n <= not gtx_rst;
   
-   U_Dec1 : gc_dec_8b10b
-     port map (
-       clk_i       => rx_rec_clk,
-       rst_n_i     => gtx_rst_n,
-       in_10b_i    => f_decimate(rx_data_raw, 0, 10, 4),
-       ctrl_o      => rx_k_int(0),
-       code_err_o  => rx_code_err(0),
-       rdisp_err_o => open,
-       out_8b_o    => rx_data_int(7 downto 0));
+  U_Dec1 : gc_dec_8b10b
+    port map (
+      clk_i       => rx_rec_clk,
+      rst_n_i     => gtx_rst_n,
+      in_10b_i    => (rx_data_raw(19 downto 10)),
+      ctrl_o      => rx_k_int(1),
+      code_err_o  => rx_code_err(1),
+      rdisp_err_o => open,
+      out_8b_o    => rx_data_int(15 downto 8));
 
-  -- U_Dec2 : gc_dec_8b10b
-  --   port map (
-  --     clk_i       => rx_rec_clk,
-  --     rst_n_i     => gtx_rst_n,
-  --     in_10b_i    => (rx_data_raw(9 downto 0)),
-  --     ctrl_o      => rx_k_int(0),
-  --     code_err_o  => rx_code_err(0),
-  --     rdisp_err_o => open,
-  --     out_8b_o    => rx_data_int(7 downto 0));
+  U_Dec2 : gc_dec_8b10b
+    port map (
+      clk_i       => rx_rec_clk,
+      rst_n_i     => gtx_rst_n,
+      in_10b_i    => (rx_data_raw(9 downto 0)),
+      ctrl_o      => rx_k_int(0),
+      code_err_o  => rx_code_err(0),
+      rdisp_err_o => open,
+      out_8b_o    => rx_data_int(7 downto 0));
 
   rx_disp_err <= (others => '0');
   
@@ -555,9 +618,9 @@ begin  -- rtl
       rx_enc_err_o_int <= '0';
     elsif rising_edge(rx_rec_clk) then
       if(rx_enable_rxclk = '1') then
-        rx_data_o_int    <= rx_data_int(7 downto 0);
-        rx_k_o_int       <= rx_k_int;
-        rx_enc_err_o_int <= '0';
+        rx_data_o_int    <= rx_data_int(7 downto 0) & rx_data_int(15 downto 8);
+        rx_k_o_int       <= rx_k_int(0) & rx_k_int(1);
+        rx_enc_err_o_int <= rx_disp_err(0) or rx_disp_err(1) or rx_code_err(0) or rx_code_err(1);
       else
         rx_data_o_int    <= (others => '1');
         rx_k_o_int       <= (others => '1');
@@ -572,7 +635,7 @@ begin  -- rtl
       if tx_enable_refclk = '0' then
         cur_disp <= RD_MINUS;
       else
-        cur_disp <= f_next_8b10b_disparity8(cur_disp, tx_k_i(0), tx_data_i);
+        cur_disp <= f_next_8b10b_disparity16(cur_disp, tx_k_i, tx_data_i);
       end if;
     end if;
   end process;
