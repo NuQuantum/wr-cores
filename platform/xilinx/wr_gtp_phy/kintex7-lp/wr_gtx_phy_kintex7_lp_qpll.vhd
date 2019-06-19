@@ -6,7 +6,7 @@
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
--- Last update: 2019-06-05
+-- Last update: 2019-06-14
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -71,10 +71,10 @@ entity wr_gtx_phy_kintex7_lp_qpll is
     qpll_clk_o     : out std_logic;
     qpll_ref_clk_o : out std_logic;
 
-    locked_o : out std_logic;
+    locked_o : out std_logic
 
-    debug_i : in  std_logic_vector(15 downto 0) := x"0000";
-    debug_o : out std_logic_vector(15 downto 0)
+    -- debug_i : in  std_logic_vector(15 downto 0) := x"0000";
+    -- debug_o : out std_logic_vector(15 downto 0)
 
     );
 end wr_gtx_phy_kintex7_lp_qpll;
@@ -135,7 +135,7 @@ signal qpll_reset : std_logic;
   
 begin  -- rtl
 
-  qpll_reset <= rst_i or debug_i(0);
+  qpll_reset <= rst_i; -- or debug_i(0);
 
   gtxe2_common_i : GTXE2_COMMON
     generic map

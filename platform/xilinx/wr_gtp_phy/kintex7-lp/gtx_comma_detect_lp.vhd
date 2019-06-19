@@ -29,7 +29,6 @@ architecture rtl of gtx_comma_detect_kintex7_lp is
   constant c_IDLE_LENGTH_UP   : integer := 500;
   constant c_IDLE_LENGTH_LOSS : integer := 1000;
 
-  constant c_COMMA_SHIFT_WE_WANT : std_logic_vector(6 downto 0) := "0110000";
 -- fixme
 
   signal rx_data_d0     : std_logic_vector(19 downto 0);
