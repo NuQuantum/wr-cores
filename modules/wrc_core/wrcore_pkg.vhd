@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2019-03-29
+-- Last update: 2019-06-17
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -216,7 +216,7 @@ package wrcore_pkg is
     wbd_width     => x"7",                 -- 8/16/32-bit port granularity
     sdb_component => (
       addr_first  => x"0000000000000000",
-      addr_last   => x"00000000000000ff",
+      addr_last   => x"0000000000007fff",
       product     => (
         vendor_id => x"000000000000CE42",  -- CERN
         device_id => x"779c5445",
