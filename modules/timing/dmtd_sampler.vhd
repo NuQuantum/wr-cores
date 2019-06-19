@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-02-25
--- Last update: 2017-06-23
+-- Last update: 2019-06-18
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ end dmtd_sampler;
 architecture rtl of dmtd_sampler is
 
 
-  signal clk_in                                           : std_logic;
+  signal clk_in                                           : std_logic := '0';
   signal clk_i_d0, clk_i_d1, clk_i_d2, clk_i_d3, clk_i_dx : std_logic;
 
   attribute keep             : string;
