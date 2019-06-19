@@ -320,7 +320,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       );
 
   
-  BUFR_1 : BUFG
+  BUFR_1 : BUFR
     port map (
       O => tx_out_clk,
       I => tx_out_clk_buf);
