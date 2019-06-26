@@ -8,7 +8,7 @@
 -- Author(s)  : Peter Jansweijer <peterj@nikhef.nl>
 -- Company    : Nikhef
 -- Created    : 2017-11-08
--- Last update: 2017-11-08
+-- Last update: 2019-06-28
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the CLBv2.
@@ -54,14 +54,16 @@ use work.gencores_pkg.all;
 use work.wishbone_pkg.all;
 use work.wr_board_pkg.all;
 use work.wr_clbv2_pkg.all;
---use work.gn4124_core_pkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
 
 entity clbv2_wr_ref_top is
   generic (
-    g_dpram_initf : string := "../../bin/wrpc/wrc_phy16.bram";
+    g_dpram_initf : string := "../../../../bin/wrpc/wrc_phy16.bram";
+    -- In Vivado Project-Mode, during a Synthesis run or an Implementation run, the Vivado working
+    -- directory temporarily changes to the "project_name/project_name.runs/run_name" directory.
+
     -- Simulation-mode enable parameter. Set by default (synthesis) to 0, and
     -- changed to non-zero in the instantiation of the top level DUT in the testbench.
     -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
@@ -125,11 +127,20 @@ entity clbv2_wr_ref_top is
     ---------------------------------------------------------------------------
     -- Red LED next to the SFP: blinking indicates that packets are being
     -- transferred.
-    led_act_o   : out std_logic;
+    led_act_o    : out std_logic;
     -- Green LED next to the SFP: indicates if the link is up.
-    led_link_o  : out std_logic;
+    led_link_o   : out std_logic;
 
-    reset_i     : in  std_logic;
+    -- Reset control
+    reset_i      : in  std_logic;
+    suicide     : out std_logic;
+
+    -- Monitoring signals output on test-pads and External Debug Connector J35
+    pll_oe_out_b : out std_logic;
+    pps_p        : out std_logic;
+    pps_n        : out std_logic;
+    ref_clk_p    : out std_logic;
+    ref_clk_n    : out std_logic;
 
     ---------------------------------------------------------------------------
     -- Digital I/O FMC Pins
@@ -177,35 +188,6 @@ end entity clbv2_wr_ref_top;
 architecture top of clbv2_wr_ref_top is
 
   -----------------------------------------------------------------------------
-  -- Constants
-  -----------------------------------------------------------------------------
-
-  -- Number of masters on the wishbone crossbar
-  constant c_NUM_WB_MASTERS : integer := 2;
-
-  -- Number of slaves on the primary wishbone crossbar
-  constant c_NUM_WB_SLAVES : integer := 1;
-
-  -- Primary Wishbone master(s) offsets
-  constant c_WB_MASTER_PCIE    : integer := 0;
-  constant c_WB_MASTER_ETHBONE : integer := 1;
-
-  -- Primary Wishbone slave(s) offsets
-  constant c_WB_SLAVE_WRC : integer := 0;
-
-  -- sdb header address on primary crossbar
-  constant c_SDB_ADDRESS : t_wishbone_address := x"00040000";
-
-  -- f_xwb_bridge_manual_sdb(size, sdb_addr)
-  -- Note: sdb_addr is the sdb records address relative to the bridge base address
-  constant c_wrc_bridge_sdb : t_sdb_bridge :=
-    f_xwb_bridge_manual_sdb(x"0003ffff", x"00030000");
-
-  -- Primary wishbone crossbar layout
-  constant c_WB_LAYOUT : t_sdb_record_array(c_NUM_WB_SLAVES - 1 downto 0) := (
-    c_WB_SLAVE_WRC => f_sdb_embed_bridge(c_wrc_bridge_sdb, x"00000000"));
-
-  -----------------------------------------------------------------------------
   -- Signals
   -----------------------------------------------------------------------------
 
@@ -248,12 +230,13 @@ architecture top of clbv2_wr_ref_top is
 
 begin  -- architecture top
 
+  suicide<= '1';
+  reset_n <= not reset_i; -- Reset = high active on CLB
+  
   -----------------------------------------------------------------------------
   -- The WR PTP core board package (WB Slave + WB Master)
   -----------------------------------------------------------------------------
 
-  reset_n <= not reset_i; -- Reset = high active on CLB
-  
   cmp_xwrc_board_clbv2 : xwrc_board_clbv2
     generic map (
       g_simulation                => g_simulation,
@@ -338,13 +321,13 @@ begin  -- architecture top
         O  => dio_p_o(i),
         OB => dio_n_o(i));
   end generate;
-  -- Configure Digital I/Os 0 to 3 as outputs
+  -- Configure Digital I/Os 0 to 2 as outputs
   dio_oe_n_o(2 downto 0) <= (others => '0');
   -- Configure Digital I/Os 3 and 4 as inputs for external reference
   dio_oe_n_o(3)          <= '1';  -- for external 1-PPS
   dio_oe_n_o(4)          <= '1';  -- for external 10MHz clock
-  -- All DIO connectors are not terminated
-  dio_term_en_o          <= (others => '0');
+  -- Configure Digital I/Os 3 to 4 inputs to be terminated.
+  dio_term_en_o          <= "11000";
 
   -- EEPROM I2C tri-states
   dio_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
@@ -372,6 +355,21 @@ begin  -- architecture top
   dio_out(0)    <= wrc_pps_out;
   dio_out(1)    <= wrc_abscal_rxts_out;
   dio_out(2)    <= wrc_abscal_txts_out;
+
+  -- Enable test-pad TP17, TP18 driver
+  pll_oe_out_b  <= '0';
+  
+  U_pps_mon_obuf : OBUFDS
+      port map (
+        I  => wrc_pps_out,
+        O  => pps_p,
+        OB => pps_n);
+
+  U_ref_clk_mon_obuf : OBUFDS
+      port map (
+        I  => clk_ref_62m5,
+        O  => ref_clk_p,
+        OB => ref_clk_n);
 
   -- LEDs
   U_Extend_PPS : gc_extend_pulse

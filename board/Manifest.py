@@ -1,5 +1,5 @@
 try:
-    if board in ["spec", "svec", "vfchd", "common"]:
+    if board in ["spec", "svec", "vfchd", "clbv2", "common"]:
         modules = {"local" : [ board ] }
 except NameError:
     pass

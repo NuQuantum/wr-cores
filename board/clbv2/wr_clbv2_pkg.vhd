@@ -282,6 +282,8 @@ package wr_clbv2_pkg is
       tstamps_frame_id_o   : out std_logic_vector(15 downto 0);
       tstamps_incorrect_o  : out std_logic;
       tstamps_ack_i        : in  std_logic                                               := '1';
+      abscal_txts_o       : out std_logic;
+      abscal_rxts_o       : out std_logic;
       fc_tx_pause_req_i    : in  std_logic                                               := '0';
       fc_tx_pause_delay_i  : in  std_logic_vector(15 downto 0)                           := x"0000";
       fc_tx_pause_ready_o  : out std_logic;
