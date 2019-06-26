@@ -6,7 +6,7 @@
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
--- Last update: 2019-06-18
+-- Last update: 2019-06-26
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
       out_8b_o    : out std_logic_vector(7 downto 0));
   end component gc_dec_8b10b;
   
-  constant c_rxcdrlock_max            : integer := 30;
+  constant c_rxcdrlock_max            : integer := 1000;
   constant c_reset_cnt_max            : integer := 64;	-- Reset pulse width 64 * 8 = 512 ns
   
   signal rst_synced                   : std_logic;
@@ -212,7 +212,7 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
 
 
   signal link_up, link_aligned : std_logic;
-  signal tx_enable, tx_enable_refclk : std_logic;
+  signal tx_enable, tx_enable_txclk : std_logic;
 
   signal tx_sw_reset : std_logic;
   signal rx_enable, rx_enable_rxclk : std_logic;
@@ -240,12 +240,14 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   signal comma_current_pos : std_logic_vector(7 downto 0);
 
   signal tx_out_clk_div2 : std_logic;
+  signal tx_out_clk_div1 : std_logic;
   signal gtx_rst_n_txdiv2 : std_logic;
 
   signal run_disparity_q0, run_disparity_q1 : std_logic;
   signal run_disparity_reg : std_logic;
 
   signal pll_clkfbout_bufin,tx_out_clk_div2_bufin, pll_clkfbout : std_logic;
+  signal tx_out_clk_div1_bufin : std_logic;
   signal txusrpll_locked : std_logic;
 
   signal qpll_sw_reset : std_logic;
@@ -276,15 +278,15 @@ begin  -- rtl
   txusrpll_reset <= debug_i(5); -- not tx_rst_done;
   
   -- Near-end PMA loopback if loopen_i active
-  gtx_loopback <= "010" when debug_i(6) = '1' else "000";
+  gtx_loopback <= "010" when loopen_i = '1' else "000";
 
  U_SyncTxEnable : gc_sync_ffs
     port map
     (
-      clk_i    => clk_ref_i,
+      clk_i    => tx_out_clk_div2,
       rst_n_i  => '1',
       data_i   => tx_enable,
-      synced_o => tx_enable_refclk
+      synced_o => tx_enable_txclk
       );
 
   
@@ -405,6 +407,10 @@ begin  -- rtl
   rx_rbclk_o <= rx_rec_clk;
 
   U_Enc1 : entity work.gc_enc_8b10b
+    generic map
+    (
+      g_use_internal_running_disparity => false
+      )
     port map (
       clk_i       => tx_out_clk_div2,
       rst_n_i     => gtx_rst_n_txdiv2,
@@ -412,9 +418,12 @@ begin  -- rtl
       dispar_i => run_disparity_reg,
       dispar_o => run_disparity_q0,
       ctrl_i      => tx_k_i(1),
-      out_10b_o    => tx_data_8b10b(19 downto 10));
+      out_10b_o    => tx_data_8b10b(9 downto 0));
 
   U_Enc2 : entity work.gc_enc_8b10b
+generic map (
+      g_use_internal_running_disparity => false
+      )
     port map (
       clk_i       => tx_out_clk_div2,
       rst_n_i     => gtx_rst_n_txdiv2,
@@ -422,7 +431,7 @@ begin  -- rtl
       dispar_i => run_disparity_q0,
       dispar_o => run_disparity_q1,
       ctrl_i      => tx_k_i(0),
-      out_10b_o    => tx_data_8b10b(9 downto 0));
+      out_10b_o    => tx_data_8b10b(19 downto 10));
 
   p_latch_disparity : process(tx_out_clk_div2)
   begin
@@ -500,7 +509,7 @@ begin  -- rtl
 		GTTXRESET_IN               => gtx_tx_reset_a,
 		TXUSERRDY_IN               => qpll_locked_i,
 		------------------ Transmit Ports - FPGA TX Interface Ports ----------------
-		TXUSRCLK_IN                => tx_out_clk,
+		TXUSRCLK_IN                => tx_out_clk_div1,
 		TXUSRCLK2_IN               => tx_out_clk_div2,
 		------------------ Transmit Ports - TX Data Path interface -----------------
 		TXDATA_IN                  => f_widen(tx_data_8b10b, 4),
@@ -530,10 +539,14 @@ begin  -- rtl
       CLKOUT0_DIVIDE       => 28,
       CLKOUT0_PHASE        => 0.000,
       CLKOUT0_DUTY_CYCLE   => 0.500,
+      CLKOUT1_DIVIDE       => 14,
+      CLKOUT1_PHASE        => 0.000,
+      CLKOUT1_DUTY_CYCLE   => 0.500,
       CLKIN1_PERIOD        => 8.000)
     port map (
       CLKFBOUT            => pll_clkfbout_bufin,
       CLKOUT0             => tx_out_clk_div2_bufin,
+      CLKOUT1 => tx_out_clk_div1_bufin,
       CLKFBIN             => pll_clkfbout,
       CLKIN1              => tx_out_clk,
       CLKIN2              => '0',
@@ -556,6 +569,11 @@ begin  -- rtl
     port map (
       I => tx_out_clk_div2_bufin,
       O => tx_out_clk_div2);
+
+  U_BUF_TxOutClk1 : BUFG
+    port map (
+      I => tx_out_clk_div1_bufin,
+      O => tx_out_clk_div1);
 
   U_BUF_TxOutClkFB : BUFG
     port map (
@@ -663,10 +681,10 @@ begin  -- rtl
     end if;
   end process;
 
-  p_gen_tx_disparity : process(clk_ref_i)
+  p_gen_tx_disparity : process(tx_out_clk_div2)
   begin
-    if rising_edge(clk_ref_i) then
-      if tx_enable_refclk = '0' then
+    if rising_edge(tx_out_clk_div2) then
+      if tx_enable_txclk = '0' then
         cur_disp <= RD_MINUS;
       else
         cur_disp <= f_next_8b10b_disparity16(cur_disp, tx_k_i, tx_data_i);
@@ -676,14 +694,16 @@ begin  -- rtl
 
   tx_disparity_o <= to_std_logic(cur_disp);
 
---  rx_data_o <= rx_data_o_int;
---  rx_k_o <= rx_k_o_int;
---  rx_enc_err_o <= '0';-- rx_enc_err_o_int;
+  rx_data_o <= rx_data_o_int;
+  rx_k_o <= rx_k_o_int;
+  rx_enc_err_o <= rx_enc_err_o_int;
 
 
-  fmon_clk_tx_o <= tx_out_clk;
+  fmon_clk_tx_o <= tx_out_clk_div1;
   fmon_clk_tx2_o <= tx_out_clk_div2;
   fmon_clk_rx_o <= rx_rec_clk;
 
   
+  rx_bitslide_o <= (others => '0');
+
 end rtl;

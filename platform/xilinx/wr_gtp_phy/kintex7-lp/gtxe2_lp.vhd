@@ -412,7 +412,7 @@ begin
         TRANS_TIME_RATE                         =>     (x"0E"),
 
        --------------TX Buffer Attributes----------------
-        TXBUF_EN                                =>     ("FALSE"),
+        TXBUF_EN                                =>     ("TRUE"),
         TXBUF_RESET_ON_RATE_CHANGE              =>     ("TRUE"),
         TXDLY_CFG                               =>     (x"001F"),
         TXDLY_LCFG                              =>     (x"030"),
@@ -420,7 +420,7 @@ begin
         TXPH_CFG                                =>     (x"0780"),
         TXPHDLY_CFG                             =>     (x"084020"),
         TXPH_MONITOR_SEL                        =>     ("00000"),
-        TX_XCLK_SEL                             =>     ("TXUSR"),
+        TX_XCLK_SEL                             =>     ("TXOUT"),
 
        -------------------------FPGA TX Interface Attributes-------------------------
         TX_DATA_WIDTH                           =>     (80),
