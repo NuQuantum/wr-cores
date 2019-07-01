@@ -257,7 +257,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
   signal tx_data_swapped : std_logic_vector(15 downto 0);
 
   signal cur_disp                               : t_8b10b_disparity;
-  signal tx_out_clk, tx_out_clk_buf             : std_logic;
+  signal tx_out_clk                             : std_logic;
   signal rx_rec_clk_sampled, tx_out_clk_sampled : std_logic;
 
   signal tx_rundisp_v6  : std_logic_vector(1 downto 0);
@@ -318,12 +318,6 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       data_i   => rx_sw_reset,
       synced_o => gtx_rx_rst_a
       );
-
-  
-  BUFR_1 : BUFR
-    port map (
-      O => tx_out_clk,
-      I => tx_out_clk_buf);
 
   TX_CLK_o <= tx_out_clk;
 
@@ -459,7 +453,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       TXCHARISK_IN        => tx_is_k_swapped,
       GTXTEST_IN          => gtx_test,
       TXDATA_IN           => tx_data_swapped,
-      TXOUTCLK_OUT        => tx_out_clk_buf,
+      TXOUTCLK_OUT        => tx_out_clk,
       TXUSRCLK2_IN        => clk_ref_i,
       TXRUNDISP_OUT       => open,
       TXN_OUT             => pad_txn_o,
