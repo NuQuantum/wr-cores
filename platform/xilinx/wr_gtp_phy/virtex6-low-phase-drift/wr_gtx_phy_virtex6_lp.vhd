@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2018-07-05
+-- Last update: 2019-07-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -57,7 +57,8 @@ entity wr_gtx_phy_virtex6_lp is
     -- set to non-zero value to speed up the simulation by reducing some delays
     g_simulation         : integer := 0;
     g_use_slave_tx_clock : integer := 0;
-    g_use_bufr           : boolean := false;
+    g_use_bufr_for_rx_clock : boolean := false;
+    g_use_bufr_for_tx_clock : boolean := false;
     g_id : integer := 0
     );
 
@@ -319,7 +320,22 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       synced_o => gtx_rx_rst_a
       );
 
-  TX_CLK_o <= tx_out_clk;
+  gen_bufr_for_tx_clock :  if g_use_bufr_for_tx_clock generate
+  BUFR_1 : BUFR
+    port map (
+      O => tx_out_clk,
+      I => tx_out_clk_buf);
+
+  end generate gen_bufr_for_tx_clock;
+
+  gen_bufg_for_tx_clock :  if not g_use_bufr_for_tx_clock generate
+  BUFG_1 : BUFG
+    port map (
+      O => tx_out_clk,
+      I => tx_out_clk_buf);
+
+  end generate gen_bufg_for_tx_clock;
+  
 
   U_Sampler_RX : dmtd_sampler
     generic map (
@@ -391,7 +407,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
 
   debug_o(0) <= tx_reset_done;
 
-  gen_rx_bufg : if(g_use_bufr = false) generate
+  gen_rx_bufg : if(g_use_bufr_for_rx_clock = false) generate
 
     U_BUF_RxRecClk : BUFG
       port map (
@@ -400,12 +416,11 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
 
   end generate gen_rx_bufg;
 
-  gen_rx_bufr : if(g_use_bufr = true) generate
+  gen_rx_bufr : if(g_use_bufr_for_rx_clock = true) generate
     U_BUF_RxRecClk : BUFR
       port map (
         I => rx_rec_clk_bufin,
         O => rx_rec_clk);
-
   end generate gen_rx_bufr;
 
 
