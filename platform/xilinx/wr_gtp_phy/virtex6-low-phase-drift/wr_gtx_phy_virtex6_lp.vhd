@@ -57,8 +57,8 @@ entity wr_gtx_phy_virtex6_lp is
     -- set to non-zero value to speed up the simulation by reducing some delays
     g_simulation         : integer := 0;
     g_use_slave_tx_clock : integer := 0;
-    g_use_bufr_for_rx_clock : boolean := false;
-    g_use_bufr_for_tx_clock : boolean := false;
+    g_rxclk_bufr         : boolean := false;
+    g_txclk_bufr         : boolean := false;
     g_id : integer := 0
     );
 
@@ -93,7 +93,7 @@ entity wr_gtx_phy_virtex6_lp is
     -- RX recovered clock
     rx_rbclk_o : out std_logic;
 
-    rx_rbclk_sampled_o : out std_logic;
+    clk_sampled_o : out std_logic;
 
     -- 8b10b-decoded data output. The data output must be kept invalid before
     -- the transceiver is locked on the incoming signal to prevent the EP from
@@ -320,26 +320,19 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       synced_o => gtx_rx_rst_a
       );
 
-  gen_bufr_for_tx_clock :  if g_use_bufr_for_tx_clock generate
-  BUFR_1 : BUFR
+  gen_bufr_for_tx_clock :  if g_txclk_bufr generate
+  BUFR_TX : BUFR
     port map (
       O => tx_out_clk,
       I => tx_out_clk_buf);
-
   end generate gen_bufr_for_tx_clock;
 
-  gen_bufg_for_tx_clock :  if not g_use_bufr_for_tx_clock and g_id < 12 generate
-  BUFG_1 : BUFG
+  gen_bufg_for_tx_clock :  if not g_txclk_bufr generate
+  BUFG_TX : BUFG
     port map (
       O => tx_out_clk,
       I => tx_out_clk_buf);
-
   end generate gen_bufg_for_tx_clock;
-
-  gen_no_tx_clock : if g_id > 11 generate
-    tx_out_clk <= '0';
-  end generate;
-  
 
   U_Sampler_RX : dmtd_sampler
     generic map (
@@ -359,17 +352,9 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       clk_dmtd_i    => clk_dmtd_i,
       clk_sampled_o => tx_out_clk_sampled);
 
-  process(rx_rec_clk_sampled, tx_out_clk_sampled, debug_i)
-  begin
-    case debug_i(15 downto 14) is
-      when "00" =>
-        rx_rbclk_sampled_o <= rx_rec_clk_sampled;
-      when "01" =>
-        rx_rbclk_sampled_o <= tx_out_clk_sampled;
-      when others =>
-        rx_rbclk_sampled_o <= '0';
-    end case;
-  end process;
+  clk_sampled_o <= rx_rec_clk_sampled when debug_i(15 downto 14) = "00" else
+                   tx_out_clk_sampled when debug_i(15 downto 14) = "01" else
+                   '0';
 
 
   tx_enc_err_o <= '0';
@@ -411,7 +396,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
 
   debug_o(0) <= tx_reset_done;
 
-  gen_rx_bufg : if(g_use_bufr_for_rx_clock = false) generate
+  gen_rx_bufg : if(g_rxclk_bufr = false) generate
 
     U_BUF_RxRecClk : BUFG
       port map (
@@ -420,7 +405,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
 
   end generate gen_rx_bufg;
 
-  gen_rx_bufr : if(g_use_bufr_for_rx_clock = true) generate
+  gen_rx_bufr : if(g_rxclk_bufr = true) generate
     U_BUF_RxRecClk : BUFR
       port map (
         I => rx_rec_clk_bufin,

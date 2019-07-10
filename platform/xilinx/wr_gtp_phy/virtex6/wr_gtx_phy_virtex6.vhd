@@ -57,7 +57,7 @@ entity wr_gtx_phy_virtex6 is
     -- set to non-zero value to speed up the simulation by reducing some delays
     g_simulation         : integer := 0;
     g_use_slave_tx_clock : integer := 0;
-    g_use_bufr           : boolean := false
+    g_rxclk_bufr           : boolean := false
     );
 
   port (
@@ -303,7 +303,7 @@ begin  -- rtl
       txpll_lockdet_i => txpll_lockdet,
       gtx_test_o      => gtx_test);
 
-  gen_rx_bufg : if(g_use_bufr = false) generate
+  gen_rx_bufg : if(g_rxclk_bufr = false) generate
     
     U_BUF_RxRecClk : BUFG
       port map (
@@ -312,7 +312,7 @@ begin  -- rtl
 
   end generate gen_rx_bufg;
 
-  gen_rx_bufr : if(g_use_bufr = true) generate
+  gen_rx_bufr : if(g_rxclk_bufr = true) generate
     U_BUF_RxRecClk : BUFR
       port map (
         I => rx_rec_clk_bufin,
