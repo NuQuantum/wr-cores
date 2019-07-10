@@ -9,5 +9,7 @@ files  = [  "nic_constants_pkg.vhd" ,
                                                 "nic_bw_throttling.vhd",
 						"nic_wbgen2_pkg.vhd",
 						"xwr_nic.vhd",
-						"wr_nic.vhd"];
+						"wr_nic.vhd",
+						"wr_nic_wrapper.vhd",
+						"wr_nic_wrapper_pkg.vhd"];
 
