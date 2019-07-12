@@ -122,8 +122,8 @@ entity wr_gtx_phy_virtex6_lp is
 
     rdy_o : out std_logic;
 
-    debug_i : in  std_logic_vector(15 downto 0) := x"0000";
-    debug_o : out std_logic_vector(15 downto 0);
+    lpc_ctrl_i : in  std_logic_vector(15 downto 0) := x"0000";
+    lpc_stat_o : out std_logic_vector(15 downto 0);
 
     TX_CLK_o : out std_logic
 
@@ -288,10 +288,10 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
 
   begin  -- rtl
 
-  tx_sw_reset <= debug_i(0);
-  tx_enable <= debug_i(1);
-  rx_enable <= debug_i(2);
-  rx_sw_reset <= debug_i(3);
+  tx_sw_reset <= lpc_ctrl_i(0);
+  tx_enable   <= lpc_ctrl_i(1);
+  rx_enable   <= lpc_ctrl_i(2);
+  rx_sw_reset <= lpc_ctrl_i(3);
   
   U_SyncTxEnable : gc_sync_ffs
     port map
@@ -352,8 +352,8 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       clk_dmtd_i    => clk_dmtd_i,
       clk_sampled_o => tx_out_clk_sampled);
 
-  clk_sampled_o <= rx_rec_clk_sampled when debug_i(15 downto 14) = "00" else
-                   tx_out_clk_sampled when debug_i(15 downto 14) = "01" else
+  clk_sampled_o <= rx_rec_clk_sampled when lpc_ctrl_i(15 downto 14) = "00" else
+                   tx_out_clk_sampled when lpc_ctrl_i(15 downto 14) = "01" else
                    '0';
 
 
@@ -394,7 +394,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       gtx_tx_reset_done_i => gtx_tx_rst_done,
       done_o              => tx_reset_done);
 
-  debug_o(0) <= tx_reset_done;
+  lpc_stat_o(0) <= tx_reset_done;
 
   gen_rx_bufg : if(g_rxclk_bufr = false) generate
 
@@ -524,8 +524,8 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
 
   rx_disp_err <= (others => '0');
   
-  debug_o(1) <= link_up;
-  debug_o(2) <= link_aligned;
+  lpc_stat_o(1) <= link_up;
+  lpc_stat_o(2) <= link_aligned;
 
   p_gen_rx_outputs : process(rx_rec_clk, gtx_rst)
   begin

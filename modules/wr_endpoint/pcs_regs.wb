@@ -36,6 +36,7 @@
 
 peripheral {
 	 name = "WR Endpoint 1000base-X TBI PCS register block";
+	 description = "WR Endpoint 1000base-X TBI PCS register block";
 	 hdl_entity = "ep_pcs_tbi_mdio_wb";
 	 prefix = "MDIO";
 
@@ -790,10 +791,11 @@ peripheral {
   };
 
 	reg {
-		 name = "MDIO Debug Register 0";
-		 prefix = "DBG0";
+		 name = "Low phase drift calibration status register";
+     description = "Low phase drift calibration status register - dependent on calibrated PHY";
+		 prefix = "LPC_PHY_STAT";
 		 field {
-				name = "Debug word 0";
+				name = "Control word 0";
 				size = 16;
 				type = SLV;
 				access_bus = READ_ONLY;
@@ -801,10 +803,11 @@ peripheral {
 		 };
 	};
 	reg {
-		 name = "MDIO Debug Register 1";
-		 prefix = "DBG1";
+		 name = "Low phase drift calibration control register";
+     description = "Low phase drift calibration control register - dependent on calibrated PHY";
+		 prefix = "LPC_PHY_CTRL";
 		 field {
-				name = "Debug word 1";
+				name = "Control word 0";
 				size = 16;
 				type = SLV;
 				access_bus = READ_WRITE;

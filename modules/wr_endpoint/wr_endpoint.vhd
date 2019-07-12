@@ -75,7 +75,8 @@ entity wr_endpoint is
     g_use_new_rxcrc         : boolean                        := false;
     g_use_new_txcrc         : boolean                        := false;
     g_with_stop_traffic     : boolean                        := false;
-    g_ep_idx  : integer := 0
+    g_phy_lpcalib           : boolean                        := false;
+    g_ep_idx                : integer                        := 0
     );
   port (
 
@@ -118,8 +119,8 @@ entity wr_endpoint is
     phy_sfp_los_i        : in  std_logic;
     phy_sfp_tx_disable_o : out std_logic;
     phy_rdy_i            : in  std_logic;
-    phy_debug_i : in std_logic_vector(15 downto 0);
-    phy_debug_o : out std_logic_vector(15 downto 0);
+    phy_lpc_stat_i       : in  std_logic_vector(15 downto 0) := (others=>'0');
+    phy_lpc_ctrl_o       : out std_logic_vector(15 downto 0);
 
     phy_ref_clk_i      : in  std_logic;
     phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
@@ -526,8 +527,8 @@ begin
       serdes_sfp_los_i         => phy_sfp_los_i,
       serdes_sfp_tx_disable_o  => phy_sfp_tx_disable_o,
       serdes_rdy_i             => phy_rdy_i,
-      serdes_debug_i => phy_debug_i,
-      serdes_debug_o => phy_debug_o,
+      serdes_stat_i            => phy_lpc_stat_i,
+      serdes_ctrl_o            => phy_lpc_ctrl_o,
 
       serdes_tx_clk_i       => phy_ref_clk_i,
       serdes_tx_data_o      => phy_tx_data_o,
@@ -821,6 +822,8 @@ begin
   regs_towb_ep.ecr_feat_dmtd_i           <= '0';
   regs_towb_ep.ecr_feat_ptp_i            <= '0';
   regs_towb_ep.ecr_feat_dpi_i            <= '0';
+  regs_towb_ep.ecr_feat_lpc_i            <= '1' when(g_phy_lpcalib = true) else
+                                            '0';
   regs_towb_ep.tscr_cs_done_i            <= '0';
   regs_towb_ep.tscr_rx_cal_result_i      <= '0';
   regs_towb_ep.tcar_pcp_map_i            <= (others => '0');

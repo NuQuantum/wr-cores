@@ -66,7 +66,8 @@ entity xwr_endpoint is
     g_use_new_rxcrc         : boolean                        := false;
     g_use_new_txcrc         : boolean                        := false;
     g_with_stop_traffic     : boolean                        := false;
-    g_ep_idx : integer
+    g_phy_lpcalib           : boolean                        := false;
+    g_ep_idx                : integer
     );
   port (
 
@@ -109,9 +110,8 @@ entity xwr_endpoint is
     phy_sfp_los_i        : in std_logic;
     phy_sfp_tx_disable_o : out std_logic;
     phy_rdy_i            : in  std_logic;
-
-    phy_debug_i          : in  std_logic_vector(15 downto 0);
-    phy_debug_o          : out  std_logic_vector(15 downto 0);
+    phy_lpc_stat_i       : in  std_logic_vector(15 downto 0) := (others=>'0');
+    phy_lpc_ctrl_o       : out std_logic_vector(15 downto 0);
     
     phy_ref_clk_i      : in  std_logic := '0';
     phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
@@ -301,7 +301,8 @@ architecture syn of xwr_endpoint is
   signal sfp_tx_fault     : std_logic;
   signal sfp_los          : std_logic;
 
-  signal phy_debug_in, phy_debug_out:  std_logic_vector(15 downto 0);
+  signal phy_lpc_stat_in  :  std_logic_vector(15 downto 0);
+  signal phy_lpc_ctrl_out :  std_logic_vector(15 downto 0);
 begin
 
   U_Wrapped_Endpoint : wr_endpoint
@@ -325,7 +326,8 @@ begin
       g_use_new_rxcrc         => g_use_new_rxcrc,
       g_use_new_txcrc         => g_use_new_txcrc,
       g_with_stop_traffic     => g_with_stop_traffic,
-      g_ep_idx  => g_ep_idx)
+      g_phy_lpcalib           => g_phy_lpcalib,
+      g_ep_idx                => g_ep_idx)
     port map (
       clk_ref_i            => clk_ref_i,
       clk_sys_i            => clk_sys_i,
@@ -343,8 +345,8 @@ begin
       phy_loopen_vec_o     => phy_loopen_vec,
       phy_tx_prbs_sel_o    => phy_tx_prbs_sel,
       phy_rdy_i            => phy_rdy,
-      phy_debug_i       => phy_debug_in,
-      phy_debug_o       => phy_debug_out,
+      phy_lpc_stat_i       => phy_lpc_stat_in,
+      phy_lpc_ctrl_o       => phy_lpc_ctrl_out,
 
       phy_sfp_tx_fault_i   => sfp_tx_fault,
       phy_sfp_los_i        => sfp_los,
@@ -452,7 +454,7 @@ begin
     phy16_o.tx_k           <= phy_tx_k;
     phy16_o.tx_prbs_sel    <= phy_tx_prbs_sel;
     phy16_o.sfp_tx_disable <= sfp_tx_disable;
-    phy16_o.debug <= phy_debug_out;
+    phy16_o.lpc_ctrl       <= phy_lpc_ctrl_out;
 
     phy_tx_clk       <= phy16_i.ref_clk;
     phy_tx_disparity <= phy16_i.tx_disparity;
@@ -463,7 +465,7 @@ begin
     phy_rx_enc_err   <= phy16_i.rx_enc_err;
     phy_rx_bts       <= phy16_i.rx_bitslide;
     phy_rdy          <= phy16_i.rdy;
-    phy_debug_in <= phy16_i.debug;
+    phy_lpc_stat_in  <= phy16_i.lpc_stat;
     sfp_tx_fault     <= phy16_i.sfp_tx_fault;
     sfp_los          <= phy16_i.sfp_los;
 
@@ -519,7 +521,7 @@ begin
     phy_tx_k_o           <= phy_tx_k;
     phy_tx_prbs_sel_o    <= phy_tx_prbs_sel;
     phy_sfp_tx_disable_o <= sfp_tx_disable;
-    phy_debug_o <= phy_debug_out;
+    phy_lpc_ctrl_o       <= phy_lpc_ctrl_out;
 
     phy_tx_clk       <= phy_ref_clk_i;
     phy_tx_disparity <= phy_tx_disparity_i;
@@ -530,7 +532,7 @@ begin
     phy_rx_enc_err   <= phy_rx_enc_err_i;
     phy_rx_bts       <= phy_rx_bitslide_i;
     phy_rdy          <= phy_rdy_i;
-    phy_debug_in <= phy_debug_i;
+    phy_lpc_stat_in  <= phy_lpc_stat_i;
     sfp_tx_fault     <= phy_sfp_tx_fault_i;
     sfp_los          <= phy_sfp_los_i;
 

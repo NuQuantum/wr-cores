@@ -146,9 +146,9 @@ entity ep_1000basex_pcs is
     -- 1: serdes is locked and aligned
     serdes_rdy_i    : in  std_logic;
 
-    -- debug/test feature signals to the PHY
-    serdes_debug_i : in std_logic_vector(15 downto 0);
-    serdes_debug_o : out std_logic_vector(15 downto 0);
+    -- low phase drift feature signals to the PHY
+    serdes_stat_i : in std_logic_vector(15 downto 0);
+    serdes_ctrl_o : out std_logic_vector(15 downto 0);
     
 
     ---------------------------------------------------------------------------
@@ -478,9 +478,8 @@ begin  -- rtl
       mdio_ectrl_sfp_loss_i        => serdes_sfp_los_i,
       mdio_ectrl_sfp_tx_disable_o  => serdes_sfp_tx_disable_o,
       mdio_ectrl_tx_prbs_sel_o     => serdes_tx_prbs_sel_o,
-
-      mdio_dbg0_i => serdes_debug_i,
-      mdio_dbg1_o => serdes_debug_o,
+      mdio_lpc_phy_stat_i          => serdes_stat_i,
+      mdio_lpc_phy_ctrl_o          => serdes_ctrl_o,
       
       lstat_read_notify_o => lstat_read_notify
       );

@@ -141,6 +141,16 @@ peripheral {
        access_bus = READ_ONLY;
        access_dev = WRITE_ONLY;
     };
+
+    field {
+      name = "Feature present: low phase drift calibration";
+      description = "1: this port can be calibrated for low phase uncertainty on link up\
+                     0: this is a standard WR port with regular performance";
+      prefix = "FEAT_LPC";
+      type = BIT;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+    };
 	};
  
 
