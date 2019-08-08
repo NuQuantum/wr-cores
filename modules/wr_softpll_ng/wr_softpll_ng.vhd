@@ -717,7 +717,7 @@ begin  -- rtl
 		  if (f_num_ext_ref_channels = 2) then
 			if(tags_p(f_num_total_channels-2) = '1') then
 				tags_req(f_num_total_channels-2) <= regs_in.eccr_ext_en_o;
-			elsif(tags_grant(f_num_total_channels-1) = '1') then
+			elsif(tags_grant(f_num_total_channels-2) = '1') then
           tags_req(f_num_total_channels-2) <= '0';
 			end if;
 			if(tags_p(f_num_total_channels-1) = '1') then
