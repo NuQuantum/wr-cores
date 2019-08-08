@@ -66,6 +66,8 @@ entity xwr_softpll_ng is
 -- (e.g. GPSDO/Cesium 10 MHz)
     g_with_ext_clock_input : boolean := false;
 
+	  g_with_ext_daughterboard : boolean := true;
+
 -- When true, DDMTD inputs are reverse (so that the DDMTD offset clocks is
 -- being sampled by the measured clock). This is functionally equivalent to
 -- "direct" operation, but may improve FPGA timing/routability.
@@ -148,6 +150,7 @@ architecture wrapper of xwr_softpll_ng is
       g_num_outputs          : integer;
       g_with_debug_fifo      : boolean;
       g_with_ext_clock_input : boolean;
+	    g_with_ext_daughterboard : boolean;
       g_reverse_dmtds        : boolean;
       g_divide_input_by_2    : boolean;
       g_ref_clock_rate       : integer;
@@ -204,6 +207,7 @@ begin  -- behavioral
       g_num_outputs          => g_num_outputs,
       g_with_debug_fifo      => g_with_debug_fifo,
       g_with_ext_clock_input => g_with_ext_clock_input,
+	    g_with_ext_daughterboard => g_with_ext_daughterboard,
       g_reverse_dmtds        => g_reverse_dmtds,
       g_divide_input_by_2    => g_divide_input_by_2,
       g_ref_clock_rate  => g_ref_clock_rate,
