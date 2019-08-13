@@ -314,8 +314,8 @@ package wrcore_pkg is
       g_tag_bits             : integer;
       g_num_ref_inputs       : integer;
       g_num_outputs          : integer;
+      g_num_exts             : integer;
       g_with_debug_fifo      : boolean;
-      g_with_ext_clock_input : boolean;
       g_reverse_dmtds        : boolean;
       g_divide_input_by_2    : boolean;
       g_ref_clock_rate       : integer;
@@ -332,7 +332,7 @@ package wrcore_pkg is
       clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
       clk_dmtd_i      : in  std_logic;
       clk_ext_i       : in  std_logic;
-      clk_ext_mul_i   : in  std_logic;
+      clk_ext_mul_i        : in std_logic_vector(g_num_exts-1 downto 0);
       clk_ext_mul_locked_i : in std_logic;
       clk_ext_stopped_i    : in std_logic;
       clk_ext_rst_o        : out std_logic;

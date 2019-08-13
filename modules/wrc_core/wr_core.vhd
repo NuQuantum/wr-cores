@@ -341,6 +341,15 @@ architecture struct of wr_core is
     end if;
   end function;
 
+  function f_num_ext_clks return integer is
+  begin
+    if g_with_external_clock_input then
+      return 1;
+    else
+      return 0;
+    end if;
+  end function;
+
   -----------------------------------------------------------------------------
   --Local resets for peripheral
   -----------------------------------------------------------------------------
@@ -634,7 +643,6 @@ begin
   -----------------------------------------------------------------------------
   U_SOFTPLL : xwr_softpll_ng
     generic map(
-      g_with_ext_clock_input => g_with_external_clock_input,
       g_reverse_dmtds        => false,
       g_divide_input_by_2    => not g_pcs_16bit,
       g_with_debug_fifo      => g_softpll_enable_debugger,
@@ -643,6 +651,7 @@ begin
       g_address_granularity  => BYTE,
       g_num_ref_inputs       => 1,
       g_num_outputs          => 1 + g_aux_clks,
+      g_num_exts             => f_num_ext_clks,
       g_ref_clock_rate       => f_refclk_rate(g_pcs_16bit),
       g_ext_clock_rate       => 10000000)
     port map(
@@ -659,8 +668,8 @@ begin
       -- DMTD Offset clock
       clk_dmtd_i   => clk_dmtd_i,
 
-      clk_ext_i     => clk_ext_i,
-      clk_ext_mul_i => clk_ext_mul_i,
+      clk_ext_i            => clk_ext_i,
+      clk_ext_mul_i(0)     => clk_ext_mul_i,
       clk_ext_mul_locked_i => clk_ext_mul_locked_i,
       clk_ext_stopped_i    => clk_ext_stopped_i,
       clk_ext_rst_o        => clk_ext_rst_o,

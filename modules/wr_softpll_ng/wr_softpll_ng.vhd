@@ -60,20 +60,14 @@ entity wr_softpll_ng is
 -- These two are obvious:
     g_num_ref_inputs : integer := 1;
     g_num_outputs    : integer := 1;
+-- Number of external channels (e.g. 2 for WR Switch for regular and low-jitter
+-- ext channel)
+    g_num_exts       : integer := 1;
 
 -- When true, an additional FIFO is instantiated, providing a realtime record
 -- of user-selectable SoftPLL parameters (e.g. tag values, phase error, DAC drive).
 -- These values can be read by "spll_dbg_proxy" daemon for further analysis.
     g_with_debug_fifo : boolean := false;
-
--- When true, an additional accumulating bang-bang phase detector is instantiated
--- for wideband locking of the local oscillator to an external stable reference
--- (e.g. GPSDO/Cesium 10 MHz)
-    g_with_ext_clock_input : boolean := false;
-	 
--- When true, an additional DDMTD tagger is instantiated for wideband locking the
--- local oscillator to the reference provided from the daughterboard
-	 g_with_ext_daughterboard : boolean := true;
 
 -- When true, DDMTD inputs are reversed (so that the DDMTD offset clocks is
 -- being sampled by the measured clock). This is functionally equivalent to
@@ -113,18 +107,15 @@ entity wr_softpll_ng is
     clk_dmtd_i : in std_logic;
 
 -- External reference clock (e.g. 10 MHz from Cesium/GPSDO). Used only if
--- g_with_ext_clock_input == true
+-- g_num_exts > 0
     clk_ext_i : in std_logic;
 
 -- External clock, multiplied to 125 MHz using the FPGA's PLL
-    clk_ext_mul_i : in std_logic;
+    clk_ext_mul_i        : in std_logic_vector(g_num_exts-1 downto 0);
     clk_ext_mul_locked_i : in std_logic := '1';
     clk_ext_stopped_i : in std_logic := '0';
     clk_ext_rst_o : out std_logic;
 	 
--- External 10 MHz reference, multiplied to 62.5 MHz using external AD9516
-    clk_ext_db_i	 : in std_logic;
-
 -- External clock sync/alignment singnal. SoftPLL will align clk_ext_i/clk_fb_i(0)
 -- to match the edges immediately following the rising edge in sync_p_i.
     pps_csync_p1_i : in std_logic;
@@ -245,30 +236,8 @@ architecture rtl of wr_softpll_ng is
   function f_num_total_channels
     return integer is
   begin
-    if(g_with_ext_clock_input) then
-		if (g_with_ext_daughterboard) then
-			return g_num_ref_inputs + g_num_outputs + 2;
-		else
-			return g_num_ref_inputs + g_num_outputs + 1;
-		end if;
-	 else
-      return g_num_ref_inputs + g_num_outputs;
-    end if;
+    return g_num_ref_inputs + g_num_outputs + g_num_exts;
   end f_num_total_channels;
-
- function f_num_ext_ref_channels
-    return integer is
-  begin
-    if(g_with_ext_clock_input) then
-		if (g_with_ext_daughterboard) then
-			return 2;
-		else
-			return 1;
-		end if;
-	 else
-      return 0;
-    end if;
-  end f_num_ext_ref_channels;
 
   function f_pick (
     cond     : boolean;
@@ -492,12 +461,8 @@ begin  -- rtl
   -- drive unused debug output
   debug_o(4) <= '0';
 
-  gen_with_ext_clock_input : if(g_with_ext_clock_input) generate
+  gen_ext_dmtds: for I in 0 to g_num_exts-1 generate
 
-    debug_o(0) <= fb_resync_out(0);
-    debug_o(1) <= tags_p(g_num_ref_inputs + g_num_outputs);
-    debug_o(2) <= tags_p(g_num_ref_inputs);
-    
     U_DMTD_EXT_internal : dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
@@ -510,55 +475,29 @@ begin  -- rtl
         clk_dmtd_en_i   => '1',
 
         clk_sys_i => clk_sys_i,
-        clk_in_i  => clk_ext_mul_i,
+        clk_in_i  => clk_ext_mul_i(I),
 
         resync_done_o    => open,
         resync_start_p_i => '0',
         resync_p_a_i     => fb_resync_out(0),
         resync_p_o       => open,
 
-        tag_o        => tags(g_num_ref_inputs + g_num_outputs),
-        tag_stb_p1_o => tags_p(g_num_ref_inputs + g_num_outputs),
-        shift_en_i   => '0',
-        shift_dir_i  => '0',
-
-        deglitch_threshold_i => deglitch_thr_slv,
-        dbg_dmtdout_o        => debug_o(3),
-        dbg_clk_d3_o         => debug_o(5));
-
-	gen_with_ext_daughterboard: if (g_with_ext_daughterboard) generate
-   U_DMTD_EXT_daughterboard : dmtd_with_deglitcher
-      generic map (
-        g_counter_bits      => g_tag_bits,
-        g_divide_input_by_2 => g_divide_input_by_2,
-				g_reverse	=> g_reverse_dmtds)
-      port map (
-        rst_n_dmtdclk_i => rst_n_i,     -- FIXME!
-        rst_n_sysclk_i  => rst_n_i,
-        clk_dmtd_i      => clk_dmtd_i,
-        clk_dmtd_en_i   => '1',
-
-        clk_sys_i => clk_sys_i,
-        clk_in_i  => clk_ext_db_i,
-
-        resync_done_o    => open,
-        resync_start_p_i => '0',
-        resync_p_a_i     => fb_resync_out(0),
-        resync_p_o       => open,
-
-        tag_o        => tags(g_num_ref_inputs + g_num_outputs + 1),
-        tag_stb_p1_o => tags_p(g_num_ref_inputs + g_num_outputs + 1),
+        tag_o        => tags(g_num_ref_inputs + g_num_outputs + I),
+        tag_stb_p1_o => tags_p(g_num_ref_inputs + g_num_outputs + I),
         shift_en_i   => '0',
         shift_dir_i  => '0',
 
         deglitch_threshold_i => deglitch_thr_slv,
         dbg_dmtdout_o        => open,
-				dbg_clk_d3_o         => open);
-				
+        dbg_clk_d3_o         => open);
 
-	
-	end generate gen_with_ext_daughterboard;
+  end generate gen_ext_dmtds;
 
+  gen_with_ext_clock_input: if g_num_exts > 0 generate
+    debug_o(0) <= fb_resync_out(0);
+    debug_o(1) <= tags_p(g_num_ref_inputs + g_num_outputs);
+    debug_o(2) <= tags_p(g_num_ref_inputs);
+    
     U_Aligner_EXT : spll_aligner
       generic map (
         g_counter_width  => 28,
@@ -585,14 +524,14 @@ begin  -- rtl
     aligner_sample_cref(0 to g_num_outputs-1) <= (others => (others => '0'));
     aligner_sample_cin(0 to g_num_outputs-1)  <= (others => (others => '0'));
 
-    regs_out.eccr_ext_supported_i   <= '1' when g_with_ext_clock_input else '0';
+    regs_out.eccr_ext_supported_i   <= '1' when (g_num_exts > 0) else '0';
     regs_out.eccr_ext_ref_locked_i  <= clk_ext_mul_locked_i;
     regs_out.eccr_ext_ref_stopped_i <= clk_ext_stopped_i;
     clk_ext_rst_o <= regs_in.eccr_ext_ref_pllrst_o;
   end generate gen_with_ext_clock_input;
 
   
-  gen_without_ext_clock_input : if(not g_with_ext_clock_input) generate
+  gen_without_ext_clock_input : if(g_num_exts = 0) generate
     aligner_sample_valid <= (others => '0');
     aligner_sample_cref  <= (others => (others => '0'));
     aligner_sample_cin   <= (others => (others => '0'));
@@ -691,6 +630,7 @@ begin  -- rtl
       else
         f_rr_arbitrate(tags_req, tags_grant, tags_grant);
 
+        -- Tags from input channels
         for i in 0 to g_num_ref_inputs-1 loop
           if(tags_p(i) = '1') then
             tags_req(i) <= rcer_int(i);
@@ -699,6 +639,7 @@ begin  -- rtl
           end if;
         end loop;  -- i
 
+        -- Tags from output channels
         for i in 0 to g_num_outputs-1 loop
           if(tags_p(i + g_num_ref_inputs) = '1') then
             tags_req(i + g_num_ref_inputs) <= ocer_int(i);
@@ -707,25 +648,14 @@ begin  -- rtl
           end if;
         end loop;  -- i
 
-		  if (f_num_ext_ref_channels = 1) then
-			if(tags_p(f_num_total_channels-1) = '1') then
-				tags_req(f_num_total_channels-1) <= regs_in.eccr_ext_en_o;
-			elsif(tags_grant(f_num_total_channels-1) = '1') then
-          tags_req(f_num_total_channels-1) <= '0';
-			end if;
-		  end if;
-		  if (f_num_ext_ref_channels = 2) then
-			if(tags_p(f_num_total_channels-2) = '1') then
-				tags_req(f_num_total_channels-2) <= regs_in.eccr_ext_en_o;
-			elsif(tags_grant(f_num_total_channels-2) = '1') then
-          tags_req(f_num_total_channels-2) <= '0';
-			end if;
-			if(tags_p(f_num_total_channels-1) = '1') then
-				tags_req(f_num_total_channels-1) <= regs_in.eccr_ext_en_o;
-			elsif(tags_grant(f_num_total_channels-1) = '1') then
-          tags_req(f_num_total_channels-1) <= '0';
-			end if;
-		  end if;
+        -- Tags from external channels
+        for i in 0 to g_num_exts-1 loop
+          if (tags_p(i + g_num_ref_inputs + g_num_outputs) = '1') then
+            tags_req(i + g_num_ref_inputs + g_num_outputs) <= regs_in.eccr_ext_en_o;
+          elsif (tags_grant(i + g_num_ref_inputs + g_num_outputs) = '1') then
+            tags_req(i + g_num_ref_inputs + g_num_outputs) <= '0';
+          end if;
+        end loop;
         
       end if;
     end if;
