@@ -55,16 +55,14 @@ entity xwr_softpll_ng is
 -- These two are obvious:
     g_num_ref_inputs : integer := 1;
     g_num_outputs    : integer := 1;
+-- Number of external channels (e.g. 2 for WR Switch for regular and low-jitter
+-- ext channel)
+    g_num_exts       : integer := 1;
 
 -- When true, an additional FIFO is instantiated, providing a realtime record
 -- of user-selectable SoftPLL parameters (e.g. tag values, phase error, DAC drive).
 -- These values can be read by "spll_dbg_proxy" daemon for further analysis.
     g_with_debug_fifo : boolean := false;
-
--- When true, an additional accumulating bang-bang phase detector is instantiated
--- for wideband locking of the local oscillator to an external stable reference
--- (e.g. GPSDO/Cesium 10 MHz)
-    g_with_ext_clock_input : boolean := false;
 
 -- When true, DDMTD inputs are reverse (so that the DDMTD offset clocks is
 -- being sampled by the measured clock). This is functionally equivalent to
@@ -97,15 +95,15 @@ entity xwr_softpll_ng is
     clk_dmtd_i : in std_logic;
 
 -- External reference clock (e.g. 10 MHz from Cesium/GPSDO). Used only if
--- g_with_ext_clock_input == true
+-- g_num_exts > 0
     clk_ext_i : in std_logic;
 
 -- External clock, multiplied to 125 MHz using the FPGA's PLL
-    clk_ext_mul_i : in std_logic;
+    clk_ext_mul_i        : in std_logic_vector(g_num_exts-1 downto 0);
     clk_ext_mul_locked_i : in std_logic := '1';
     clk_ext_stopped_i    : in std_logic := '0';
     clk_ext_rst_o        : out std_logic;
-
+	 
 -- External clock sync/alignment singnal. SoftPLL will clk_ext_i/clk_fb_i(0)
 -- to match the edges immediately following the rising edge in sync_p_i.
     pps_csync_p1_i : in std_logic;
@@ -142,8 +140,8 @@ architecture wrapper of xwr_softpll_ng is
       g_tag_bits             : integer;
       g_num_ref_inputs       : integer;
       g_num_outputs          : integer;
+      g_num_exts             : integer;
       g_with_debug_fifo      : boolean;
-      g_with_ext_clock_input : boolean;
       g_reverse_dmtds        : boolean;
       g_divide_input_by_2    : boolean;
       g_ref_clock_rate       : integer;
@@ -160,7 +158,7 @@ architecture wrapper of xwr_softpll_ng is
       clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
       clk_dmtd_i      : in  std_logic;
       clk_ext_i       : in  std_logic;
-      clk_ext_mul_i   : in  std_logic;
+      clk_ext_mul_i   : in  std_logic_vector(g_num_exts-1 downto 0);
       clk_ext_mul_locked_i : in  std_logic;
       clk_ext_stopped_i    : in  std_logic;
       clk_ext_rst_o        : out std_logic;
@@ -197,8 +195,8 @@ begin  -- behavioral
       g_address_granularity  => g_address_granularity,
       g_num_ref_inputs       => g_num_ref_inputs,
       g_num_outputs          => g_num_outputs,
+      g_num_exts             => g_num_exts,
       g_with_debug_fifo      => g_with_debug_fifo,
-      g_with_ext_clock_input => g_with_ext_clock_input,
       g_reverse_dmtds        => g_reverse_dmtds,
       g_divide_input_by_2    => g_divide_input_by_2,
       g_ref_clock_rate  => g_ref_clock_rate,
