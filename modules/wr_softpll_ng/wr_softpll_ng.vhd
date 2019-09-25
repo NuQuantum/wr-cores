@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2018-07-30
+-- Last update: 2019-09-18
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -817,7 +817,7 @@ begin  -- rtl
   dac_out_load_o <= regs_in.dac_main_value_wr_o;
 
   regs_out.al_cr_required_i    <= (others => '0');
-  regs_out.csr_dbg_supported_i <= '0';
+  regs_out.csr_dbg_supported_i <= '1' when g_with_debug_fifo else '0';
   regs_out.f_dmtd_valid_i      <= '0';
   regs_out.f_ref_valid_i       <= '0';
   regs_out.f_ext_valid_i       <= '0';
