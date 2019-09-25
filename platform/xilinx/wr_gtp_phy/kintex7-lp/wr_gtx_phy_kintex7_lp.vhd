@@ -6,7 +6,7 @@
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
--- Last update: 2019-06-26
+-- Last update: 2019-07-01
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -420,16 +420,17 @@ begin  -- rtl
       ctrl_i      => tx_k_i(1),
       out_10b_o    => tx_data_8b10b(9 downto 0));
 
+
   U_Enc2 : entity work.gc_enc_8b10b
-generic map (
+    generic map (
       g_use_internal_running_disparity => false
       )
     port map (
       clk_i       => tx_out_clk_div2,
       rst_n_i     => gtx_rst_n_txdiv2,
-      in_8b_i     => tx_data_i(7 downto 0),
       dispar_i => run_disparity_q0,
       dispar_o => run_disparity_q1,
+      in_8b_i     => tx_data_i(7 downto 0),
       ctrl_i      => tx_k_i(0),
       out_10b_o    => tx_data_8b10b(19 downto 10));
 
@@ -437,7 +438,7 @@ generic map (
   begin
 
     if rising_edge(tx_out_clk_div2) then
-      if tx_sw_reset = '1' then
+      if gtx_rst_n_txdiv2 = '0' then
         run_disparity_reg <= '0';
       else
         run_disparity_reg <= run_disparity_q1;
@@ -509,10 +510,10 @@ generic map (
 		GTTXRESET_IN               => gtx_tx_reset_a,
 		TXUSERRDY_IN               => qpll_locked_i,
 		------------------ Transmit Ports - FPGA TX Interface Ports ----------------
-		TXUSRCLK_IN                => tx_out_clk_div1,
-		TXUSRCLK2_IN               => tx_out_clk_div2,
+		TXUSRCLK_IN                => tx_out_clk,
+		TXUSRCLK2_IN               => tx_out_clk,
 		------------------ Transmit Ports - TX Data Path interface -----------------
-		TXDATA_IN                  => f_widen(tx_data_8b10b, 4),
+		TXDATA_IN                  => f_widen(tx_data_8b10b, 1),
 		---------------- Transmit Ports - TX Driver and OOB signaling --------------
 		GTXTXN_OUT                 => pad_txn_o,
 		GTXTXP_OUT                 => pad_txp_o,
@@ -528,52 +529,16 @@ generic map (
 
 
   
-  U_GenTxUsrClk : PLLE2_ADV
-    generic map (
-      BANDWIDTH          =>"HIGH",
-      COMPENSATION         => "ZHOLD",
-      STARTUP_WAIT         => "FALSE",
-      DIVCLK_DIVIDE        => 1,
-      CLKFBOUT_MULT        => 14,
-      CLKFBOUT_PHASE       => 0.000,
-      CLKOUT0_DIVIDE       => 28,
-      CLKOUT0_PHASE        => 0.000,
-      CLKOUT0_DUTY_CYCLE   => 0.500,
-      CLKOUT1_DIVIDE       => 14,
-      CLKOUT1_PHASE        => 0.000,
-      CLKOUT1_DUTY_CYCLE   => 0.500,
-      CLKIN1_PERIOD        => 8.000)
-    port map (
-      CLKFBOUT            => pll_clkfbout_bufin,
-      CLKOUT0             => tx_out_clk_div2_bufin,
-      CLKOUT1 => tx_out_clk_div1_bufin,
-      CLKFBIN             => pll_clkfbout,
-      CLKIN1              => tx_out_clk,
-      CLKIN2              => '0',
-      CLKINSEL            => '1',
-      LOCKED => txusrpll_locked,
-      DADDR => "0000000",
-      DI => x"0000",
-      DWE => '0',
-      PWRDWN => '0',
-      DCLK => '0',
-      DEN => '0',
-      RST                 => txusrpll_reset );
+
+  txusrpll_locked <= '1';
+
+  tx_out_clk_div2 <= tx_out_clk;
   
   U_BUF_TxOutClk : BUFG
     port map (
       I => tx_out_clk_bufin,
       O => tx_out_clk);
 
-  U_BUF_TxOutClk2 : BUFG
-    port map (
-      I => tx_out_clk_div2_bufin,
-      O => tx_out_clk_div2);
-
-  U_BUF_TxOutClk1 : BUFG
-    port map (
-      I => tx_out_clk_div1_bufin,
-      O => tx_out_clk_div1);
 
   U_BUF_TxOutClkFB : BUFG
     port map (

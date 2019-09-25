@@ -135,7 +135,7 @@ port
     TXUSRCLK_IN                             : in   std_logic;
     TXUSRCLK2_IN                            : in   std_logic;
     ------------------ Transmit Ports - TX Data Path interface -----------------
-    txdata_in                               : in   std_logic_vector(79 downto 0);
+    txdata_in                               : in   std_logic_vector(19 downto 0);
     ---------------- Transmit Ports - TX Driver and OOB signaling --------------
     GTXTXN_OUT                              : out  std_logic;
     GTXTXP_OUT                              : out  std_logic;
@@ -169,6 +169,8 @@ architecture RTL of whiterabbit_gtxe2_channel_wrapper_GT is
     -- RX Datapath signals
     signal rxdata_i                         :   std_logic_vector(63 downto 0);      
     signal rxchariscomma_float_i            :   std_logic_vector(5 downto 0);
+    signal rxcharisk_float_i                :   std_logic_vector(5 downto 0);
+    signal rxdisperr_float_i                :   std_logic_vector(5 downto 0);
     signal rxnotintable_float_i             :   std_logic_vector(5 downto 0);
     signal rxrundisp_float_i                :   std_logic_vector(5 downto 0);
     signal rxdata_out_i                     :   std_logic_vector(19 downto 0);
@@ -178,11 +180,11 @@ architecture RTL of whiterabbit_gtxe2_channel_wrapper_GT is
 
     -- TX Datapath signals
     signal txdata_i                         :   std_logic_vector(63 downto 0);
-    signal txdata_in_i                      :   std_logic_vector(79 downto 0);
+    signal txdata_in_i                      :   std_logic_vector(19 downto 0);
     signal txchardispmode_i                 :   std_logic_vector(7 downto 0);
     signal txchardispval_i                  :   std_logic_vector(7 downto 0);
-    signal txkerr_float_i                   :   std_logic_vector(2 downto 0);
-    signal txrundisp_float_i                :   std_logic_vector(2 downto 0);
+    signal txkerr_float_i                   :   std_logic_vector(5 downto 0);
+    signal txrundisp_float_i                :   std_logic_vector(5 downto 0);
     signal rxstartofseq_float_i             :   std_logic;
 --******************************** Main Body of Code***************************
                        
@@ -206,11 +208,11 @@ begin
 
     rxdata_out_i    <= (rxdisperr_i(1) & rxcharisk_i(1) & rxdata_i(15 downto 8) & rxdisperr_i(0) & rxcharisk_i(0) & rxdata_i(7 downto 0));
 
-    -------------  GT txdata_i Assignments for 80 bit datapath  -------  
+    -------------  GT txdata_i Assignments for 20 bit datapath  -------  
 
-    txchardispmode_i  <= (txdata_in_i(79) & txdata_in_i(69) & txdata_in_i(59) & txdata_in_i(49) & txdata_in_i(39) & txdata_in_i(29) & txdata_in_i(19) & txdata_in_i(9));
-    txchardispval_i   <= (txdata_in_i(78) & txdata_in_i(68) & txdata_in_i(58) & txdata_in_i(48) & txdata_in_i(38) & txdata_in_i(28) & txdata_in_i(18) & txdata_in_i(8));
-    txdata_i          <= (txdata_in_i(77 downto 70) & txdata_in_i(67 downto 60) & txdata_in_i(57 downto 50) & txdata_in_i(47 downto 40) & txdata_in_i(37 downto 30) & txdata_in_i(27 downto 20) & txdata_in_i(17 downto 10) & txdata_in_i(7 downto 0));
+    txchardispmode_i  <= (tied_to_ground_vec_i(5 downto 0) & txdata_in_i(19) & txdata_in_i(9));
+    txchardispval_i   <= (tied_to_ground_vec_i(5 downto 0) & txdata_in_i(18) & txdata_in_i(8));
+    txdata_i          <= (tied_to_ground_vec_i(47 downto 0) & txdata_in_i(17 downto 10) & txdata_in_i(7 downto 0));
 
     ----------------------------- GTXE2 Instance  --------------------------   
 
@@ -423,7 +425,7 @@ begin
         TX_XCLK_SEL                             =>     ("TXOUT"),
 
        -------------------------FPGA TX Interface Attributes-------------------------
-        TX_DATA_WIDTH                           =>     (80),
+        TX_DATA_WIDTH                           =>     (20),
 
        -------------------------TX Configurable Driver Attributes-------------------------
         TX_DEEMPH0                              =>     ("00000"),
@@ -463,7 +465,7 @@ begin
         CPLL_LOCK_CFG                           =>     (x"01E8"),
         CPLL_REFCLK_DIV                         =>     (1),
         RXOUT_DIV                               =>     (8),
-        TXOUT_DIV                               =>     (2),
+        TXOUT_DIV                               =>     (8),
         SATA_CPLL_CFG                           =>     ("VCO_3000MHZ"),
 
        --------------RX Initialization and Reset Attributes-------------
@@ -491,7 +493,7 @@ begin
         RX_INT_DATAWIDTH                        =>     (0),
 
        -------------------------FPGA TX Interface Attribute-------------------------
-        TX_INT_DATAWIDTH                        =>     (1),
+        TX_INT_DATAWIDTH                        =>     (0),
 
        ------------------TX Configurable Driver Attributes---------------
         TX_QPI_STATUS_EN                        =>     ('0'),
@@ -552,7 +554,7 @@ begin
         ----------------- FPGA TX Interface Datapath Configuration  ----------------
         TX8B10BEN                       =>      '0',
         ------------------------------- Loopback Ports -----------------------------
-        LOOPBACK                        =>      tied_to_ground_vec_i(2 downto 0), --LOOPBACK_IN,
+        LOOPBACK                        =>      LOOPBACK_IN,
         ----------------------------- PCI Express Ports ----------------------------
         PHYSTATUS                       =>      open,
         RXRATE                          =>      tied_to_ground_vec_i(2 downto 0),
