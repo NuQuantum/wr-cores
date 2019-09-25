@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2019-03-29
+-- Last update: 2019-07-24
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -453,8 +453,8 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   constant c_layout : t_sdb_record_array(1 downto 0) :=
     (0 => f_sdb_embed_device(f_xwb_dpram(g_dpram_size), x"00000000"),
-     1 => f_sdb_embed_bridge(c_secbar_bridge_sdb, x"00020000"));
-  constant c_sdb_address : t_wishbone_address := x"00030000";
+     1 => f_sdb_embed_bridge(c_secbar_bridge_sdb, x"00040000"));
+  constant c_sdb_address : t_wishbone_address := x"00050000";
 
   signal cbar_slave_i  : t_wishbone_slave_in_array (2 downto 0);
   signal cbar_slave_o  : t_wishbone_slave_out_array(2 downto 0);
@@ -787,7 +787,7 @@ begin
       phy_rx_bitslide_i    => phy_rx_bitslide_i,
       phy_debug_o => phy_debug_o,
       phy_debug_i => phy_debug_i,
-
+      
       phy8_o  => phy8_o,
       phy8_i  => phy8_i,
       phy16_o => phy16_o,
