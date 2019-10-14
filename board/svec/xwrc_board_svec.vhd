@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2019-04-23
+-- Last update: 2019-09-25
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -107,6 +107,8 @@ entity xwrc_board_svec is
     clk_sys_62m5_o      : out std_logic;
     -- 125MHz ref clock output
     clk_ref_125m_o      : out std_logic;
+    -- 125.x MHz DDMTD clock
+    clk_dmtd_125m_o     : out std_logic;
     -- Configurable (with g_aux_pll_cfg) clock outputs from the main PLL_BASE
     clk_pll_aux_o       : out std_logic_vector(3 downto 0);
     -- active low reset outputs, synchronous to clk_pll_aux_o clocks
@@ -278,6 +280,9 @@ architecture struct of xwrc_board_svec is
   signal clk_10m_ext  : std_logic;
   signal clk_pll_aux  : std_logic_vector(3 downto 0);
 
+  attribute keep : string;
+  attribute keep of clk_pll_dmtd : signal is "TRUE";
+  
   -- Reset logic
   signal areset_edge_ppulse : std_logic;
   signal rst_62m5_n         : std_logic;
@@ -549,4 +554,6 @@ begin  -- architecture struct
   onewire_in(0) <= onewire_i;
   onewire_in(1) <= '1';
 
+  clk_dmtd_125m_o <= clk_pll_dmtd;
+  
 end architecture struct;

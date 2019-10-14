@@ -110,6 +110,8 @@ entity xwrc_board_spec is
     clk_ref_125m_o      : out std_logic;
     -- Configurable (with g_aux_pll_cfg) clock outputs from the main PLL_BASE
     clk_pll_aux_o       : out std_logic_vector(3 downto 0);
+    -- 125.x MHz DDMTD clock
+    clk_dmtd_125m_o     : out std_logic;
     -- active low reset outputs, synchronous to clk_pll_aux_o clocks
     rst_pll_aux_n_o     : out std_logic_vector(3 downto 0);
     -- active low reset outputs, synchronous to 62m5 and 125m clocks
@@ -550,5 +552,7 @@ begin  -- architecture struct
   onewire_oen_o <= onewire_en(0);
   onewire_in(0) <= onewire_i;
   onewire_in(1) <= '1';
+
+  clk_dmtd_125m_o <= clk_pll_dmtd;
 
 end architecture struct;

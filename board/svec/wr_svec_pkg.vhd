@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2019-04-23
+-- Last update: 2019-09-25
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Copyright (c) 2017 CERN
@@ -73,6 +73,7 @@ package wr_svec_pkg is
       clk_aux_i            : in  std_logic_vector(g_aux_clks-1 downto 0)          := (others => '0');
       clk_10m_ext_i        : in  std_logic                                        := '0';
       pps_ext_i            : in  std_logic                                        := '0';
+      clk_dmtd_125m_o      : out std_logic;
       clk_sys_62m5_o       : out std_logic;
       clk_ref_125m_o       : out std_logic;
       clk_pll_aux_o        : out std_logic_vector(3 downto 0);
