@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2019-07-03
+-- Last update: 2019-11-12
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -250,7 +250,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
 
   signal rx_k_int    : std_logic_vector(1 downto 0);
   signal rx_data_int : std_logic_vector(15 downto 0);
-  signal rx_data_raw : std_logic_vector(19 downto 0);
+  signal rx_data_raw, rx_data_raw_d : std_logic_vector(19 downto 0);
 
   signal rx_disp_err, rx_code_err : std_logic_vector(1 downto 0);
 
@@ -284,14 +284,49 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
   end f_reverse_bits;
 
   signal gtx_rst_n : std_logic;
-  
 
-  begin  -- rtl
+  signal dbg_rst : std_logic;
+  signal dbg_shift_en, dbg_shift_en_p: std_logic;
+  signal dbg_data : std_logic;
+  signal dbg_trig, dbg_trig_p : std_logic;
+
+  signal dbg_reg : std_logic_vector(63 downto 0);
+  
+  signal rx_cdr_reset_a : std_logic;
+  signal pll_tx_reset_a : std_logic;
+  signal pll_rx_reset_a : std_logic;
+  signal cd_reset : std_logic;
+  
+begin  -- rtl
 
   tx_sw_reset <= lpc_ctrl_i(0);
   tx_enable   <= lpc_ctrl_i(1);
   rx_enable   <= lpc_ctrl_i(2);
   rx_sw_reset <= lpc_ctrl_i(3);
+  rx_cdr_reset_a <= lpc_ctrl_i(4);
+  pll_tx_reset_a <= lpc_ctrl_i(5);
+  pll_rx_reset_a <= lpc_ctrl_i(6);
+  dbg_rst <= lpc_ctrl_i(7);
+  dbg_shift_en <= lpc_ctrl_i(8);
+  dbg_trig <= lpc_ctrl_i(10);
+  
+  dbg_data <= dbg_reg(0);
+
+  cd_reset <= gtx_rst or lpc_ctrl_i(11);
+
+  U_SyncDBG: gc_sync_ffs
+    port map (
+      clk_i => rx_rec_clk,
+      rst_n_i => '1',
+      data_i => dbg_trig,
+      ppulse_o => dbg_trig_p );
+
+  U_SyncDBG2: gc_sync_ffs
+    port map (
+      clk_i => rx_rec_clk,
+      rst_n_i => '1',
+      data_i => dbg_shift_en,
+      ppulse_o => dbg_shift_en_p );
   
   U_SyncTxEnable : gc_sync_ffs
     port map
@@ -395,7 +430,11 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       done_o              => tx_reset_done);
 
   lpc_stat_o(0) <= tx_reset_done;
+  lpc_stat_o(4) <= dbg_data;
+  lpc_stat_o(5) <= txpll_lockdet;
+  lpc_stat_o(6) <= rxpll_lockdet;
 
+  
   gen_rx_bufg : if(g_rxclk_bufr = false) generate
 
     U_BUF_RxRecClk : BUFG
@@ -446,12 +485,12 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       RXDATA_OUT          => rx_data_raw,
       RXRECCLK_OUT        => rx_rec_clk_bufin,
       RXUSRCLK2_IN        => rx_rec_clk,
-      RXCDRRESET_IN       => '0',
+      RXCDRRESET_IN       => rx_cdr_reset_a,
       RXN_IN              => pad_rxn_i,
       RXP_IN              => pad_rxp_i,
       GTXRXRESET_IN       => gtx_rx_rst_a,
       MGTREFCLKRX_IN      => mgtrefclk_in,
-      PLLRXRESET_IN       => '0',
+      PLLRXRESET_IN       => pll_rx_reset_a,
       RXPLLLKDET_OUT      => rxpll_lockdet,
       RXRESETDONE_OUT     => rx_rst_done,
       TXCHARISK_IN        => tx_is_k_swapped,
@@ -471,7 +510,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       TXPMASETPHASE_IN      => '0',
       GTXTXRESET_IN         => gtx_tx_reset_a,
       MGTREFCLKTX_IN        => mgtrefclk_in,
-      PLLTXRESET_IN         => '0',
+      PLLTXRESET_IN         => pll_tx_reset_a,
       TXPLLLKDET_OUT        => txpll_lockdet,
       TXRESETDONE_OUT       => gtx_tx_rst_done);
 
@@ -486,13 +525,15 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
   everything_ready <= serdes_ready and align_done;
   rdy_o            <= serdes_ready; --everything_ready;
 
+
+  
   U_Comma_Detect : entity work.gtx_comma_detect_lp
     generic map(
       g_id => g_id
       )
     port map (
       clk_rx_i  => rx_rec_clk,
-      rst_i     => gtx_rst,
+      rst_i     => cd_reset,
       rx_data_raw_i => rx_data_raw,
       link_up_o => link_up,
       aligned_o => link_aligned,
@@ -500,6 +541,19 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
       rx_k_i => rx_k_o_int,
       rx_error_i => rx_enc_err_o_int);
 
+  p_debug_Register : process(rx_rec_clk)
+  begin
+    if rising_edge(rx_rec_clk) then
+      rx_data_raw_d <= rx_data_raw;
+      if dbg_shift_en_p = '1' then
+        dbg_reg <= '0' & dbg_reg(dbg_reg'length-1 downto 1);
+      elsif dbg_trig_p = '1' then
+        dbg_reg (19 downto 0) <= rx_data_raw;
+        dbg_reg (39 downto 20) <= rx_data_raw_d;
+      end if;
+    end if;
+  end process;
+  
   gtx_rst_n <= not gtx_rst;
   
   U_Dec1 : gc_dec_8b10b
