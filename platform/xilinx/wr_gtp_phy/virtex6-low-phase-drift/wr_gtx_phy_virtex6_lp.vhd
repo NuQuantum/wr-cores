@@ -251,6 +251,7 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
   signal rx_k_int    : std_logic_vector(1 downto 0);
   signal rx_data_int : std_logic_vector(15 downto 0);
   signal rx_data_raw, rx_data_raw_d : std_logic_vector(19 downto 0);
+  signal rx_data_raw_gtx : std_logic_vector(19 downto 0);
 
   signal rx_disp_err, rx_code_err : std_logic_vector(1 downto 0);
 
@@ -482,7 +483,7 @@ begin  -- rtl
 --      RXBYTEISALIGNED_OUT => open,
 --      RXCOMMADET_OUT      => open,
 --      RXSLIDE_IN          => '0',
-      RXDATA_OUT          => rx_data_raw,
+      RXDATA_OUT          => rx_data_raw_gtx,
       RXRECCLK_OUT        => rx_rec_clk_bufin,
       RXUSRCLK2_IN        => rx_rec_clk,
       RXCDRRESET_IN       => rx_cdr_reset_a,
@@ -513,6 +514,15 @@ begin  -- rtl
       PLLTXRESET_IN         => pll_tx_reset_a,
       TXPLLLKDET_OUT        => txpll_lockdet,
       TXRESETDONE_OUT       => gtx_tx_rst_done);
+
+  RX_DAT_ANTI_META: gc_sync_register
+  generic map (
+    g_width => 20)
+  port map (
+    clk_i     => rx_rec_clk,
+    rst_n_a_i => '1', --gtx_rst,
+    d_i       => rx_data_raw_gtx,
+    q_o       => rx_data_raw);
 
   mgtrefclk_in <= '0' & clk_gtx_i;
 
