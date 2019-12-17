@@ -259,6 +259,7 @@ entity xwrc_board_common is
     btn2_i     : in  std_logic := '1';
     -- 1PPS output
     pps_csync_o : out std_logic;
+    pps_valid_o : out std_logic;
     pps_p_o     : out std_logic;
     pps_led_o   : out std_logic;
     -- Link ok indication
@@ -347,6 +348,10 @@ architecture struct of xwrc_board_common is
 --   signal sfp1_sda_out : std_logic;
 --   signal sfp1_sda_in  : std_logic;
 --   signal sfp1_det_in  : std_logic;
+
+  
+  signal pps_valid     : std_logic;
+  signal pps_csync     : std_logic;
 
 begin  -- architecture struct
 
@@ -471,7 +476,8 @@ begin  -- architecture struct
       tm_time_valid_o      => tm_time_valid,
       tm_tai_o             => tm_tai,
       tm_cycles_o          => tm_cycles,
-      pps_csync_o          => pps_csync_o,
+      pps_csync_o          => pps_csync,
+      pps_valid_o          => pps_valid,
       pps_p_o              => pps_p_o,
       pps_led_o            => pps_led_o,
       rst_aux_n_o          => aux_rst_n,
@@ -479,6 +485,8 @@ begin  -- architecture struct
       aux_diag_o           => aux_diag_out,
       link_ok_o            => link_ok);
 
+  pps_csync_o     <= pps_csync;
+  pps_valid_o     <= pps_valid;
   link_ok_o       <= link_ok;
   tm_time_valid_o <= tm_time_valid;
   tm_tai_o        <= tm_tai;

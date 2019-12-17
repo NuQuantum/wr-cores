@@ -78,7 +78,8 @@ entity wrc_board_spec is
     g_diag_ver                  : integer := 0;
     -- size the generic diag interface
     g_diag_ro_vector_width      : integer := 0;
-    g_diag_rw_vector_width      : integer := 0
+    g_diag_rw_vector_width      : integer := 0;
+    g_aux_sdb                   : t_sdb_device := c_wrc_periph3_sdb
     );
   port (
     ---------------------------------------------------------------------------
@@ -302,6 +303,8 @@ entity wrc_board_spec is
     btn2_i     : in  std_logic := '1';
     -- 1PPS output
     pps_p_o    : out std_logic;
+    pps_csync_o : out std_logic;
+    pps_valid_o : out std_logic;
     pps_led_o  : out std_logic;
     -- Link ok indication
     link_ok_o  : out std_logic
@@ -415,10 +418,11 @@ begin  -- architecture struct
   aux_diag_in <= f_de_vectorize_diag(aux_diag_i, g_diag_ro_vector_width);
   aux_diag_o  <= f_vectorize_diag(aux_diag_out, g_diag_rw_vector_width);
 
-  tstamps_stb_o      <= timestamps_out.stb;
-  tstamps_tsval_o    <= timestamps_out.tsval;
-  tstamps_port_id_o  <= timestamps_out.port_id;
-  tstamps_frame_id_o <= timestamps_out.frame_id;
+  tstamps_stb_o       <= timestamps_out.stb;
+  tstamps_tsval_o     <= timestamps_out.tsval;
+  tstamps_port_id_o   <= timestamps_out.port_id;
+  tstamps_frame_id_o  <= timestamps_out.frame_id;
+  tstamps_incorrect_o <= timestamps_out.incorrect;
 
   wrs_tx_cfg_in.mac_local         <= wrs_tx_cfg_mac_l_i;
   wrs_tx_cfg_in.mac_target        <= wrs_tx_cfg_mac_t_i;
@@ -446,7 +450,8 @@ begin  -- architecture struct
       g_diag_id                   => g_diag_id,
       g_diag_ver                  => g_diag_ver,
       g_diag_ro_size              => c_diag_ro_size,
-      g_diag_rw_size              => c_diag_rw_size)
+      g_diag_rw_size              => c_diag_rw_size,
+      g_aux_sdb                   => g_aux_sdb)
     port map (
       areset_n_i           => areset_n_i,
       areset_edge_n_i      => areset_edge_n_i,
@@ -534,6 +539,8 @@ begin  -- architecture struct
       btn1_i               => btn1_i,
       btn2_i               => btn2_i,
       pps_p_o              => pps_p_o,
+      pps_csync_o          => pps_csync_o,
+      pps_valid_o          => pps_valid_o,
       pps_led_o            => pps_led_o,
       link_ok_o            => link_ok_o);
 

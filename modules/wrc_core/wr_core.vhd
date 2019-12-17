@@ -293,6 +293,7 @@ entity wr_core is
     tm_cycles_o          : out std_logic_vector(27 downto 0);
     -- 1PPS output
     pps_csync_o          : out std_logic;
+    pps_valid_o          : out std_logic;
     pps_p_o              : out std_logic;
     pps_led_o            : out std_logic;
 
@@ -637,6 +638,7 @@ begin
       );
   ppsg_link_ok <= not phy_rst;
   pps_csync_o  <= s_pps_csync;
+  pps_valid_o  <= pps_valid;
 
   -----------------------------------------------------------------------------
   -- Software PLL
