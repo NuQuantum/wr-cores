@@ -1,17 +1,17 @@
 -------------------------------------------------------------------------------
--- Title      : WRPC reference design for KM3NeT Central Logic Board (CLBv2)
+-- Title      : WRPC reference design for KM3NeT Central Logic Board (CLBv4)
 --            : based on kintex-7
 -- Project    : WR PTP Core
 -- URL        : http://www.ohwr.org/projects/wr-cores/wiki/Wrpc_core
 -------------------------------------------------------------------------------
--- File       : clbv2_wr_ref_top.vhd
--- Author(s)  : Peter Jansweijer <peterj@nikhef.nl>
+-- File       : clbv4_wr_ref_top.vhd
+-- Author(s)  : Pascal Bos <bosp@nikhef.nl>
 -- Company    : Nikhef
--- Created    : 2017-11-08
--- Last update: 2019-06-28
+-- Created    : 2019-05-06
+-- Last update: 2019-05-06
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
--- Description: Top-level file for the WRPC reference design on the CLBv2.
+-- Description: Top-level file for the WRPC reference design on the clbv4.
 --
 -- This is a reference top HDL that instanciates the WR PTP Core together with
 -- its peripherals to be run on a CLB card.
@@ -23,7 +23,7 @@
 --   in HDL projects.
 --
 -------------------------------------------------------------------------------
--- Copyright (c) 2017 Nikhef
+-- Copyright (c) 2019 Nikhef
 -------------------------------------------------------------------------------
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
@@ -53,14 +53,14 @@ library work;
 use work.gencores_pkg.all;
 use work.wishbone_pkg.all;
 use work.wr_board_pkg.all;
-use work.wr_clbv2_pkg.all;
+use work.wr_clbv4_pkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
 
-entity clbv2_wr_ref_top is
+entity clbv4_wr_ref_top is
   generic (
-    g_dpram_initf : string := "../../../../bin/wrpc/wrc_phy16.bram";
+    g_dpram_initf : string := "../../../../bin/wrpc/wrc_phy16_direct_dmtd.bram";
     -- In Vivado Project-Mode, during a Synthesis run or an Implementation run, the Vivado working
     -- directory temporarily changes to the "project_name/project_name.runs/run_name" directory.
 
@@ -75,19 +75,24 @@ entity clbv2_wr_ref_top is
     ---------------------------------------------------------------------------
 
     -- Local oscillators
-    clk_20m_vcxo_i : in std_logic;                -- 20MHz VCXO clock
 
-    clk_125m_gtx_n_i : in std_logic;              -- 125 MHz GTX reference
+    clk_125m_dmtd_p_i : in std_logic;             -- 124.992 MHz PLL reference
+    clk_125m_dmtd_n_i : in std_logic;
+
+    clk_125m_gtx_n_i : in std_logic;              -- 125.000 MHz GTX reference
     clk_125m_gtx_p_i : in std_logic;
 
     ---------------------------------------------------------------------------
     -- SPI interface to DACs
     ---------------------------------------------------------------------------
 
-    plldac_sclk_o     : out std_logic;
-    plldac_din_o      : out std_logic;
-    pll25dac_cs_n_o : out std_logic; --cs1
-    pll20dac_cs_n_o : out std_logic; --cs2
+    dac_refclk_cs_n_o : out std_logic;
+    dac_refclk_sclk_o : out std_logic;
+    dac_refclk_din_o  : out std_logic;
+
+    dac_dmtd_cs_n_o   : out std_logic;
+    dac_dmtd_sclk_o   : out std_logic;
+    dac_dmtd_din_o    : out std_logic;
 
     ---------------------------------------------------------------------------
     -- SFP I/O for transceiver
@@ -97,7 +102,7 @@ entity clbv2_wr_ref_top is
     sfp_txn_o         : out   std_logic;
     sfp_rxp_i         : in    std_logic;
     sfp_rxn_i         : in    std_logic;
-    sfp_mod_def0_i    : in    std_logic;          -- sfp detect
+    --sfp_mod_def0_i    : in    std_logic;        -- sfp detect not present on GlenAir module
     sfp_mod_def1_b    : inout std_logic;          -- scl
     sfp_mod_def2_b    : inout std_logic;          -- sda
     sfp_rate_select_o : out   std_logic;
@@ -123,24 +128,25 @@ entity clbv2_wr_ref_top is
     ---------------------------------------------------------------------------
 
     ---------------------------------------------------------------------------
-    -- Miscellanous CLBv2 pins
+    -- Miscellanous clbv3 pins
     ---------------------------------------------------------------------------
     -- Red LED next to the SFP: blinking indicates that packets are being
     -- transferred.
-    led_act_o    : out std_logic;
+    led_act_o   : out std_logic;
     -- Green LED next to the SFP: indicates if the link is up.
-    led_link_o   : out std_logic;
-
+    led_link_o  : out std_logic;
+    
     -- Reset control
-    reset_i      : in  std_logic;
+    reset_i     : in  std_logic;
     suicide     : out std_logic;
-
-    -- Monitoring signals output on test-pads and External Debug Connector J35
-    pll_oe_out_b : out std_logic;
-    pps_p        : out std_logic;
-    pps_n        : out std_logic;
-    ref_clk_p    : out std_logic;
-    ref_clk_n    : out std_logic;
+    WDI         : out std_logic;
+    WD_SET      : out std_logic_vector(2 downto 0);
+    
+    -- test_lemo outputs PPS
+    test_lemo   : out std_logic;
+    -- Monitoring signals output on External Debug Connector J35
+    pps_mon     : out std_logic;
+    ref_clk_mon : out std_logic;
 
     ---------------------------------------------------------------------------
     -- Digital I/O FMC Pins
@@ -180,13 +186,28 @@ entity clbv2_wr_ref_top is
     -- I2C interface for accessing FMC EEPROM. Deprecated, was used in
     -- pre-v3.0 releases to store WRPC configuration. Now we use Flash for this.
     dio_scl_b : inout std_logic;
-    dio_sda_b : inout std_logic
+    dio_sda_b : inout std_logic;
+
+    -- Bulls-eye connector outputs
+    txts_p_o : out std_logic;
+    txts_n_o : out std_logic;
+
+    rxts_p_o : out std_logic;
+    rxts_n_o : out std_logic;
+
+    pps_p_o : out std_logic;
+    pps_n_o : out std_logic;
+
+    clk_ref_62m5_p_o : out std_logic;
+    clk_ref_62m5_n_o : out std_logic;
+
+    clk_dmtd_62m5_p_o : out std_logic;
+    clk_dmtd_62m5_n_o : out std_logic
 
   );
-end entity clbv2_wr_ref_top;
+end entity clbv4_wr_ref_top;
 
-architecture top of clbv2_wr_ref_top is
-
+architecture top of clbv4_wr_ref_top is
   -----------------------------------------------------------------------------
   -- Signals
   -----------------------------------------------------------------------------
@@ -197,6 +218,7 @@ architecture top of clbv2_wr_ref_top is
   signal rst_sys_62m5_n : std_logic;
   signal rst_ref_62m5_n : std_logic;
   signal clk_ref_62m5   : std_logic;
+  signal clk_dmtd_62m5  : std_logic;
   signal clk_ref_div2   : std_logic;
   signal clk_ext_10m    : std_logic;
 
@@ -228,16 +250,25 @@ architecture top of clbv2_wr_ref_top is
   signal dio_in  : std_logic_vector(4 downto 0);
   signal dio_out : std_logic_vector(4 downto 0);
 
+  -- BullsEye connector outputs
+  signal txts_oddr          : std_logic;
+  signal rxts_oddr          : std_logic;
+  signal pps_oddr           : std_logic;
+  signal clk_ref_62m5_oddr  : std_logic;
+  signal clk_dmtd_62m5_oddr : std_logic;
+
 begin  -- architecture top
 
   suicide<= '1';
   reset_n <= not reset_i; -- Reset = high active on CLB
+  WDI <= '0';
+  WD_SET <="001"; --disable Watchdog
   
   -----------------------------------------------------------------------------
   -- The WR PTP core board package (WB Slave + WB Master)
   -----------------------------------------------------------------------------
-
-  cmp_xwrc_board_clbv2 : xwrc_board_clbv2
+  
+  cmp_xwrc_board_clbv4 : xwrc_board_clbv4
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => TRUE,
@@ -245,25 +276,29 @@ begin  -- architecture top
       g_fabric_iface              => PLAIN)
     port map (
       areset_n_i          => reset_n,
-      clk_20m_vcxo_i      => clk_20m_vcxo_i,
-      clk_125m_gtp_n_i    => clk_125m_gtx_n_i,
-      clk_125m_gtp_p_i    => clk_125m_gtx_p_i,
+      clk_125m_dmtd_n_i   => clk_125m_dmtd_n_i,
+      clk_125m_dmtd_p_i   => clk_125m_dmtd_p_i,
+      clk_125m_gtx_n_i    => clk_125m_gtx_n_i,
+      clk_125m_gtx_p_i    => clk_125m_gtx_p_i,
       clk_10m_ext_i       => clk_ext_10m,
       clk_sys_62m5_o      => clk_sys_62m5,
       clk_ref_62m5_o      => clk_ref_62m5,
+      clk_dmtd_62m5_o     => clk_dmtd_62m5,
       rst_sys_62m5_n_o    => rst_sys_62m5_n,
       rst_ref_62m5_n_o    => rst_ref_62m5_n,
 
-      plldac_sclk_o       => plldac_sclk_o,
-      plldac_din_o        => plldac_din_o,
-      pll25dac_cs_n_o     => pll25dac_cs_n_o,
-      pll20dac_cs_n_o     => pll20dac_cs_n_o,
+      dac_refclk_cs_n_o   => dac_refclk_cs_n_o,
+      dac_refclk_sclk_o   => dac_refclk_sclk_o,
+      dac_refclk_din_o    => dac_refclk_din_o,
+      dac_dmtd_cs_n_o     => dac_dmtd_cs_n_o,
+      dac_dmtd_sclk_o     => dac_dmtd_sclk_o, 
+      dac_dmtd_din_o      => dac_dmtd_din_o, 
 
       sfp_txp_o           => sfp_txp_o,
       sfp_txn_o           => sfp_txn_o,
       sfp_rxp_i           => sfp_rxp_i,
       sfp_rxn_i           => sfp_rxn_i,
-      sfp_det_i           => sfp_mod_def0_i,
+      sfp_det_i           => '0',
       sfp_sda_i           => sfp_sda_in,
       sfp_sda_o           => sfp_sda_out,
       sfp_scl_i           => sfp_scl_in,
@@ -342,7 +377,7 @@ begin  -- architecture top
       clk_ref_div2 <= not clk_ref_div2;
     end if;
   end process;
-
+  
   cmp_ibugds_extref: IBUFGDS
     generic map (
       DIFF_TERM => true)
@@ -355,22 +390,11 @@ begin  -- architecture top
   dio_out(0)    <= wrc_pps_out;
   dio_out(1)    <= wrc_abscal_rxts_out;
   dio_out(2)    <= wrc_abscal_txts_out;
-
-  -- Enable test-pad TP17, TP18 driver
-  pll_oe_out_b  <= '0';
   
-  U_pps_mon_obuf : OBUFDS
-      port map (
-        I  => wrc_pps_out,
-        O  => pps_p,
-        OB => pps_n);
-
-  U_ref_clk_mon_obuf : OBUFDS
-      port map (
-        I  => clk_ref_62m5,
-        O  => ref_clk_p,
-        OB => ref_clk_n);
-
+  test_lemo   <= wrc_pps_out;
+  pps_mon     <= wrc_pps_out;
+  ref_clk_mon <= clk_ref_62m5;
+  
   -- LEDs
   U_Extend_PPS : gc_extend_pulse
   generic map (
@@ -383,4 +407,133 @@ begin  -- architecture top
 
   dio_led_bot_o <= '0';
 
+  ------------------------------------------------------------------------------
+  -- BullsEye connector outputs
+  ------------------------------------------------------------------------------
+
+  -- tx timestamp for absolute calibration
+  oddr_txts: ODDR
+    generic map(
+      DDR_CLK_EDGE => "SAME_EDGE",
+      INIT         => '0',
+      SRTYPE       => "SYNC")
+    port map(
+      Q  => txts_oddr,
+      C  => clk_ref_62m5,
+      CE => '1',
+      D1 => wrc_abscal_txts_out,
+      D2 => wrc_abscal_txts_out,
+      R  => '0',
+      S  => '0');
+  
+  obuf_txts: OBUFDS
+  generic map(
+    CAPACITANCE => "DONT_CARE",
+    IOSTANDARD  => "DEFAULT",
+    SLEW        => "SLOW")
+  port map(
+    O  => txts_p_o,
+    OB => txts_n_o,
+    I  => txts_oddr);
+
+  -- rx timestamp for absolute calibration
+  oddr_rxts: ODDR
+    generic map(
+      DDR_CLK_EDGE => "SAME_EDGE",
+      INIT         => '0',
+      SRTYPE       => "SYNC")
+    port map(
+      Q  => rxts_oddr,
+      C  => clk_ref_62m5,
+      CE => '1',
+      D1 => wrc_abscal_rxts_out,
+      D2 => wrc_abscal_rxts_out,
+      R  => '0',
+      S  => '0');
+  
+  obuf_rxts: OBUFDS
+  generic map(
+    CAPACITANCE => "DONT_CARE",
+    IOSTANDARD  => "DEFAULT",
+    SLEW        => "SLOW")
+  port map(
+    O  => rxts_p_o,
+    OB => rxts_n_o,
+    I  => rxts_oddr);
+
+  -- PPS (also used for absolute calibration)
+  oddr_pps: ODDR
+    generic map(
+      DDR_CLK_EDGE => "SAME_EDGE",
+      INIT         => '0',
+      SRTYPE       => "SYNC")
+    port map(
+      Q  => pps_oddr,
+      C  => clk_ref_62m5,
+      CE => '1',
+      D1 => wrc_pps_out,
+      D2 => wrc_pps_out,
+      R  => '0',
+      S  => '0');
+  
+  obuf_pps: OBUFDS
+  generic map(
+    CAPACITANCE => "DONT_CARE",
+    IOSTANDARD  => "DEFAULT",
+    SLEW        => "SLOW")
+  port map(
+    O  => pps_p_o,
+    OB => pps_n_o,
+    I  => pps_oddr);
+ 
+  -- clk_ref_62m5
+   oddr_clk_ref_62m5: ODDR
+   generic map(
+      DDR_CLK_EDGE => "SAME_EDGE",
+      INIT         => '0',
+      SRTYPE       => "SYNC")
+   port map(
+      Q  => clk_ref_62m5_oddr,
+      C  => clk_ref_62m5,
+      CE => '1',
+      D1 => '1',
+      D2 => '0',
+      R  => '0',
+      S  => '0');
+  
+   obuf_clk_ref_62m5: OBUFDS
+   generic map(
+     CAPACITANCE => "DONT_CARE",
+     IOSTANDARD  => "DEFAULT",
+     SLEW        => "SLOW")
+   port map(
+     O  => clk_ref_62m5_p_o,
+     OB => clk_ref_62m5_n_o,
+     I  => clk_ref_62m5_oddr);
+
+  -- clk_dmtd_62m5 (debug purposes)
+   oddr_clk_dmtd_62m5: ODDR
+   generic map(
+      DDR_CLK_EDGE => "SAME_EDGE",
+      INIT         => '0',
+      SRTYPE       => "SYNC")
+   port map(
+      Q  => clk_dmtd_62m5_oddr,
+      C  => clk_dmtd_62m5,
+      CE => '1',
+      D1 => '1',
+      D2 => '0',
+      R  => '0',
+      S  => '0');
+  
+   obuf_clk_dmtd_62m5: OBUFDS
+   generic map(
+     CAPACITANCE => "DONT_CARE",
+     IOSTANDARD  => "DEFAULT",
+     SLEW        => "SLOW")
+   port map(
+     O  => clk_dmtd_62m5_p_o,
+     OB => clk_dmtd_62m5_n_o,
+     I  => clk_dmtd_62m5_oddr);
+  
 end architecture top;

@@ -1,9 +1,9 @@
 fetchto = "../../ip_cores"
 
 files = [
-    "clbv3_wr_ref_top.vhd",
-    "clbv3_wr_ref_top.xdc",
-    "clbv3_wr_ref_top.bmm",
+    "clbv4_wr_ref_top.vhd",
+    "clbv4_wr_ref_top.xdc",
+    "clbv4_wr_ref_top.bmm",
 ]
 
 modules = {
