@@ -15,9 +15,7 @@ $(TB_DIRS):
 	@echo $@
 	@echo "Run HDL-MAKE"
 	cd "$@"; \
-	source $(ISE_PATH)/settings64.sh; \
-	export XILINX=$(ISE_PATH); \
-	$(HDLMAKE_PATH)/hdl-make 2>&1
+	hdlmake 2>&1
 
 	@echo "Run make"
 	$(MAKE) -C $@ $(TARGET)
