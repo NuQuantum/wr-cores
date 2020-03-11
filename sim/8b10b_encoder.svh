@@ -210,7 +210,6 @@ task automatic f_8b10b_decode ( input [9:0] datain, input dispin, output [8:0] d
   logic fghjp31 = ( (!feqg) & hi & ji) |
 		 ( !heqj & fi & gi) ;
 
-  logic dispout = (fghjp31 | (disp6b & fghj22) | (hi & ji)) & (hi | ji) ;
 
   logic ko = ( (ci & di & ei & ii) | ( !ci & !di & !ei & !ii) |
 		(p13 & !ei & ii & gi & hi & ji) |
@@ -242,6 +241,8 @@ task automatic f_8b10b_decode ( input [9:0] datain, input dispin, output [8:0] d
   logic disp6n = (p13 & ! (ei & ii)) | (p22 & !ei & !ii) ;
   logic disp4p = fghjp31 ;
   logic disp4n = fghjp13 ;
+
+  dispout = (fghjp31 | (disp6b & fghj22) | (hi & ji)) & (hi | ji);
 
   code_err = p40 | p04 | (fi & gi & hi & ji) | (!fi & !gi & !hi & !ji) |
 		    (p13 & !ei & !ii) | (p31 & ei & ii) | 
