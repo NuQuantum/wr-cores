@@ -105,7 +105,7 @@ entity xwr_softpll_ng is
     clk_ext_i : in std_logic;
 
 -- External clock, multiplied to 125 MHz using the FPGA's PLL
-    clk_ext_mul_i        : in std_logic_vector(g_num_exts-1 downto 0);
+    clk_ext_mul_i        : in std_logic_vector(f_nonzero_vector(g_num_exts)-1 downto 0);
     clk_ext_mul_locked_i : in std_logic := '1';
     clk_ext_stopped_i    : in std_logic := '0';
     clk_ext_rst_o        : out std_logic;
@@ -166,7 +166,7 @@ architecture wrapper of xwr_softpll_ng is
       clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
       clk_dmtd_i      : in  std_logic;
       clk_ext_i       : in  std_logic;
-      clk_ext_mul_i   : in  std_logic_vector(g_num_exts-1 downto 0);
+      clk_ext_mul_i   : in  std_logic_vector(f_nonzero_vector(g_num_exts)-1 downto 0);
       clk_ext_mul_locked_i : in  std_logic;
       clk_ext_stopped_i    : in  std_logic;
       clk_ext_rst_o        : out std_logic;
