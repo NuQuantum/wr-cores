@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-04-26
--- Last update: 2013-03-19
+-- Last update: 2020-03-10
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -81,7 +81,6 @@ architecture wrapper of xwr_si57x_interface is
       wb_stb_i          : in  std_logic                                               := '0';
       wb_ack_o          : out std_logic;
       wb_err_o          : out std_logic;
-      wb_rty_o          : out std_logic;
       wb_stall_o        : out std_logic);
   end component;
   

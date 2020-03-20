@@ -4,6 +4,47 @@ peripheral {
 	 name = "silabs interface";
 	 hdl_entity = "si570_if_wb";
 	 prefix = "si570";
+
+
+	 reg {
+      name = "Control Register";
+      prefix = "CR";
+
+			field {
+         name = "Si57x Address";
+         size = 8;
+         type = SLV;
+				 prefix = "I2C_ADDR";
+         access_bus = READ_WRITE;
+         access_dev = READ_ONLY;
+      };
+
+			field {
+         name = "Si57x SPLL input enable";
+				 prefix = "ENABLE";
+         type = BIT;
+         access_bus = READ_WRITE;
+         access_dev = READ_ONLY;
+      };
+
+			field {
+				 name = "RFREQ gain/scalefactor";
+				 prefix = "GAIN";
+         size = 8;
+         type = SLV;
+         access_bus = READ_WRITE;
+         access_dev = READ_ONLY;
+			};
+			field {
+				 name = "I2C Clock Divider";
+				 prefix = "CLK_DIV";
+         size = 8;
+         type = SLV;
+         access_bus = READ_WRITE;
+         access_dev = READ_ONLY;
+			};
+   };
+
 	 
 	 reg {
       name = "RFREQ low part";
@@ -31,6 +72,7 @@ peripheral {
       };
    };
 
+	 
    reg {
       name = "GPIO Set/Readback Register";
       prefix = "GPSR";
