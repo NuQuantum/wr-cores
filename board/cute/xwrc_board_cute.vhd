@@ -414,7 +414,9 @@ architecture struct of xwrc_board_cute is
 
   signal multiboot_wb_out  : t_wishbone_master_out;
   signal multiboot_wb_in   : t_wishbone_master_in;
-  
+
+  signal clk_pll_aux_locked : std_logic;
+
 begin  -- architecture struct
 
   -----------------------------------------------------------------------------
@@ -759,10 +761,19 @@ end generate;
   rst_oserdes   <= not pll_aux_locked;
   clk_10m_ext_o <= sd_out(0);
 
+  cmp_pll_aux_locked: gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_pll_125m,
+      rst_n_i  => rstlogic_rst_out(1),
+      data_i   => pll_aux_locked,
+      synced_o => clk_pll_aux_locked);
+
   process(clk_pll_125m)
   begin
     if rising_edge(clk_pll_125m) then
-      if(rstlogic_rst_out(1) = '0' or pll_aux_locked = '0') then
+      if(rstlogic_rst_out(1) = '0' or clk_pll_aux_locked = '0') then
         tm_time_valid_d1 <= '0';
       elsif(pps_csync = '1') then
         tm_time_valid_d1 <= tm_time_valid;
@@ -776,7 +787,7 @@ end generate;
     variable v_bit : std_logic;
   begin
     if rising_edge(clk_pll_125m) then
-      if (rstlogic_rst_out(1)='0' or pll_aux_locked='0' or clk_realign='1') then
+      if (rstlogic_rst_out(1)='0' or clk_pll_aux_locked='0' or clk_realign='1') then
           rest := to_integer(aux_half_high - aux_shift);
           v_bit := '1';
       else
