@@ -111,7 +111,8 @@ entity wr_gtx_phy_virtex6_lp is
     rx_bitslide_o : out std_logic_vector(4 downto 0);
 
     -- reset input, active hi
-    rst_i    : in std_logic;
+    rst_i      : in std_logic;
+    rx_pdown_i : in std_logic := '0';
     loopen_i : in std_logic;
 
     pad_txn_o : out std_logic;
@@ -284,7 +285,8 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
     return rv;
   end f_reverse_bits;
 
-  signal gtx_rst_n : std_logic;
+  signal rx_rst, rx_rst_n : std_logic;
+  signal rx_pdown_d0, rx_pdown_synced : std_logic;
 
   signal dbg_rst : std_logic;
   signal dbg_shift_en, dbg_shift_en_p: std_logic;
@@ -303,7 +305,7 @@ begin  -- rtl
   tx_sw_reset <= lpc_ctrl_i(0);
   tx_enable   <= lpc_ctrl_i(1);
   rx_enable   <= lpc_ctrl_i(2);
-  rx_sw_reset <= lpc_ctrl_i(3);
+  rx_sw_reset <= lpc_ctrl_i(3) or rx_rst;
   rx_cdr_reset_a <= lpc_ctrl_i(4);
   pll_tx_reset_a <= lpc_ctrl_i(5);
   pll_rx_reset_a <= lpc_ctrl_i(6);
@@ -313,7 +315,7 @@ begin  -- rtl
   
   dbg_data <= dbg_reg(0);
 
-  cd_reset <= gtx_rst or lpc_ctrl_i(11);
+  cd_reset <= rx_rst or lpc_ctrl_i(11);
 
   U_SyncDBG: gc_sync_ffs
     port map (
@@ -417,6 +419,18 @@ begin  -- rtl
 
   gtx_rst <= rst_synced or std_logic(not reset_counter(reset_counter'left));
 
+  p_gen_rx_pdown : process(clk_ref_i)
+  begin
+    if rising_edge(clk_ref_i) then
+
+      rx_pdown_d0     <= rx_pdown_i;
+      rx_pdown_synced <= rx_pdown_d0;
+
+    end if;
+  end process;
+
+  rx_rst   <= gtx_rst or rx_pdown_synced;
+  rx_rst_n <= not rx_rst;
   
   U_Tx_Reset_Gen : entity work.gtx_tx_reset_lp
     port map (
@@ -564,12 +578,10 @@ begin  -- rtl
     end if;
   end process;
   
-  gtx_rst_n <= not gtx_rst;
-  
   U_Dec1 : gc_dec_8b10b
     port map (
       clk_i       => rx_rec_clk,
-      rst_n_i     => gtx_rst_n,
+      rst_n_i     => rx_rst_n,
       in_10b_i    => (rx_data_raw(19 downto 10)),
       ctrl_o      => rx_k_int(1),
       code_err_o  => rx_code_err(1),
@@ -579,7 +591,7 @@ begin  -- rtl
   U_Dec2 : gc_dec_8b10b
     port map (
       clk_i       => rx_rec_clk,
-      rst_n_i     => gtx_rst_n,
+      rst_n_i     => rx_rst_n,
       in_10b_i    => (rx_data_raw(9 downto 0)),
       ctrl_o      => rx_k_int(0),
       code_err_o  => rx_code_err(0),
@@ -591,9 +603,9 @@ begin  -- rtl
   lpc_stat_o(1) <= link_up;
   lpc_stat_o(2) <= link_aligned;
 
-  p_gen_rx_outputs : process(rx_rec_clk, gtx_rst)
+  p_gen_rx_outputs : process(rx_rec_clk, rx_rst)
   begin
-    if(gtx_rst = '1') then
+    if(rx_rst = '1') then
       rx_data_o_int    <= (others => '0');
       rx_k_o_int       <= (others => '0');
       rx_enc_err_o_int <= '0';
