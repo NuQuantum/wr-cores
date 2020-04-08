@@ -23,9 +23,32 @@ package softpll_pkg is
   constant c_softpll_out_status_locked   : std_logic_vector(3 downto 0) := "0010";
   constant c_softpll_out_status_aligning : std_logic_vector(3 downto 0) := "0011";
   constant c_softpll_out_status_holdover : std_logic_vector(3 downto 0) := "0100";
-  
+
+  function f_nonzero_vector(vector_width : integer) return integer;
+
 end package;
 
 package body softpll_pkg is
+
+  -- Function f_nonzero_vector() is to be used in generating std_logic_vector
+  -- in which the number of bits can be specified to be zero, e.g.
+  -- (see xwr_softpll_ng)
+  --
+  --   clk_ext_mul_i        : in std_logic_vector(g_num_exts-1 downto 0);
+  --
+  -- There might not be any external clocks, i.e. g_num_exts. In such case,
+  -- the code would not compile because std_logic_vector(-1 to 0) is not valid.
+  -- This function is used to generate std_logic_vector(0 to 0) in the case
+  -- when g_num_exts=0.
+  --
+  function f_nonzero_vector(vector_width : integer)
+    return integer is
+  begin
+    if (vector_width > 0) then
+      return vector_width;
+    else
+      return 1;
+    end if;
+  end function;
 
 end softpll_pkg;

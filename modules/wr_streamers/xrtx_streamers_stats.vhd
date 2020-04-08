@@ -54,6 +54,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 library work;
+use work.gencores_pkg.all;  -- needed for gc_sync_ffs
 use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 use work.streamers_pkg.all; -- needed for streamers
 use work.wr_fabric_pkg.all; -- neede for :t_wrf_source_in, etc
@@ -166,10 +167,48 @@ architecture rtl of xrtx_streamers_stats is
   -- for code cleanness
   constant c_cw              : integer := g_cnt_width;
   constant c_aw              : integer := g_acc_width;
+
+  -- signals derived from tm_time_valid_i in sys_clk domain
+  signal time_valid_sys_clk_d1    : std_logic; -- synched signal
+  signal time_valid_sys_clk_p1    : std_logic; -- pulse on rising edge
+  signal first_reset_p1           : std_logic;
+  signal first_reset_pending      : std_logic;
 begin
 
-  -- reset statistics when receiving signal from SNMP or Wishbone
-  reset_stats <= reset_stats_remote or reset_stats_i;
+  -- synch tm_time_valid_i from ref_clk to sys_clk domain
+  U_SYNC_TO_SYS_CLK: gc_sync_ffs
+    port map (
+      clk_i    => clk_i,
+      rst_n_i  => rst_n_i,
+      data_i   => tm_time_valid_i,
+      ppulse_o => time_valid_sys_clk_p1,
+      synced_o => time_valid_sys_clk_d1);
+
+  -- After system reset, once time_valid is TRUE, resest statistics,
+  -- This is done to have valid timestamp. Otherwise, the stats need to 
+  -- be always reset after starting device and it is correctly synched
+  -- (if not done, the reset timestamp=0, so 1970...)
+  p_first_stats_reset: process(clk_i)
+  begin
+    if rising_edge(clk_i) then
+      if (rst_n_i = '0') then
+         first_reset_pending   <= '1';
+         first_reset_p1        <= '0';
+      else
+         if(first_reset_pending = '1' and time_valid_sys_clk_p1 = '1') then
+           first_reset_pending <= '0';
+           first_reset_p1      <= '1';
+         else
+           first_reset_p1      <= '0';
+         end if;
+      end if;
+    end if;
+  end process;
+
+  -- reset statistics 
+  -- 1) after start/restert
+  -- 2) when receiving signal from SNMP or Wishbone
+  reset_stats <= first_reset_p1 or reset_stats_remote or reset_stats_i;
   -------------------------------------------------------------------------------------------
   -- produce pulse of reset input signal, this pulse produces timesstamp to be timestamped
   -------------------------------------------------------------------------------------------

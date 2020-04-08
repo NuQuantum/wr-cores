@@ -332,7 +332,7 @@ package wrcore_pkg is
       clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
       clk_dmtd_i      : in  std_logic;
       clk_ext_i       : in  std_logic;
-      clk_ext_mul_i        : in std_logic_vector(g_num_exts-1 downto 0);
+      clk_ext_mul_i        : in std_logic_vector(f_nonzero_vector(g_num_exts)-1 downto 0);
       clk_ext_mul_locked_i : in std_logic;
       clk_ext_stopped_i    : in std_logic;
       clk_ext_rst_o        : out std_logic;
