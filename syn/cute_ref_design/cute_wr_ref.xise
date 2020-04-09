@@ -1329,7 +1329,7 @@
     <file xil_pn:name="../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_fifo.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="Implementation" xil_pn:seqID="109"/>
     </file>
-    <file xil_pn:name="../../modules/timing/oserdes_4_to_1.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../board/cute/oserdes_4_to_1.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="390"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="167"/>
     </file>
