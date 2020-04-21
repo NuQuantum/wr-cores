@@ -197,6 +197,9 @@ end xwr_streamers;
 
 architecture rtl of xwr_streamers is
 
+  signal tm_tai                  : std_logic_vector(39 downto 0);
+  signal tm_cycles               : std_logic_vector(27 downto 0);
+
   signal to_wb              : t_wr_streamers_in_registers;
   signal from_wb            : t_wr_streamers_out_registers;
 
@@ -237,6 +240,9 @@ architecture rtl of xwr_streamers is
   -- for code cleanness
   constant c_cw              : integer := g_stats_cnt_width;
   constant c_aw              : integer := g_stats_acc_width;
+
+  -- used in gen_tai_sim, defined just to make the code more compact.
+  constant sim_one_sec_cycles: unsigned(27 downto 0) := to_unsigned(g_sim_cycle_counter_range, 28);
 begin
 
   -------------------------------------------------------------------------------------------
@@ -261,8 +267,8 @@ begin
         src_i                    => src_i,
         src_o                    => src_o,
         tm_time_valid_i          => tm_time_valid_i,
-        tm_tai_i                 => tm_tai_i,
-        tm_cycles_i              => tm_cycles_i,
+        tm_tai_i                 => tm_tai,
+        tm_cycles_i              => tm_cycles,
         link_ok_i                => link_ok_i,
         tx_data_i                => tx_data_i,
         tx_valid_i               => tx_valid_i,
@@ -302,8 +308,8 @@ begin
         snk_o                    => snk_o,
         clk_ref_i                => clk_ref_i,
         tm_time_valid_i          => tm_time_valid_i,
-        tm_tai_i                 => tm_tai_i,
-        tm_cycles_i              => tm_cycles_i,
+        tm_tai_i                 => tm_tai,
+        tm_cycles_i              => tm_cycles,
         rx_first_p1_o            => rx_first_p1_o,
         rx_last_p1_o             => rx_last_p1_o,
         rx_data_o                => rx_data,
@@ -354,8 +360,8 @@ begin
       rcvd_latency_valid_i     => rx_latency_valid,
       clk_ref_i                => clk_ref_i,
       tm_time_valid_i          => tm_time_valid_i,
-      tm_tai_i                 => tm_tai_i,
-      tm_cycles_i              => tm_cycles_i,
+      tm_tai_i                 => tm_tai,
+      tm_cycles_i              => tm_cycles,
       reset_stats_i            => from_wb.sscr1_rst_stats_o,
       snapshot_ena_i           => from_wb.sscr1_snapshot_stats_o,
       reset_time_tai_o         => reset_time_tai,
@@ -536,5 +542,39 @@ begin
 
   rx_streamer_cfg.sw_reset <= from_wb.rstr_rst_sw_o;
   tx_streamer_cfg.sw_reset <= from_wb.rstr_rst_sw_o;
+
+  -------------------------------------------------------------------------------------------
+  -- For simulations, create a TAI time that has a small number of cycles
+  -- in 1 second. Thanks to this, no need to simulate a full second to test
+  -- TAI count increment.
+  -- For simplisity, create an alternative timescale for streamers only (otherwise,
+  -- PPS gen would need to be modified) that starts when the tm_time_valid_i goes
+  -- to HIGH. For simulation this seems sufficient. It is assumed that in simulation,
+  -- tm_time_valid goes high at rougly the same time ni all instances.
+  -------------------------------------------------------------------------------------------
+  gen_tai_sim: if(g_simulation > 0) generate
+    p_short_tai: process(clk_ref_i)
+    begin
+      if rising_edge(clk_ref_i) then
+        if rst_n_i = '0' or tm_time_valid_i = '0' then
+          tm_tai              <= (others => '0');
+          tm_cycles           <= (others => '0');
+        else
+          if tm_cycles = std_logic_vector(sim_one_sec_cycles-1) then
+            tm_tai     <= std_logic_vector(unsigned(tm_tai)+1);
+            tm_cycles  <= (others => '0');
+          else
+            tm_cycles  <= std_logic_vector(unsigned(tm_cycles)+1);
+          end if;
+        end if;
+      end if;
+    end process;
+  end generate gen_tai_sim;
+
+  -- For real-world operation use the time as is.
+  gen_tai_real: if(g_simulation = 0) generate
+    tm_tai    <= tm_tai_i;
+    tm_cycles <= tm_cycles_i;
+  end generate gen_tai_real;
 
 end rtl;
