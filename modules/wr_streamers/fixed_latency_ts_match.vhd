@@ -118,7 +118,7 @@ architecture rtl of fixed_latency_ts_match is
   signal trig                         : std_logic;
   signal arm_synced_p, arm_synced_p_d : std_logic;
   signal wait_cnt                     : unsigned(23 downto 0);
-
+  signal int_del_corr                 : unsigned(27 downto 0);
 
 begin
 
@@ -130,6 +130,22 @@ begin
     end if;
   end process;
 
+  -- Compensate for internal delays of streamers. The reference signals are
+  -- rx_valid_o and tx_valid_i in xwr_streamers. The numbers were obtained
+  -- by measuring the delay between these two signal in simulation and in
+  -- hardware. The delay depends whether the ref_clk is used for data or not.
+  -- NOTE: the compensation values are in a range that is unlikely to be set
+  -- as desired fixed_latency, thus the corrected value of fixed_latency
+  -- will be still a positive value. No need for prevention means (additinal
+  -- 'if').
+  gen_data_synchronous_to_wr_corr : if g_use_ref_clock_for_data /= 0 generate
+    int_del_corr <= to_unsigned(3, 28);
+  end generate ;
+
+  gen_data_asynchronous_to_wr_corr : if g_use_ref_clock_for_data = 0 generate
+    int_del_corr <= to_unsigned(12, 28);
+  end generate ;
+
   -- clk_ref_i domain: tm_cycles_i
   -- sys_clk   domain: ts_latency_i & ts_timeout_i
   -- scale the cycle counts depending what clack is used as ref_clk.
@@ -138,11 +154,11 @@ begin
   begin
     if g_clk_ref_rate = 62500000 then
       tm_cycles_scaled <= unsigned(tm_cycles_i & '0');
-      ts_latency_scaled <= unsigned(ts_latency_i & '0');
+      ts_latency_scaled <= unsigned(ts_latency_i & '0') - unsigned(int_del_corr & '0');
       ts_timeout_scaled <= unsigned(ts_timeout_i & '0');
     elsif g_clk_ref_rate = 125000000 then
       tm_cycles_scaled <= unsigned('0' & tm_cycles_i);
-      ts_latency_scaled <= unsigned('0' & ts_latency_i);
+      ts_latency_scaled <= unsigned('0' & ts_latency_i) - unsigned('0' & int_del_corr);
       ts_timeout_scaled <= unsigned('0' & ts_timeout_i);
     else
       report "Unsupported g_clk_ref_rate (62.5 / 125 MHz)" severity failure;

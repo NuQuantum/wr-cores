@@ -295,7 +295,7 @@ module main;
                // Got a record? Compare it against the copy stored in queue.
                automatic t_queue_entry qe = queue.pop_front();
 	       automatic time ts_rx = $time, delta;
-	       const time c_pipeline_delay = 64ns;
+	       const time c_pipeline_delay = 16ns;
 	       
 
 	       if( rx_streamer_data != qe.data )
