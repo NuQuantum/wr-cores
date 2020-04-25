@@ -236,6 +236,8 @@ architecture rtl of xwr_streamers is
 
   signal tx_streamer_cfg         : t_tx_streamer_cfg;
   signal rx_streamer_cfg         : t_rx_streamer_cfg;
+  
+  signal snmp_array_out          : t_generic_word_array(c_WR_STREAMERS_ARR_SIZE_OUT-1 downto 0);
 
   -- for code cleanness
   constant c_cw              : integer := g_stats_cnt_width;
@@ -382,7 +384,7 @@ begin
       latency_max_o            => to_wb.rx_stat0_rx_latency_max_i,
       latency_min_o            => to_wb.rx_stat1_rx_latency_min_i,
       latency_acc_overflow_o   => to_wb.sscr1_rx_latency_acc_overflow_i,
-      snmp_array_o             => snmp_array_o(c_WRS_STATS_ARR_SIZE_OUT-1 downto 0),
+      snmp_array_o             => snmp_array_out(c_WRS_STATS_ARR_SIZE_OUT-1 downto 0),
       snmp_array_i             => snmp_array_i
       );
 
@@ -484,8 +486,23 @@ begin
     end if;
   end process;
 
-  snmp_array_o(c_WRS_STATS_ARR_SIZE_OUT)   <= dbg_word;
-  snmp_array_o(c_WRS_STATS_ARR_SIZE_OUT+1) <= x"DEADBEEF";
+  ------------------------------------------------------------------------------------------------------
+  --------------------------------- Assemble the final snmp/diag output --------------------------------
+  -- This is not ideal, yet it is backward-compatible with older versions of wr-streamers dignastics.
+  -- Explanation:
+  -- * in the first version of output snmp_array diagnostics, the dbg_word and magic number (0xdeadbeef)
+  --   were added at the end of the array of statistcs data. Out of the array, the SNMP MIB is created
+  -- * when more statistics data was added, to maintain backward compatibility of the updated
+  --   MIB with the old MIB, the data needs to be added at the end. Thus, now the dbg_word and magic
+  --   number must be added in the middle of the stats. So, the 18 and 19 index come from the fact
+  --   that these were the last indexes at the begining of this development.
+  -- With such arrangement, if the older version of MIB is used, no problem. If the newer version of
+  -- MIB is used, no problem. The only problem is the estetics of this solution in the code below.
+  ------------------------------------------------------------------------------------------------------
+  snmp_array_o(17 downto 0)                         <= snmp_array_out(17 downto 0);
+  snmp_array_o(         18)                         <= dbg_word;
+  snmp_array_o(         19)                         <= x"DEADBEEF";
+  snmp_array_o(c_WRS_STATS_ARR_SIZE_OUT+1 downto 20) <= snmp_array_out(c_WRS_STATS_ARR_SIZE_OUT-1 downto 18);
 
   to_wb.dbg_data_i      <= dbg_word;
   to_wb.dummy_dummy_i   <= x"DEADBEEF";
