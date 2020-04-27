@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2019-03-29
+-- Last update: 2020-03-11
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -155,8 +155,8 @@ entity xwr_core is
     phy_rx_enc_err_i     : in std_logic;
     phy_rx_bitslide_i    : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
 
-    phy_debug_o : out std_logic_vector(15 downto 0);
-    phy_debug_i : in std_logic_vector(15 downto 0);
+    phy_lpc_stat_i       : in std_logic_vector(15 downto 0);
+    phy_lpc_ctrl_o       : out std_logic_vector(15 downto 0);
     
     phy_rst_o            : out std_logic;
     phy_rdy_i            : in  std_logic := '1';
@@ -340,8 +340,8 @@ begin
       phy_rdy_i            => phy_rdy_i,
       phy_loopen_o         => phy_loopen_o,
       phy_loopen_vec_o     => phy_loopen_vec_o,
-      phy_debug_o => phy_debug_o,
-      phy_debug_i => phy_debug_i,
+      phy_lpc_ctrl_o => phy_lpc_ctrl_o,
+      phy_lpc_stat_i => phy_lpc_stat_i,
       phy_tx_prbs_sel_o    => phy_tx_prbs_sel_o,
       phy_sfp_tx_fault_i   => phy_sfp_tx_fault_i,
       phy_sfp_los_i        => phy_sfp_los_i,

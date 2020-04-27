@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2019-07-24
+-- Last update: 2020-03-30
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -163,8 +163,8 @@ entity wr_core is
     phy_sfp_tx_disable_o : out std_logic;
 
     phy_rx_rbclk_sampled_i : in std_logic;
-    phy_debug_o : out std_logic_vector(15 downto 0);
-    phy_debug_i : in std_logic_vector(15 downto 0);
+    phy_lpc_stat_i       : in std_logic_vector(15 downto 0);
+    phy_lpc_ctrl_o       : out std_logic_vector(15 downto 0);
 
     
     -- PHY I/F record-based
@@ -785,9 +785,9 @@ begin
       phy_rx_k_i           => phy_rx_k_i,
       phy_rx_enc_err_i     => phy_rx_enc_err_i,
       phy_rx_bitslide_i    => phy_rx_bitslide_i,
-      phy_debug_o => phy_debug_o,
-      phy_debug_i => phy_debug_i,
-      
+      phy_lpc_stat_i       => phy_lpc_stat_i,
+      phy_lpc_ctrl_o       => phy_lpc_ctrl_o,
+
       phy8_o  => phy8_o,
       phy8_i  => phy8_i,
       phy16_o => phy16_o,
@@ -816,7 +816,7 @@ begin
       led_act_o            => led_act_o);
 
   led_link_o   <= ep_led_link;
-  link_ok_o    <= ep_led_link;
+  link_ok_o    <= '1'; --ep_led_link;
 
   tm_link_up_o <= ep_led_link;
 

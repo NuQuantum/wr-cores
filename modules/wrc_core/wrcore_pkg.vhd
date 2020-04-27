@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2019-06-17
+-- Last update: 2020-03-11
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -426,8 +426,9 @@ package wrcore_pkg is
       phy_sfp_los_i        : in std_logic := '0';
       phy_sfp_tx_disable_o : out std_logic;
       phy_rx_rbclk_sampled_i : in std_logic := '0';
-      phy_debug_o : out std_logic_vector(15 downto 0);
-      phy_debug_i : in std_logic_vector(15 downto 0) := x"0000";
+
+      phy_lpc_ctrl_o : out std_logic_vector(15 downto 0);
+      phy_lpc_stat_i : in std_logic_vector(15 downto 0) := x"0000";
 
       -----------------------------------------
       -- PHY I/f - record-based
@@ -601,8 +602,8 @@ package wrcore_pkg is
       phy_sfp_tx_disable_o : out std_logic;
 
       phy_rx_rbclk_sampled_i : in std_logic := '0';
-      phy_debug_o : out std_logic_vector(15 downto 0);
-      phy_debug_i : in std_logic_vector(15 downto 0) := x"0000";
+      phy_lpc_ctrl_o : out std_logic_vector(15 downto 0);
+      phy_lpc_stat_i : in std_logic_vector(15 downto 0) := x"0000";
 
       -----------------------------------------
       -- PHY I/f - record-based
