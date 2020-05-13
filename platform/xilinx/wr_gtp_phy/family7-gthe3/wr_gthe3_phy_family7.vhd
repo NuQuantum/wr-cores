@@ -397,7 +397,7 @@ begin
      if(serdes_ready_rxusrclk = '0') then
        rx_data_o    <= (others => '0');
        rx_k_o       <= (others => '0');
-       rx_enc_err_o <= '0';
+       rx_enc_err_o <= '1';
      elsif rising_edge(RXUSRCLK2) then
        if(serdes_ready_rxusrclk = '1' and rx_synced = '1') then
          rx_data_o    <= rx_data_int(7 downto 0) & rx_data_int(15 downto 8);
