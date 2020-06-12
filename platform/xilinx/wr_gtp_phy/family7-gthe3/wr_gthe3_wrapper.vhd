@@ -22,6 +22,9 @@ entity wr_gthe3_wrapper is
       RXBYTEISALIGNED      : out std_logic;
       RXCOMMADET           : out std_logic;
       RXCTRL0              : out std_logic_vector(15 downto 0);
+      RXCTRL1              : out std_logic_vector(15 downto 0);
+      RXCTRL2              : out std_logic_vector(7 downto 0);
+      RXCTRL3              : out std_logic_vector(7 downto 0);
       RXDATA               : out std_logic_vector(127 downto 0);
       RXOUTCLK             : out std_logic;
       RXPHALIGNDONE        : out std_logic;
@@ -1211,9 +1214,9 @@ begin
       RXCOMSASDET          => open,
       RXCOMWAKEDET         => open,
       RXCTRL0              => RXCTRL0,
-      RXCTRL1              => open,
-      RXCTRL2              => open,
-      RXCTRL3              => open,
+      RXCTRL1              => RXCTRL1,
+      RXCTRL2              => RXCTRL2,
+      RXCTRL3              => RXCTRL3,
       RXDATA               => RXDATA,
       RXDATAEXTENDRSVD     => open,
       RXDATAVALID          => open,
