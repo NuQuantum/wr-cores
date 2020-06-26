@@ -18,8 +18,9 @@ entity wr_gthe4_phy_family7 is
 
   port (
     -- Dedicated reference 125 MHz clock for the GTX transceiver
-    clk_gth_p_i : in std_logic;
-    clk_gth_n_i : in std_logic;
+--    clk_gth_p_i : in std_logic;
+--    clk_gth_n_i : in std_logic;
+    clk_gth_i : in std_logic;
 
     -- GCLK 125M refrence
     clk_gth_gclk_i : in std_logic := '0';
@@ -131,6 +132,7 @@ architecture rtl of wr_gthe4_phy_family7 is
   signal RXBYTEISALIGNED : std_logic;
   signal RXCOMMADET      : std_logic;
   signal RXCTRL0         : std_logic_vector(15 downto 0);
+  signal RXCTRL3         : std_logic_vector(7 downto 0);
   signal RXDATA          : std_logic_vector(127 downto 0);
   signal RXOUTCLK        : std_logic;
   signal RXPHALIGNDONE   : std_logic;
@@ -162,7 +164,8 @@ architecture rtl of wr_gthe4_phy_family7 is
 
   signal rx_data_int : std_logic_vector(15 downto 0);
   signal rx_k_int    : std_logic_vector(1 downto 0);
-
+  signal rx_err_int    : std_logic_vector(1 downto 0);
+  
   signal serdes_ready_txusrclk, serdes_ready_rxusrclk : std_logic;
 
    signal cur_disp : t_8b10b_disparity;
@@ -232,6 +235,7 @@ begin
   TXDATA(127 downto 16) <= (others => '0');
 
   rx_k_int    <= RXCTRL0(1 downto 0);
+  rx_err_int <= RXCTRL3(1 downto 0);
   rx_data_int <= RXDATA(15 downto 0);
 
    U_Bitslide : entity work.gtp_bitslide
@@ -251,18 +255,19 @@ begin
 
   gen_use_dedicated_clock : if g_use_gclk_as_refclk = false generate
 
-  U_Ref_Clock_Buffer : IBUFDS_GTE4
-    generic map (
-      REFCLK_EN_TX_PATH  => '0',
-      REFCLK_HROW_CK_SEL => "00",
-      REFCLK_ICNTL_RX    => "00")
-    port map (
-      O     => GTREFCLK0,
-      ODIV2 => open,
-      CEB   => '0',
-      I     => clk_gth_p_i,
-      IB    => clk_gth_n_i);
+--  U_Ref_Clock_Buffer : IBUFDS_GTE4
+--    generic map (
+--      REFCLK_EN_TX_PATH  => '0',
+--      REFCLK_HROW_CK_SEL => "00",
+--      REFCLK_ICNTL_RX    => "00")
+--    port map (
+--      O     => GTREFCLK0,
+--      ODIV2 => open,
+--      CEB   => '0',
+--      I     => clk_gth_p_i,
+--      IB    => clk_gth_n_i);
 
+  GTREFCLK0 <= clk_gth_i;
   GTGREFCLK <= '0';
   
   end generate gen_use_dedicated_clock;
@@ -362,7 +367,7 @@ begin
       data_i   => serdes_ready,
       synced_o => serdes_ready_txusrclk);
 
-  serdes_ready <= reset_done and rx_buffer_bypass_done and tx_buffer_bypass_done and RXCDRLOCK and RXRESETDONE and TXRESETDONE and TXSYNCDONE and RXSYNCDONE and RXPMARESETDONE and TXPMARESETDONE;
+    serdes_ready <= reset_done and rx_buffer_bypass_done and tx_buffer_bypass_done and RXRESETDONE and TXRESETDONE and TXSYNCDONE and RXSYNCDONE and RXPMARESETDONE and TXPMARESETDONE;
   
   -- tx_active -> userclk_tx_reset and deassert tx_active on rst master, deassert after few cycles of
   -- txusrclk2. same for rx_active.
@@ -407,6 +412,7 @@ begin
       RXBYTEISALIGNED => RXBYTEISALIGNED,
       RXCOMMADET      => RXCOMMADET,
       RXCTRL0         => RXCTRL0,
+      rxctrl3 => rxctrl3,
       RXDATA          => RXDATA,
       RXOUTCLK        => RXOUTCLK,
       RXPHALIGNDONE   => RXPHALIGNDONE,
@@ -448,9 +454,9 @@ begin
      if(serdes_ready_rxusrclk = '0') then
        rx_data_o    <= (others => '0');
        rx_k_o       <= (others => '0');
-       rx_enc_err_o <= '0';
+       rx_enc_err_o <= '1';
      elsif rising_edge(RXUSRCLK2) then
-       if(serdes_ready_rxusrclk = '1' and rx_synced = '1') then
+       if(serdes_ready_rxusrclk = '1' and rx_synced = '1' and rx_err_int = "00") then
          rx_data_o    <= rx_data_int(7 downto 0) & rx_data_int(15 downto 8);
          rx_k_o       <= rx_k_int(0) & rx_k_int(1);
          rx_enc_err_o <= '0';  --rx_disp_err(0) or rx_disp_err(1) or rx_code_err(0) or rx_code_err(1);
@@ -486,7 +492,7 @@ begin
   end generate gen_synthesis;
 
 
-  rdy_o <= serdes_ready and rx_synced;
+  rdy_o <= serdes_ready;
   tx_locked_o <= serdes_ready;
   tx_enc_err_o <= '0';
 
