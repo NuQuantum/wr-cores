@@ -15,6 +15,8 @@ entity wr_gthe3_wrapper is
     TXRESETDONE          : out std_logic;
     TXPROGDIVRESET       : in  std_logic;
 
+    RXPCSRESET : in std_logic;
+
     
       GTHTXN               : out std_logic;
       GTHTXP               : out std_logic;
@@ -1404,7 +1406,7 @@ begin
       RXOSOVRDEN           => '0',
       RXOUTCLKSEL          => "010",
       RXPCOMMAALIGNEN      => '0',
-      RXPCSRESET           => '0',
+      RXPCSRESET           => RXPCSRESET,
       RXPD                 => "00",
       RXPHALIGN            => '0',
       RXPHALIGNEN          => '0',
