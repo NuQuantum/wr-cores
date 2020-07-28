@@ -183,6 +183,8 @@ architecture rtl of wr_gthe4_phy_family7 is
   signal tx_buffer_bypass_done : std_logic;
   signal rx_buffer_bypass_done : std_logic;
 
+  signal rx_pcs_reset : std_logic;
+
   function f_is_synthesis return boolean is
   begin
     -- synthesis translate_off
@@ -241,7 +243,7 @@ begin
    U_Bitslide : entity work.gtp_bitslide
      generic map (
        g_simulation => g_simulation,
-       g_target     => "virtex6")
+       g_target     => "ultrascale")
      port map (
        gtp_rst_i                => rst_i,
        gtp_rx_clk_i             => RXUSRCLK2,
@@ -249,7 +251,7 @@ begin
        gtp_rx_byte_is_aligned_i => RXBYTEISALIGNED,
        serdes_ready_i           => serdes_ready_rxusrclk,
        gtp_rx_slide_o           => RXSLIDE,
-       gtp_rx_cdr_rst_o         => open,
+       gtp_rx_cdr_rst_o         => rx_pcs_reset,
        bitslide_o               => rx_bitslide_o,
        synced_o                 => rx_synced);
 
@@ -412,6 +414,7 @@ begin
       RXBYTEISALIGNED => RXBYTEISALIGNED,
       RXCOMMADET      => RXCOMMADET,
       RXCTRL0         => RXCTRL0,
+      RXPCSRESET => rx_pcs_reset,
       rxctrl3 => rxctrl3,
       RXDATA          => RXDATA,
       RXOUTCLK        => RXOUTCLK,
