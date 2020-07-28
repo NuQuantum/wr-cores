@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2013-12-20
+-- Last update: 2020-07-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -201,7 +201,15 @@ begin  -- behavioral
 
         when S_PAUSE =>
           counter        <= counter + 1;
-          gtp_rx_slide_o <= '0';
+          if g_target = "ultrascale" then
+            if counter = 1 then
+              gtp_rx_slide_o <= '0'; -- ultrascale requires 2 RXUSRCLK2 ticks
+                                     -- for slide pulse
+            end if;
+          else
+            gtp_rx_slide_o <= '0';
+          end if;
+            
 
           if(counter = to_unsigned(c_pause_tics, counter'length)) then
 
