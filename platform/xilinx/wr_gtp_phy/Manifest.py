@@ -46,6 +46,7 @@ elif (syn_device[0:4].upper()=="XCKU"): # Kintex Ultrascale GTH
                       "family7-gthe3/gc_reset_synchronizer.vhd" ]);
 elif (syn_device[0:4].upper()=="XCZU"): # Zynq Ultrascale GTH
 	files.extend(["family7-gthe4/wr_gthe4_phy_family7.vhd",
+                      "family7-gthe4/wr_gthe4_phy_family7_xilinx_ip.vhd",
                       "family7-gthe4/wr_gthe4_reset.vhd",
                       "family7-gthe4/wr_gthe4_rx_buffer_bypass.vhd",
                       "family7-gthe4/wr_gthe4_tx_buffer_bypass.vhd",
