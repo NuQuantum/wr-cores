@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-04-26
--- Last update: 2020-03-14
+-- Last update: 2020-07-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -109,8 +109,8 @@ architecture rtl of wr_si57x_interface is
   signal regs_in  : t_si570_in_registers;
   signal regs_out : t_si570_out_registers;
 
-  signal new_rfreq                            : std_logic;
-  signal rfreq_base, rfreq_current : unsigned(37 downto 0);
+  signal rfreq_new_p                            : std_logic;
+  signal rfreq_base, rfreq_current, rfreq_new : unsigned(37 downto 0);
 
   signal tm_dac_value_wr_d : std_logic;
 
@@ -236,7 +236,7 @@ begin  -- rtl
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
-        new_rfreq <= '0';
+        rfreq_new_p <= '0';
       else
         tm_dac_value_wr_d <= tm_dac_value_wr_i;
         
@@ -245,11 +245,11 @@ begin  -- rtl
         end if;
 
         if(tm_dac_value_wr_d = '1') then
-          rfreq_current <= rfreq_base + f_sign_extend(rfreq_adj_scaled, rfreq_base'length);
+          rfreq_new <= rfreq_base + f_sign_extend(rfreq_adj_scaled, rfreq_base'length);
         end if;
         
         
-        new_rfreq <= tm_dac_value_wr_d and regs_out.cr_enable_o;
+       rfreq_new_p <= tm_dac_value_wr_d and regs_out.cr_enable_o;
       end if;
     end if;
   end process;
@@ -284,8 +284,9 @@ begin  -- rtl
       else
         case state is
           when IDLE =>
-            if(new_rfreq = '1') then
+            if(rfreq_new_p = '1') then
               state <= SI_START0;
+              rfreq_current <= rfreq_new;
             end if;
 
           when SI_START0 =>
