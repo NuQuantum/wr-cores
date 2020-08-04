@@ -66,6 +66,7 @@ entity xwrc_board_common is
     g_address_granularity       : t_wishbone_address_granularity := BYTE;
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
     g_softpll_enable_debugger   : boolean                        := FALSE;
+    g_softpll_use_sampled_ref_clocks : boolean                   := FALSE;
     g_vuart_fifo_size           : integer                        := 1024;
     g_pcs_16bit                 : boolean                        := FALSE;
     g_diag_id                   : integer                        := 0;
@@ -388,6 +389,7 @@ begin  -- architecture struct
       g_address_granularity       => g_address_granularity,
       g_aux_sdb                   => g_aux_sdb,
       g_softpll_enable_debugger   => g_softpll_enable_debugger,
+      g_softpll_use_sampled_ref_clocks => g_softpll_use_sampled_ref_clocks,
       g_vuart_fifo_size           => g_vuart_fifo_size,
       g_pcs_16bit                 => g_pcs_16bit,
       g_records_for_phy           => TRUE,
