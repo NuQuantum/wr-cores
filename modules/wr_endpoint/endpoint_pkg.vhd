@@ -83,6 +83,7 @@ package endpoint_pkg is
     tx_enc_err     : std_logic;
     rx_data        : std_logic_vector(7 downto 0);
     rx_clk         : std_logic;
+    rx_sampled_clk : std_logic;
     rx_k           : std_logic_vector(0 downto 0);
     rx_enc_err     : std_logic;
     rx_bitslide    : std_logic_vector(3 downto 0);
@@ -101,7 +102,7 @@ package endpoint_pkg is
   end record;
 
   constant c_dummy_phy8_to_wrc : t_phy_8bits_to_wrc :=
-    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0',
+    ('0', '0', '0', (others=>'0'), '0', '0', (others=>'0'), '0',
     (others=>'0'), '0', '0', '0');
   constant c_dummy_phy8_from_wrc : t_phy_8bits_from_wrc :=
     ('0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
@@ -114,6 +115,7 @@ package endpoint_pkg is
     tx_enc_err     : std_logic;
     rx_data        : std_logic_vector(15 downto 0);
     rx_clk         : std_logic;
+    rx_sampled_clk : std_logic;
     rx_k           : std_logic_vector(1 downto 0);
     rx_enc_err     : std_logic;
     rx_bitslide    : std_logic_vector(4 downto 0);
@@ -136,7 +138,7 @@ package endpoint_pkg is
   end record;
 
   constant c_dummy_phy16_to_wrc : t_phy_16bits_to_wrc :=
-    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0',
+    ('0', '0', '0', (others=>'0'), '0', '0', (others=>'0'), '0',
     (others=>'0'), '0', '0', '0', (others => '0'));
   constant c_dummy_phy16_from_wrc : t_phy_16bits_from_wrc :=
     ('0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
