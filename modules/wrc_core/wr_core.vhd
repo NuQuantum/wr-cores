@@ -404,6 +404,7 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   signal phy_rx_clk  : std_logic;
   signal phy_tx_clk  : std_logic;
+  signal clk_rx_sampled : std_logic;
   signal spll_wb_in  : t_wishbone_slave_in;
   signal spll_wb_out : t_wishbone_slave_out;
 
@@ -533,16 +534,19 @@ begin
   GEN_16BIT_PHY_IF: if g_pcs_16bit and g_records_for_phy generate
     phy_rx_clk <= phy16_i.rx_clk;
     phy_tx_clk <= phy16_i.ref_clk;
+    clk_rx_sampled <= phy16_i.rx_sampled_clk;
   end generate;
 
   GEN_8BIT_PHY_IF: if not g_pcs_16bit and g_records_for_phy generate
     phy_rx_clk <= phy8_i.rx_clk;
     phy_tx_clk <= phy8_i.ref_clk;
+    clk_rx_sampled <= phy8_i.rx_sampled_clk;
   end generate;
 
   GEN_STD_PHY_IF: if not g_records_for_phy generate
     phy_rx_clk <= phy_rx_rbclk_i;
     phy_tx_clk <= phy_ref_clk_i;
+    clk_rx_sampled <= phy_rx_rbclk_sampled_i;
   end generate;
 
   -----------------------------------------------------------------------------
@@ -660,7 +664,7 @@ begin
 
       -- Reference inputs (i.e. the RX clocks recovered by the PHYs)
       clk_ref_i(0) => phy_rx_clk,
-      clk_ref_sampled_i(0) => phy_rx_rbclk_sampled_i,
+      clk_ref_sampled_i(0) => clk_rx_sampled,
       -- Feedback clocks (i.e. the outputs of the main or aux oscillator)
       clk_fb_i     => clk_fb,
       -- DMTD Offset clock
