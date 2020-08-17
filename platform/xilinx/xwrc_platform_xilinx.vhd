@@ -187,7 +187,7 @@ begin  -- architecture rtl
   -----------------------------------------------------------------------------
   -- Check for unsupported features and/or misconfiguration
   -----------------------------------------------------------------------------
-  gen_unknown_fpga : if (g_fpga_family /= "spartan6" and g_fpga_family /= "kintex7" and g_fpga_family /= "artix7" and g_fpga_family /= "virtex5") generate
+  gen_unknown_fpga : if (g_fpga_family /= "spartan6" and g_fpga_family /= "kintex7" and g_fpga_family /= "artix7" and g_fpga_family /= "virtex5" and g_fpga_family /= "zynqus") generate
     assert FALSE
       report "Xilinx FPGA family [" & g_fpga_family & "] is not supported"
       severity ERROR;
@@ -796,6 +796,75 @@ begin  -- architecture rtl
     end generate gen_kintex7_artix7_default_plls;
 
     ---------------------------------------------------------------------------
+    --   Zynq US+ PLLs
+    ---------------------------------------------------------------------------
+    gen_zynqus_default_plls: if (g_fpga_family = "zynqus") generate
+
+      signal clk_sys_prebuf : std_logic;
+      signal clk_sys_fb  : std_logic;
+      signal pll_sys_locked  : std_logic;
+      signal clk_dmtd     : std_logic;
+      signal clk_dmtd_div : std_logic;
+
+    begin
+      cmp_sys_clk_pll : MMCME3_ADV
+        generic map (
+          BANDWIDTH            => "OPTIMIZED",
+          CLKOUT4_CASCADE      => "FALSE",
+          COMPENSATION         => "AUTO",
+          STARTUP_WAIT         => "FALSE",
+          DIVCLK_DIVIDE        => 1,
+          CLKFBOUT_MULT_F      => 9.500,
+          CLKFBOUT_PHASE       => 0.000,
+          CLKFBOUT_USE_FINE_PS => "FALSE",
+
+          CLKOUT0_DIVIDE_F     => 19.000,
+          CLKOUT0_PHASE        => 0.000,
+          CLKOUT0_DUTY_CYCLE   => 0.500,
+          CLKOUT0_USE_FINE_PS  => "FALSE",
+          CLKIN1_PERIOD        => 8.000)
+        port map (
+          CLKFBOUT => clk_sys_fb,
+          CLKOUT0  => clk_sys_prebuf,
+          CLKFBIN  => clk_sys_fb,
+          CLKIN1   => clk_125m_pllref_i,
+          CLKIN2   => '0',
+          CLKINSEL => '1',
+          DADDR    => (others => '0'),
+          DCLK     => '0',
+          DEN      => '0',
+          DI       => (others => '0'),
+          DWE      => '0',
+          CDDCREQ  => '0',
+          PSCLK    => '0',
+          PSEN     => '0',
+          PSINCDEC => '0',
+          LOCKED   => pll_sys_locked,
+          PWRDWN   => '0',
+          RST      => pll_arst);
+
+      -- System PLL output clock buffer
+      cmp_clk_sys_buf_o : BUFG
+      port map (
+        I => clk_sys_prebuf,
+        O => clk_sys);
+
+      clk_62m5_sys_o <= clk_sys;
+      pll_locked_o   <= pll_sys_locked;
+
+      cmp_clk_dmtd_buf_o: BUFGCE_DIV
+        generic map (
+          BUFGCE_DIVIDE => 2)
+        port map (
+          O   => clk_62m5_dmtd_o,
+          CE  => '1',
+          CLR => '0',
+          I   => clk_125m_dmtd_i);
+
+
+    end generate gen_zynqus_default_plls;
+
+    ---------------------------------------------------------------------------
     
     gen_no_ext_ref_pll : if (g_with_external_clock_input = FALSE) generate
       clk_10m_ext_o         <= '0';
@@ -1250,6 +1319,66 @@ begin  -- architecture rtl
 
 
   end generate gen_phy_artix7;
+
+  ---------------------------------------------------------------------------
+  --   ZynqUS+ PHY
+  ---------------------------------------------------------------------------
+  gen_phy_zynqus : if (g_fpga_family = "zynqus") generate
+
+    signal clk_125m_gth_buf  : std_logic;
+    signal clk_ref : std_logic;
+
+  begin
+    U_Ref_Clock_Buffer : IBUFDS_GTE4
+      generic map (
+        REFCLK_EN_TX_PATH  => '0',
+        REFCLK_HROW_CK_SEL => "00",
+        REFCLK_ICNTL_RX    => "00")
+      port map (
+        O     => clk_125m_gth_buf,
+        ODIV2 => open,
+        CEB   => '0',
+        I     => clk_125m_gtp_p_i,
+        IB    => clk_125m_gtp_n_i);
+
+    cmp_gth: wr_gthe4_phy_family7_xilinx_ip
+      generic map (
+        g_simulation         => g_simulation,
+        g_use_gclk_as_refclk => false)
+      port map (
+        clk_gth_i      => clk_125m_gth_buf,
+        clk_freerun_i  => clk_sys,
+        tx_out_clk_o   => clk_ref,
+        tx_locked_o    => open,
+        tx_data_i      => phy16_i.tx_data,
+        tx_k_i         => phy16_i.tx_k,
+        tx_disparity_o => phy16_o.tx_disparity,
+        tx_enc_err_o   => phy16_o.tx_enc_err,
+        rx_rbclk_o     => phy16_o.rx_clk,
+        rx_data_o      => phy16_o.rx_data,
+        rx_k_o         => phy16_o.rx_k,
+        rx_enc_err_o   => phy16_o.rx_enc_err,
+        rx_bitslide_o  => phy16_o.rx_bitslide,
+        rst_i          => phy16_i.rst,
+        loopen_i       => "000",
+        debug_i        => x"0000",
+        debug_o        => open,
+        pad_txn_o      => sfp_txn_o,
+        pad_txp_o      => sfp_txp_o,
+        pad_rxn_i      => sfp_rxn_i,
+        pad_rxp_i      => sfp_rxp_i,
+        rdy_o          => phy16_o.rdy);
+
+    clk_125m_ref_o       <= clk_ref;
+    clk_ref_locked_o     <= '1';
+    phy16_o.ref_clk      <= clk_ref;
+    phy16_o.sfp_tx_fault <= sfp_tx_fault_i;
+    phy16_o.sfp_los      <= sfp_los_i;
+    sfp_tx_disable_o     <= phy16_i.sfp_tx_disable;
+
+    phy8_o <= c_dummy_phy8_to_wrc;
+
+  end generate gen_phy_zynqus;
 
   ---------------------------------------------------------------------------
 

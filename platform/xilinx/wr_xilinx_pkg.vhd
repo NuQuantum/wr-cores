@@ -263,4 +263,33 @@ package wr_xilinx_pkg is
       rdy_o          : out std_logic);
   end component;
 
+  component wr_gthe4_phy_family7_xilinx_ip is
+    generic (
+      g_simulation         : integer := 0;
+      g_use_gclk_as_refclk : boolean);
+    port (
+      clk_gth_i     : in std_logic;
+      clk_freerun_i : in std_logic;
+      tx_out_clk_o : out std_logic;
+      tx_locked_o  : out std_logic;
+      tx_data_i : in std_logic_vector(15 downto 0);
+      tx_k_i : in std_logic_vector(1 downto 0);
+      tx_disparity_o : out std_logic;
+      tx_enc_err_o : out std_logic;
+      rx_rbclk_o : out std_logic;
+      rx_data_o : out std_logic_vector(15 downto 0);
+      rx_k_o : out std_logic_vector(1 downto 0);
+      rx_enc_err_o : out std_logic;
+      rx_bitslide_o : out std_logic_vector(4 downto 0);
+      rst_i    : in std_logic;
+      loopen_i : in std_logic_vector(2 downto 0);
+      debug_i : in  std_logic_vector(15 downto 0);
+      debug_o : out std_logic_vector(15 downto 0);
+      pad_txn_o : out std_logic;
+      pad_txp_o : out std_logic;
+      pad_rxn_i : in std_logic := '0';
+      pad_rxp_i : in std_logic := '0';
+      rdy_o : out std_logic);
+  end component;
+
 end wr_xilinx_pkg;
