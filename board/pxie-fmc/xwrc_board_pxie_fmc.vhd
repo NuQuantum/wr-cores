@@ -57,8 +57,22 @@ entity xwrc_board_pxie_fmc is
     g_simulation                : integer              := 0;
     -- Number of aux clocks syntonized by WRPC to WR timebase
     g_aux_clks                  : integer              := 0;
+    -- plain     = expose WRC fabric interface
+    -- streamers = attach WRC streamers to fabric interface
+    -- etherbone = attach Etherbone slave to fabric interface
+    g_fabric_iface              : t_board_fabric_iface := plain;
+    -- parameters configuration when g_fabric_iface = "streamers" (otherwise ignored)
+    g_streamers_op_mode         : t_streamers_op_mode  := TX_AND_RX;
+    g_tx_streamer_params        : t_tx_streamer_params := c_tx_streamer_params_defaut;
+    g_rx_streamer_params        : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- memory initialisation file for embedded CPU
     g_dpram_initf               : string               := "default_xilinx";
+    -- identification (id and ver) of the layout of words in the generic diag interface
+    g_diag_id                   : integer              := 0;
+    g_diag_ver                  : integer              := 0;
+    -- size the generic diag interface
+    g_diag_ro_size              : integer              := 0;
+    g_diag_rw_size              : integer              := 0;
     g_aux_sdb                   : t_sdb_device         := c_wrc_periph3_sdb
     );
   port (
@@ -77,6 +91,8 @@ entity xwrc_board_pxie_fmc is
     wr_clk_main_125m_n_i   : in  std_logic;
     wr_clk_sfp_125m_p_i    : in  std_logic;
     wr_clk_sfp_125m_n_i    : in  std_logic;
+    -- Aux clocks, which can be disciplined by the WR Core
+    clk_aux_i              : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
 
     -- 62.5MHz sys clock output
     clk_sys_62m5_o      : out std_logic;
@@ -143,12 +159,59 @@ entity xwrc_board_pxie_fmc is
     wrf_snk_i : in  t_wrf_sink_in   := c_dummy_snk_in;
 
     ---------------------------------------------------------------------------
+    -- WR streamers (when g_fabric_iface = "streamers")
+    ---------------------------------------------------------------------------
+    wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_params.data_width-1 downto 0) := (others => '0');
+    wrs_tx_valid_i : in  std_logic                                        := '0';
+    wrs_tx_dreq_o  : out std_logic;
+    wrs_tx_last_i  : in  std_logic                                        := '1';
+    wrs_tx_flush_i : in  std_logic                                        := '0';
+    wrs_tx_cfg_i   : in  t_tx_streamer_cfg                                := c_tx_streamer_cfg_default;
+    wrs_rx_first_o : out std_logic;
+    wrs_rx_last_o  : out std_logic;
+    wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
+    wrs_rx_valid_o : out std_logic;
+    wrs_rx_dreq_i  : in  std_logic                                        := '0';
+    wrs_rx_cfg_i   : in t_rx_streamer_cfg                                 := c_rx_streamer_cfg_default;
+    ---------------------------------------------------------------------------
+    -- Etherbone WB master interface (when g_fabric_iface = "etherbone")
+    ---------------------------------------------------------------------------
+    wb_eth_master_o : out t_wishbone_master_out;
+    wb_eth_master_i : in  t_wishbone_master_in := cc_dummy_master_in;
+
+    ---------------------------------------------------------------------------
+    -- Generic diagnostics interface (access from WRPC via SNMP or uart console
+    ---------------------------------------------------------------------------
+    aux_diag_i : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others => (others => '0'));
+    aux_diag_o : out t_generic_word_array(g_diag_rw_size-1 downto 0);
+
+    ---------------------------------------------------------------------------
+    -- Aux clocks control
+    ---------------------------------------------------------------------------
+    tm_dac_value_o       : out std_logic_vector(23 downto 0);
+    tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
+    tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
+    tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
+
+    ---------------------------------------------------------------------------
+    -- External Tx Timestamping I/F
+    ---------------------------------------------------------------------------
+    timestamps_o     : out t_txtsu_timestamp;
+    timestamps_ack_i : in  std_logic := '1';
+
+    -----------------------------------------
+    -- Timestamp helper signals, used for Absolute Calibration
+    -----------------------------------------
+    abscal_txts_o    : out std_logic;
+    abscal_rxts_o    : out std_logic;
+
+    ---------------------------------------------------------------------------
     -- Timecode I/F
     ---------------------------------------------------------------------------
-    tm_link_up_o    : out std_logic;
-    tm_time_valid_o : out std_logic;
-    tm_tai_o        : out std_logic_vector(39 downto 0);
-    tm_cycles_o     : out std_logic_vector(27 downto 0);
+    tm_link_up_o     : out std_logic;
+    tm_time_valid_o  : out std_logic;
+    tm_tai_o         : out std_logic_vector(39 downto 0);
+    tm_cycles_o      : out std_logic_vector(27 downto 0);
 
     ---------------------------------------------------------------------------
     -- Buttons, LEDs and PPS output
@@ -313,6 +376,7 @@ begin  -- architecture struct
       g_board_name                => "PXIE",
       g_phys_uart                 => TRUE,
       g_virtual_uart              => TRUE,
+      g_aux_clks                  => g_aux_clks,
       g_ep_rxbuf_size             => 1024,
       g_tx_runt_padding           => TRUE,
       g_dpram_initf               => g_dpram_initf,
@@ -323,7 +387,14 @@ begin  -- architecture struct
       g_softpll_enable_debugger   => FALSE,
       g_vuart_fifo_size           => 1024,
       g_pcs_16bit                 => TRUE,
-      g_fabric_iface              => PLAIN)
+      g_diag_id                   => g_diag_id,
+      g_diag_ver                  => g_diag_ver,
+      g_diag_ro_size              => g_diag_ro_size,
+      g_diag_rw_size              => g_diag_rw_size,
+      g_streamers_op_mode         => g_streamers_op_mode,
+      g_tx_streamer_params        => g_tx_streamer_params,
+      g_rx_streamer_params        => g_rx_streamer_params,
+      g_fabric_iface              => g_fabric_iface)
     port map (
       clk_sys_i            => clk_pll_62m5,
       clk_dmtd_i           => clk_pll_dmtd,
@@ -354,6 +425,36 @@ begin  -- architecture struct
       wrf_src_i            => wrf_src_i,
       wrf_snk_o            => wrf_snk_o,
       wrf_snk_i            => wrf_snk_i,
+      -- Streamers
+      wrs_tx_data_i        => wrs_tx_data_i,
+      wrs_tx_valid_i       => wrs_tx_valid_i,
+      wrs_tx_dreq_o        => wrs_tx_dreq_o,
+      wrs_tx_last_i        => wrs_tx_last_i,
+      wrs_tx_flush_i       => wrs_tx_flush_i,
+      wrs_tx_cfg_i         => wrs_tx_cfg_i,
+      wrs_rx_first_o       => wrs_rx_first_o,
+      wrs_rx_last_o        => wrs_rx_last_o,
+      wrs_rx_data_o        => wrs_rx_data_o,
+      wrs_rx_valid_o       => wrs_rx_valid_o,
+      wrs_rx_dreq_i        => wrs_rx_dreq_i,
+      wrs_rx_cfg_i         => wrs_rx_cfg_i,
+      -- Etherbone WB master
+      wb_eth_master_o      => wb_eth_master_o,
+      wb_eth_master_i      => wb_eth_master_i,
+      -- Generic diagnostics i/f
+      aux_diag_i           => aux_diag_i,
+      aux_diag_o           => aux_diag_o,
+      -- Aux clocks control
+      tm_dac_value_o       => tm_dac_value_o,
+      tm_dac_wr_o          => tm_dac_wr_o,
+      tm_clk_aux_lock_en_i => tm_clk_aux_lock_en_i,
+      tm_clk_aux_locked_o  => tm_clk_aux_locked_o,
+      -- External Tx Timestamping i/f
+      timestamps_o         => timestamps_o,
+      timestamps_ack_i     => timestamps_ack_i,
+      -- Abscal signals
+      abscal_txts_o        => abscal_txts_o,
+      abscal_rxts_o        => abscal_rxts_o,
       tm_link_up_o         => tm_link_up_o,
       tm_time_valid_o      => tm_time_valid_o,
       tm_tai_o             => tm_tai_o,
