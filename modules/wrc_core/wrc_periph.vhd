@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-04-04
--- Last update: 2018-03-08
+-- Last update: 2020-08-19
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -51,6 +51,9 @@ entity wrc_periph is
     g_flash_secsz_kb    : integer := 256;        -- default for SVEC (M25P128)
     g_flash_sdbfs_baddr : integer := 16#600000#; -- default for SVEC (M25P128)
     g_phys_uart       : boolean := true;
+    g_with_phys_uart_fifo       : boolean                        := false;
+    g_phys_uart_tx_fifo_size    : integer                        := 1024;
+    g_phys_uart_rx_fifo_size    : integer                        := 1024;
     g_virtual_uart    : boolean := false;
     g_cntr_period     : integer := 62500;
     g_mem_words       : integer := 16384;   --in 32-bit words
@@ -424,7 +427,10 @@ begin
       g_with_physical_uart  => g_phys_uart,
       g_interface_mode      => PIPELINED,
       g_address_granularity => BYTE,
-      g_vuart_fifo_size     => g_vuart_fifo_size
+      g_vuart_fifo_size     => g_vuart_fifo_size,
+      g_WITH_PHYSICAL_UART_FIFO => g_with_phys_uart_fifo,
+      g_TX_FIFO_SIZE => g_phys_uart_tx_fifo_size,
+      g_RX_FIFO_SIZE => g_phys_uart_rx_fifo_size
       )
     port map(
       clk_sys_i => clk_sys_i,

@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2020-03-11
+-- Last update: 2020-08-19
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -253,7 +253,10 @@ package wrcore_pkg is
       g_diag_id         : integer := 0;
       g_diag_ver        : integer := 0;
       g_diag_ro_size    : integer := 0;
-      g_diag_rw_size    : integer := 0
+      g_diag_rw_size    : integer := 0;
+      g_with_phys_uart_fifo       : boolean                        := false;
+      g_phys_uart_tx_fifo_size    : integer                        := 1024;
+      g_phys_uart_rx_fifo_size    : integer                        := 1024
       );
     port(
       clk_sys_i   : in  std_logic;
@@ -368,7 +371,11 @@ package wrcore_pkg is
       g_flash_secsz_kb            : integer                        := 256;        -- default for SVEC (M25P128)
       g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for SVEC (M25P128)
       g_phys_uart                 : boolean                        := true;
+      g_with_phys_uart_fifo       : boolean                        := false;
+      g_phys_uart_tx_fifo_size    : integer                        := 1024;
+      g_phys_uart_rx_fifo_size    : integer                        := 1024;
       g_virtual_uart              : boolean                        := true;
+
       g_with_external_clock_input : boolean                        := true;
       g_aux_clks                  : integer                        := 0;
       g_ep_rxbuf_size             : integer                        := 1024;
@@ -519,6 +526,9 @@ package wrcore_pkg is
       g_flash_secsz_kb            : integer                        := 256;        -- default for SVEC (M25P128)
       g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for SVEC (M25P128)
       g_phys_uart                 : boolean                        := true;
+      g_with_phys_uart_fifo       : boolean                        := false;
+      g_phys_uart_tx_fifo_size    : integer                        := 1024;
+      g_phys_uart_rx_fifo_size    : integer                        := 1024;
       g_virtual_uart              : boolean                        := true;
       g_aux_clks                  : integer                        := 0;
       g_rx_buffer_size            : integer                        := 1024;

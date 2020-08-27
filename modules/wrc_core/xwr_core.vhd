@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2020-03-11
+-- Last update: 2020-08-19
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -81,6 +81,9 @@ entity xwr_core is
     g_flash_secsz_kb            : integer                        := 256;        -- default for SVEC (M25P128)
     g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for SVEC (M25P128)
     g_phys_uart                 : boolean                        := true;
+    g_with_phys_uart_fifo       : boolean                        := false;
+    g_phys_uart_tx_fifo_size    : integer                        := 1024;
+    g_phys_uart_rx_fifo_size    : integer                        := 1024;
     g_virtual_uart              : boolean                        := true;
     g_aux_clks                  : integer                        := 0;
     g_ep_rxbuf_size             : integer                        := 1024;
@@ -287,6 +290,9 @@ begin
       g_flash_secsz_kb            => g_flash_secsz_kb,
       g_flash_sdbfs_baddr         => g_flash_sdbfs_baddr,
       g_phys_uart                 => g_phys_uart,
+      g_with_phys_uart_fifo       => g_with_phys_uart_fifo,
+      g_phys_uart_tx_fifo_size    => g_phys_uart_tx_fifo_size,
+      g_phys_uart_rx_fifo_size    => g_phys_uart_rx_fifo_size,
       g_virtual_uart              => g_virtual_uart,
       g_rx_buffer_size            => g_ep_rxbuf_size,
       g_tx_runt_padding           => g_tx_runt_padding,
