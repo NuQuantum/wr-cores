@@ -84,3 +84,23 @@ job_wrpc_vfchd:
     name: WRPC_VFCHD_CI_$CI_JOB_ID
     paths:
       - syn/vfchd_ref_design/*.bin
+
+job_wrpc_pxie_fmc:
+  stage: wrpc_syn
+  tags:
+    - vivado
+    - "2018.3"
+  only:
+  - schedules
+  script:
+    - source ~/setup_vivado.sh
+    - cd syn/pxie_fmc_ref_design
+    - hdlmake makefile
+    - make files.tcl
+    - vivado -mode tcl -source pxie_fmc.tcl
+  artifacts:
+    name: WRPC_PXIE_CI_$CI_JOB_ID
+    paths:
+      - syn/pxie_fmc_ref_design/*.rpt
+      - syn/pxie_fmc_ref_design/*.dcp
+      - syn/pxie_fmc_ref_design/*.bit
