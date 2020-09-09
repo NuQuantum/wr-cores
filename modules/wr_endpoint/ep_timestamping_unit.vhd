@@ -167,8 +167,9 @@ architecture syn of ep_timestamping_unit is
 
   signal tx_sync_delay : std_logic_vector(4 downto 0);
   signal rx_sync_delay : std_logic_vector(4 downto 0);
-  signal rx_ts_done    : std_logic;
-  signal tx_ts_done    : std_logic;
+  signal rx_ts_done : std_logic;
+  signal tx_ts_done : std_logic;
+  signal txts       : std_logic;
 
   signal got_tx_oob : std_logic;
   signal tx_oob_reg : std_logic_vector(15 downto 0);
@@ -370,6 +371,18 @@ begin  -- syn
       synced_o => open,
       npulse_o => tx_ts_done,
       ppulse_o => open);
+      
+  -- timestamping "out" signals sync chains (clk_ref -> clk_ref)    
+  tx_out_gen : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_ref_i,
+      rst_n_i  => rst_n_ref_i,
+      data_i   => tx_sync_delay(0),
+      synced_o => open,
+      npulse_o => txts,
+      ppulse_o => open);
 
   -- timestamping "done" signals sync chains (clk_rx -> clk_sys)
   rx_done_gen : gc_sync_ffs
@@ -383,7 +396,7 @@ begin  -- syn
       npulse_o => rx_ts_done,
       ppulse_o => open);
 
-  txts_o <= tx_ts_done; 		-- 2013-Nov-28 peterj added for debugging/calibration
+  txts_o <= txts; 		-- 2013-Nov-28 peterj added for debugging/calibration
   rxts_o <= rx_ts_done; 		-- 2013-Nov-28 peterj added for debugging/calibration
 
   p_output_rx_ts : process (clk_rx_i)
