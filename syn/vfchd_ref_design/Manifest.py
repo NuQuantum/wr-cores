@@ -12,7 +12,7 @@ syn_project = "vfchd_wr_ref"
 
 syn_tool = "quartus"
 
-quartus_preflow = "quartus_preflow.tcl"
+syn_post_project_cmd = "quartus_sh -t quartus_preflow.tcl"
 
 files = [
     "vfchd_wr_ref.sdc",
