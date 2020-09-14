@@ -1,6 +1,5 @@
-before_script:
-  - source /opt/Xilinx/14.7/ISE_DS/settings64.sh
-  - source /home/gitlab-runner/setup_modelsim_10_0c.sh
+variables:
+  GIT_SUBMODULE_STRATEGY: normal
 
 stages:
 - wrpc_compile
@@ -9,16 +8,25 @@ stages:
 
 job_wrpc_compile:
   stage: wrpc_compile
+  tags:
+  - modelsim
+  - 10.0c
   script:
-    - git submodule init; git submodule update
-    - cd testbench/wrc_core; hdlmake; make clean; make
+    - source ~/setup_modelsim.sh
+    - cd testbench/wrc_core; hdlmake makefile; make clean; make
 
 job_wrpc_sim:
   stage: wrpc_sim
+  tags:
+  - modelsim
+  - 10.0c
   only:
   - schedules
   script:
-  - git submodule init; git submodule update
+  - source ~/setup_modelsim.sh
+  - cp /opt/compiled_libs_ise14.7/modelsim.ini testbench/wr_minic
+  - cp /opt/compiled_libs_ise14.7/modelsim.ini testbench/wrc_core
+  - cp /opt/compiled_libs_ise14.7/modelsim.ini testbench/wr_streamers/streamers_multi_test
   - cd testbench && make
   artifacts:
     name: WRPC_SIM_CI_$CI_JOB_ID
@@ -29,9 +37,13 @@ job_wrpc_sim:
 
 job_wrpc_spec:
   stage: wrpc_syn
+  tags:
+  - ise
+  only:
+  - schedules
   script:
-  - git submodule init; git submodule update
-  - cd syn/spec_ref_design && hdlmake && make
+  - source ~/setup_ise.sh
+  - cd syn/spec_ref_design && hdlmake makefile && make
   artifacts:
     name: WRPC_SPEC_CI_$CI_JOB_ID
     paths:
@@ -39,3 +51,36 @@ job_wrpc_spec:
     - syn/spec_ref_design/*.mrp
     - syn/spec_ref_design/*.bit
     - syn/spec_ref_design/*.bin
+
+job_wrpc_svec:
+  stage: wrpc_syn
+  tags:
+  - ise
+  only:
+  - schedules
+  script:
+  - source ~/setup_ise.sh
+  - cd syn/svec_ref_design && hdlmake makefile && make
+  artifacts:
+    name: WRPC_SVEC_CI_$CI_JOB_ID
+    paths:
+    - syn/svec_ref_design/*.syr
+    - syn/svec_ref_design/*.mrp
+    - syn/svec_ref_design/*.bit
+    - syn/svec_ref_design/*.bin
+
+job_wrpc_vfchd:
+  stage: wrpc_syn
+  tags:
+  - quartus
+  - "16.0"
+  only:
+  - schedules
+  script:
+    - source ~/setup_intel.sh
+    - cd syn/vfchd_ref_design
+    - hdlmake makefile; make
+  artifacts:
+    name: WRPC_VFCHD_CI_$CI_JOB_ID
+    paths:
+      - syn/vfchd_ref_design/*.bin
