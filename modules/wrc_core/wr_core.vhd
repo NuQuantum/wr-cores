@@ -819,7 +819,7 @@ begin
       led_act_o            => led_act_o);
 
   led_link_o   <= ep_led_link;
-  link_ok_o    <= '1'; --ep_led_link;
+  link_ok_o    <= ep_led_link;
 
   tm_link_up_o <= ep_led_link;
 
