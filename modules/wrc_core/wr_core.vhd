@@ -440,8 +440,8 @@ architecture struct of wr_core is
      4 => f_sdb_embed_device(c_wrc_periph0_sdb, x"00000400"),  -- Syscon
      5 => f_sdb_embed_device(c_wrc_periph1_sdb, x"00000500"),  -- UART
      6 => f_sdb_embed_device(c_wrc_periph2_sdb, x"00000600"),  -- 1-Wire
-     7 => f_sdb_embed_device(g_aux_sdb,         x"00008000"),  -- aux WB bus
-     8 => f_sdb_embed_device(c_wrc_periph4_sdb, x"00000800")   -- WRPC diag registers
+     7 => f_sdb_embed_device(c_wrc_periph4_sdb, x"00000800"),  -- WRPC diag registers
+     8 => f_sdb_embed_device(g_aux_sdb,         x"00008000")   -- aux WB bus
      );
 
   constant c_secbar_sdb_address : t_wishbone_address := x"00000C00";
@@ -1091,42 +1091,25 @@ begin
   secbar_master_i(4) <= periph_slave_o(0);
   secbar_master_i(5) <= periph_slave_o(1);
   secbar_master_i(6) <= periph_slave_o(2);
-  secbar_master_i(8) <= periph_slave_o(3);
+  secbar_master_i(7) <= periph_slave_o(3);
   periph_slave_i(0)  <= secbar_master_o(4);
   periph_slave_i(1)  <= secbar_master_o(5);
   periph_slave_i(2)  <= secbar_master_o(6);
-  periph_slave_i(3)  <= secbar_master_o(8);
+  periph_slave_i(3)  <= secbar_master_o(7);
 
 
-  aux_adr_o <= secbar_master_o(7).adr;
-  aux_dat_o <= secbar_master_o(7).dat;
-  aux_sel_o <= secbar_master_o(7).sel;
-  aux_cyc_o <= secbar_master_o(7).cyc;
-  aux_stb_o <= secbar_master_o(7).stb;
-  aux_we_o  <= secbar_master_o(7).we;
+  aux_adr_o <= secbar_master_o(8).adr;
+  aux_dat_o <= secbar_master_o(8).dat;
+  aux_sel_o <= secbar_master_o(8).sel;
+  aux_cyc_o <= secbar_master_o(8).cyc;
+  aux_stb_o <= secbar_master_o(8).stb;
+  aux_we_o  <= secbar_master_o(8).we;
 
-  secbar_master_i(7).dat   <= aux_dat_i;
-  secbar_master_i(7).ack   <= aux_ack_i;
-  secbar_master_i(7).stall <= aux_stall_i;
-  secbar_master_i(7).err   <= '0';
-  secbar_master_i(7).rty   <= '0';
-
-  --secbar_master_i(6).err <= '0';
-  --secbar_master_i(5).err <= '0';
-  --secbar_master_i(4).err <= '0';
-  --secbar_master_i(3).err <= '0';
-  --secbar_master_i(2).err <= '0';
-  --secbar_master_i(1).err <= '0';
-  --secbar_master_i(0).err <= '0';
-
-  --secbar_master_i(6).rty <= '0';
-  --secbar_master_i(5).rty <= '0';
-  --secbar_master_i(4).rty <= '0';
-  --secbar_master_i(3).rty <= '0';
-  --secbar_master_i(2).rty <= '0';
-  --secbar_master_i(1).rty <= '0';
-  --secbar_master_i(0).rty <= '0';
-
+  secbar_master_i(8).dat   <= aux_dat_i;
+  secbar_master_i(8).ack   <= aux_ack_i;
+  secbar_master_i(8).stall <= aux_stall_i;
+  secbar_master_i(8).err   <= '0';
+  secbar_master_i(8).rty   <= '0';
 
 
   -----------------------------------------------------------------------------
