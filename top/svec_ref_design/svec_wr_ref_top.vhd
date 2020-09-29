@@ -209,23 +209,13 @@ architecture top of svec_wr_ref_top is
   -- Primary Wishbone slave(s) offsets
   constant c_WB_SLAVE_WRC : integer := 0;
 
-  -- SDB meta info
-  constant c_SDB_GIT_REPO_URL : integer := c_NUM_WB_SLAVES;
-  constant c_SDB_SYNTHESIS    : integer := c_NUM_WB_SLAVES + 1;
-
-  -- SDB header address on primary crossbar
-  constant c_SDB_ADDRESS : t_wishbone_address := x"00000000";
-
-  -- f_xwb_bridge_manual_sdb(size, sdb_addr)
-  -- Note: sdb_addr is the sdb records address relative to the bridge base address
-  constant c_WRC_BRIDGE_SDB : t_sdb_bridge :=
-    f_xwb_bridge_manual_sdb(x"0003ffff", x"00030000");
-
   -- Primary wishbone crossbar layout
-  constant c_WB_LAYOUT : t_sdb_record_array(c_NUM_WB_SLAVES + 1 downto 0) := (
-    c_WB_SLAVE_WRC     => f_sdb_embed_bridge(c_WRC_BRIDGE_SDB, x"00040000"),
-    c_SDB_GIT_REPO_URL => f_sdb_embed_repo_url(c_SDB_REPO_URL),
-    c_SDB_SYNTHESIS    => f_sdb_embed_synthesis(c_SDB_SYNTHESIS_INFO));
+  constant c_WB_LAYOUT : t_wishbone_address_array(c_NUM_WB_SLAVES - 1 downto 0) := (
+      c_WB_SLAVE_WRC => x"0000_0000");
+
+  constant c_WB_LAYOUT_MASK :
+    t_wishbone_address_array(c_NUM_WB_SLAVES - 1 downto 0) := (
+      c_WB_SLAVE_WRC => x"0000_0000");
 
   -----------------------------------------------------------------------------
   -- Signals
@@ -292,14 +282,13 @@ begin  -- architecture top
   -- Primary wishbone Crossbar
   -----------------------------------------------------------------------------
 
-  cmp_sdb_crossbar : xwb_sdb_crossbar
+  cmp_crossbar : xwb_crossbar
     generic map (
       g_num_masters => c_NUM_WB_MASTERS,
       g_num_slaves  => c_NUM_WB_SLAVES,
       g_registered  => TRUE,
-      g_wraparound  => TRUE,
-      g_layout      => c_WB_LAYOUT,
-      g_sdb_addr    => c_SDB_ADDRESS)
+      g_address     => c_WB_LAYOUT,
+      g_mask        => c_WB_LAYOUT_MASK)
     port map (
       clk_sys_i => clk_sys_62m5,
       rst_n_i   => rst_sys_62m5_n,
