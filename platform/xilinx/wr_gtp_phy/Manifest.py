@@ -2,6 +2,55 @@ files = [
         "gtp_bitslide.vhd",
         ];
 
+
+xilinx_ip_gthe3 = [
+    "xilinx-ip/gthe3/gtwizard_ultrascale_v1_6_gthe3_channel.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_gthe3_channel_wrapper.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_example_wrapper.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_example_bit_sync.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_example_wrapper_functions.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_gtwizard_top.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_example_top.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_gtwizard_gthe3.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_example_reset_sync.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_example_gtwiz_userclk_tx.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_example_init.v",
+    "xilinx-ip/gthe3/wr_gth_wrapper_example_gtwiz_userclk_rx.v"
+];
+
+xilinx_ip_gthe4 = [
+    "xilinx-ip/gthe4/gtwizard_ultrascale_2.v",
+    "xilinx-ip/gthe4/gtwizard_ultrascale_2_gtwizard_top.v",
+    "xilinx-ip/gthe4/gtwizard_ultrascale_2.xdc",
+    "xilinx-ip/gthe4/gtwizard_ultrascale_2_gthe4_channel_wrapper.v",
+    "xilinx-ip/gthe4/gtwizard_ultrascale_2_gtwizard_gthe4.v",
+    "xilinx-ip/gthe4/gtwizard_ultrascale_2_ooc.xdc",
+    "xilinx-ip/gthe4/gtwizard_ultrascale_v1_7_gthe4_channel.v"
+];
+
+xilinx_ip_common = [
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_bit_sync.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_tx.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_rx.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gtwiz_reset.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gtwiz_userdata_rx.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gte4_drp_arb.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_reset_inv_sync.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_tx.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gtwiz_userclk_tx.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gthe3_cpll_cal.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gthe4_cal_freqcnt.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gthe4_delay_powergood.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gthe4_cpll_cal.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gtwiz_userclk_rx.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_reset_sync.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gtwiz_userdata_tx.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_rx.v",
+    "xilinx-ip/common/gtwizard_ultrascale_v1_7_gthe3_cal_freqcnt.v"
+];
+
+
 if (syn_device[0:4].upper()=="XC6S"): # Spartan6
     files.extend(["spartan6/wr_gtp_phy_spartan6.vhd",
         "spartan6/whiterabbitgtp_wrapper_tile_spartan6.vhd",
@@ -49,7 +98,9 @@ elif (syn_device[0:4].upper()=="XCKU"): # Kintex Ultrascale GTH
         "family7-gthe3/wr_gthe3_rx_buffer_bypass.vhd",
         "family7-gthe3/wr_gthe3_tx_buffer_bypass.vhd",
         "family7-gthe3/wr_gthe3_wrapper.vhd",
-        "family7-gthe3/gc_reset_synchronizer.vhd" ]);
+        "family7-gthe3/gc_reset_synchronizer.vhd" ])
+    files.extend( xilinx_ip_gthe3 );
+    files.extend( xilinx_ip_common );
 elif (syn_device[0:4].upper()=="XCZU"): # Zynq Ultrascale GTH
     files.extend(["family7-gthe4/wr_gthe4_phy_family7.vhd",
         "family7-gthe4/wr_gthe4_phy_family7_xilinx_ip.vhd",
@@ -58,27 +109,6 @@ elif (syn_device[0:4].upper()=="XCZU"): # Zynq Ultrascale GTH
         "family7-gthe4/wr_gthe4_tx_buffer_bypass.vhd",
         "family7-gthe4/wr_gthe4_wrapper.vhd",
         "family7-gthe4/gc_reset_synchronizer.vhd",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_bit_sync.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_tx.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_rx.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gtwiz_reset.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gtwiz_userdata_rx.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gte4_drp_arb.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_reset_inv_sync.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_tx.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gtwiz_userclk_tx.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gthe3_cpll_cal.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gthe4_cal_freqcnt.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gthe4_delay_powergood.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gthe4_cpll_cal.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gtwiz_userclk_rx.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_reset_sync.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gtwiz_userdata_tx.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_rx.v",
-        "family7-gthe4/gthe4/common/gtwizard_ultrascale_v1_7_gthe3_cal_freqcnt.v",
-        "family7-gthe4/gthe4/synth/gtwizard_ultrascale_2.v",
-        "family7-gthe4/gthe4/synth/gtwizard_ultrascale_2_gtwizard_top.v",
-        "family7-gthe4/gthe4/synth/gtwizard_ultrascale_2_gthe4_channel_wrapper.v",
-        "family7-gthe4/gthe4/synth/gtwizard_ultrascale_2_gtwizard_gthe4.v",
-        "family7-gthe4/gthe4/synth/gtwizard_ultrascale_v1_7_gthe4_channel.v"
         ]);
+    files.extend( xilinx_ip_gthe4 );
+    files.extend( xilinx_ip_common );
