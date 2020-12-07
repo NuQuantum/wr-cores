@@ -68,11 +68,12 @@ entity wr_gtp_phy_virtex5 is
     -- dedicated GTP clock input
     gtp_clk_i : in std_logic;
 
-    rst_i : in std_logic;
-
     -- CLOCK MUST BE PRESENT AT RESET TIME!
     -- TX path, synchronous to ch01_ref_clk_i
     ch01_ref_clk_i : in std_logic := '0';
+
+    -- reset input, active hi
+    ch01_ref_clk_rst_i : in std_logic := '0';
 
 -- Port 0
     -- TX path, synchronous to ch0_ref_clk_i
@@ -316,7 +317,6 @@ architecture rtl of wr_gtp_phy_virtex5 is
   signal ch0_rx_enable_output, ch0_rx_enable_output_synced : std_logic;
 
 
-  signal ch1_gtp_reset      : std_logic;
   signal ch1_gtp_loopback   : std_logic_vector(2 downto 0) := "000";
   signal ch1_gtp_reset_done : std_logic;
 
@@ -400,14 +400,14 @@ begin  -- rtl
       rstn_o(0)     => ch1_gtp_reset_rxclk_n);
 
   ch1_gtp_reset_rxclk <= not ch1_gtp_reset_rxclk_n;
-  
+
   ch01_gtp_reset <= ch01_rst_synced or std_logic(not ch01_reset_counter(ch01_reset_counter'left));
 
   p_gen_reset : process(ch01_ref_clk_i)
   begin
     if rising_edge(ch01_ref_clk_i) then
 
-      ch01_rst_d0     <= rst_i;
+      ch01_rst_d0     <= ch01_ref_clk_rst_i;
       ch01_rst_synced <= ch01_rst_d0;
 
       if(ch01_rst_synced = '1') then
@@ -526,9 +526,9 @@ begin  -- rtl
         npulse_o => open,
         ppulse_o => open);
 
-    p_force_proper_disparity_ch0 : process(ch01_ref_clk_i, ch0_gtp_reset)
+    p_force_proper_disparity_ch0 : process(ch01_ref_clk_i, ch01_gtp_reset)
     begin
-      if (ch0_gtp_reset = '1') then
+      if (ch01_gtp_reset = '1') then
         ch0_disparity_set   <= '0';
         ch0_tx_chardispval  <= '0';
         ch0_tx_chardispmode <= '0';
@@ -548,9 +548,9 @@ begin  -- rtl
       end if;
     end process;
 
-    p_gen_output_ch0 : process(ch0_rx_rec_clk, ch0_gtp_reset)
+    p_gen_output_ch0 : process(ch0_rx_rec_clk, ch0_gtp_reset_rxclk)
     begin
-      if(ch0_gtp_reset = '1') then
+      if(ch0_gtp_reset_rxclk = '1') then
         ch0_rx_data_o    <= (others => '0');
         ch0_rx_k_o       <= '0';
         ch0_rx_enc_err_o <= '0';
@@ -694,9 +694,9 @@ begin  -- rtl
         npulse_o => open,
         ppulse_o => open);
 
-    p_force_proper_disparity_ch1 : process(ch01_ref_clk_i, ch1_gtp_reset)
+    p_force_proper_disparity_ch1 : process(ch01_ref_clk_i, ch01_gtp_reset)
     begin
-      if (ch1_gtp_reset = '1') then
+      if (ch01_gtp_reset = '1') then
         ch1_disparity_set   <= '0';
         ch1_tx_chardispval  <= '0';
         ch1_tx_chardispmode <= '0';
@@ -717,9 +717,9 @@ begin  -- rtl
       end if;
     end process;
 
-    p_gen_output_ch1 : process(ch1_rx_rec_clk, rst_i)
+    p_gen_output_ch1 : process(ch1_rx_rec_clk, ch1_gtp_reset_rxclk)
     begin
-      if(rst_i = '1') then
+      if(ch1_gtp_reset_rxclk = '1') then
         ch1_rx_data_o    <= (others => '0');
         ch1_rx_k_o       <= '0';
         ch1_rx_enc_err_o <= '0';
@@ -851,6 +851,7 @@ begin  -- rtl
   -- ML:
   ch0_rdy_o <= '1'; -- todo
   ch1_rdy_o <= '1'; -- todo
+
 --   ch0_rdy  <= ch01_gtp_locked and ch01_align_done when (g_enable_ch0 = 1) else '0';
 --   ch1_rdy  <= ch01_gtp_locked and ch01_align_done when (g_enable_ch1 = 1) else '0';
 -- 

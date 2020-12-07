@@ -963,6 +963,7 @@ begin  -- architecture rtl
     signal ch1_sfp_txn, ch1_sfp_txp : std_logic;
     signal ch0_sfp_rxn, ch0_sfp_rxp : std_logic;
     signal ch1_sfp_rxn, ch1_sfp_rxp : std_logic;
+    signal ch01_ref_clk_rst         : std_logic;
 
   begin
 
@@ -976,6 +977,12 @@ begin  -- architecture rtl
         I  => clk_125m_gtp_p_i,
         IB => clk_125m_gtp_n_i);
 
+   cmp_gtp_rst : gc_sync_ffs
+     port map (
+       clk_i          => clk_125m_pllref_buf,
+       rst_n_i        => '1',
+       data_i         => phy8_i.rst,
+       synced_o       => ch01_ref_clk_rst);
 
     cmp_gtp : wr_gtp_phy_virtex5
       generic map (
@@ -985,6 +992,7 @@ begin  -- architecture rtl
       port map (
         gtp_clk_i          => clk_125m_gtp_buf,
         ch01_ref_clk_i     => clk_125m_pllref_buf,
+        ch01_ref_clk_rst_i => ch01_ref_clk_rst,
         ch0_tx_data_i      => phy8_i.tx_data,
         ch0_tx_k_i         => phy8_i.tx_k(0),
         ch0_tx_disparity_o => ch0_phy8_out.tx_disparity,
@@ -994,7 +1002,6 @@ begin  -- architecture rtl
         ch0_rx_k_o         => ch0_phy8_out.rx_k(0),
         ch0_rx_enc_err_o   => ch0_phy8_out.rx_enc_err,
         ch0_rx_bitslide_o  => ch0_phy8_out.rx_bitslide,
-        ch0_rst_i          => phy8_i.rst,
         ch0_loopen_i       => phy8_i.loopen,
         ch0_rdy_o          => ch0_phy8_out.rdy,
         ch1_tx_data_i      => phy8_i.tx_data,
@@ -1006,7 +1013,6 @@ begin  -- architecture rtl
         ch1_rx_k_o         => ch1_phy8_out.rx_k(0),
         ch1_rx_enc_err_o   => ch1_phy8_out.rx_enc_err,
         ch1_rx_bitslide_o  => ch1_phy8_out.rx_bitslide,
-        ch1_rst_i          => phy8_i.rst,
         ch1_loopen_i       => phy8_i.loopen,
         ch1_rdy_o          => ch1_phy8_out.rdy,
         pad_txn0_o         => ch0_sfp_txn,
