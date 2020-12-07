@@ -17,10 +17,13 @@ elif (syn_device[0:4].upper()=="XC6V"): # Virtex6
 		"virtex6-low-phase-drift/wr_gtx_phy_virtex6_lp.vhd"])
 
 elif (syn_device[0:4].upper()=="XC5V"): # Virtex5
-	files.extend(["virtex5/wr_gtp_phy_virtex5.vhd",
-                "virtex5/whiterabbit_gtp_wrapper_tile_virtex5.vhd",
-                "spartan6/gtp_phase_align.vhd",
-                "virtex5/v5_gtp_align_detect.vhd"])
+    files.extend(["virtex5/wr_gtp_phy_virtex5.vhd",
+        "virtex5/whiterabbit_gtp_wrapper_tile_virtex5.vhd",
+        "spartan6/gtp_phase_align.vhd",
+        "virtex5/v5_gtp_align_detect.vhd",
+        "virtex5/v5_gtp_comma_detect.vhd"
+    ])
+
 elif (syn_device[0:4].upper()=="XC7A"): # Family 7 GTP (Artix7)
 	files.extend(["family7-gtp/wr_gtp_phy_family7.vhd",
                 "family7-gtp/whiterabbit_gtpe2_channel_wrapper.vhd",

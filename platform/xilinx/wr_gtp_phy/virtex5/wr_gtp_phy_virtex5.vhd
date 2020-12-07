@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2015-05-19
+-- Last update: 2020-12-07
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -68,6 +68,9 @@ entity wr_gtp_phy_virtex5 is
     -- dedicated GTP clock input
     gtp_clk_i : in std_logic;
 
+    rst_i : in std_logic;
+
+    -- CLOCK MUST BE PRESENT AT RESET TIME!
     -- TX path, synchronous to ch01_ref_clk_i
     ch01_ref_clk_i : in std_logic := '0';
 
@@ -108,9 +111,6 @@ entity wr_gtp_phy_virtex5 is
     -- transceiver (in UIs). Must be valid when ch0_rx_data_o is valid.
     ch0_rx_bitslide_o : out std_logic_vector(3 downto 0);
 
-    -- reset input, active hi
-    ch0_rst_i : in std_logic := '0';
-
     -- local loopback enable (Tx->Rx), active hi
     ch0_loopen_i : in std_logic := '0';
 
@@ -131,7 +131,6 @@ entity wr_gtp_phy_virtex5 is
     ch1_rx_enc_err_o  : out std_logic;
     ch1_rx_bitslide_o : out std_logic_vector(3 downto 0);
 
-    ch1_rst_i    : in std_logic := '0';
     ch1_loopen_i : in std_logic := '0';
     ch1_rdy_o    : out std_logic;
 
@@ -295,7 +294,12 @@ architecture rtl of wr_gtp_phy_virtex5 is
   signal ch0_gtp_loopback   : std_logic_vector(2 downto 0) := "000";
   signal ch0_gtp_reset_done : std_logic;
 
+  signal ch0_rx_data_raw_int                : std_logic_vector(9 downto 0);
+  signal ch0_rx_data_raw_int_pre                : std_logic_vector(9 downto 0);
+  signal ch1_rx_data_raw_int                : std_logic_vector(9 downto 0);
+  signal ch1_rx_data_raw_int_pre                : std_logic_vector(9 downto 0);
   signal ch0_rx_data_int                : std_logic_vector(7 downto 0);
+
   signal ch0_rx_k_int                   : std_logic;
   signal ch0_rx_disperr, ch0_rx_invcode : std_logic;
 
@@ -332,13 +336,9 @@ architecture rtl of wr_gtp_phy_virtex5 is
 
   signal ch1_rx_enable_output, ch1_rx_enable_output_synced : std_logic;
 
-  signal ch0_rst_synced    : std_logic;
-  signal ch0_rst_d0        : std_logic;
-  signal ch0_reset_counter : unsigned(9 downto 0);
-
-  signal ch1_rst_synced    : std_logic;
-  signal ch1_rst_d0        : std_logic;
-  signal ch1_reset_counter : unsigned(9 downto 0);
+  signal ch01_rst_synced    : std_logic;
+  signal ch01_reset_counter : unsigned(9 downto 0);
+  signal ch01_rst_d0 : std_logic;
 
   signal ch0_rx_bitslide_int : std_logic_vector(4 downto 0);
   signal ch1_rx_bitslide_int : std_logic_vector(4 downto 0);
@@ -354,6 +354,8 @@ architecture rtl of wr_gtp_phy_virtex5 is
   signal ch1_tx_chardispval : std_logic;
 
   signal ch01_gtp_locked            : std_logic;
+  signal ch0_gtp_locked_rxclk            : std_logic;
+  signal ch1_gtp_locked_rxclk            : std_logic;
   signal ch01_align_done            : std_logic;
   signal ch01_gtp_clkout_int        : std_logic;
   signal ch01_tx_pma_set_phase      : std_logic := '0';
@@ -362,32 +364,72 @@ architecture rtl of wr_gtp_phy_virtex5 is
   signal ch01_gtp_pll_lockdet       : std_logic;
   signal ch01_ref_clk_in            : std_logic;
 
-  signal ch0_rst_n : std_logic;
-  signal ch1_rst_n : std_logic;
-
   signal ch0_cur_disp  : t_8b10b_disparity;
   signal ch0_disp_pipe : std_logic_vector(1 downto 0);
   signal ch1_cur_disp  : t_8b10b_disparity;
   signal ch1_disp_pipe : std_logic_vector(1 downto 0);
 
   signal ch0_rdy, ch1_rdy : std_logic;
-  
+  signal ch0_gtp_reset_rxclk_n : std_logic;
+  signal ch1_gtp_reset_rxclk_n : std_logic;
+  signal ch0_gtp_reset_rxclk : std_logic;
+  signal ch1_gtp_reset_rxclk : std_logic;
 begin  -- rtl
   -------------------------------------------------------------------------------
   -- Channel 0 logic
   -------------------------------------------------------------------------------
 
+  gc_reset_1: entity work.gc_reset
+    generic map (
+      g_clocks    => 1)
+    port map (
+      free_clk_i => ch01_ref_clk_i,
+      locked_i   => ch0_gtp_reset_done,
+      clks_i(0) => ch0_rx_rec_clk,
+      rstn_o(0)     => ch0_gtp_reset_rxclk_n);
 
+  ch0_gtp_reset_rxclk <= not ch0_gtp_reset_rxclk_n;
+
+  gc_reset_2: entity work.gc_reset
+    generic map (
+      g_clocks    => 1)
+    port map (
+      free_clk_i => ch01_ref_clk_i,
+      locked_i   => ch1_gtp_reset_done,
+      clks_i(0) => ch1_rx_rec_clk,
+      rstn_o(0)     => ch1_gtp_reset_rxclk_n);
+
+  ch1_gtp_reset_rxclk <= not ch1_gtp_reset_rxclk_n;
+  
+  ch01_gtp_reset <= ch01_rst_synced or std_logic(not ch01_reset_counter(ch01_reset_counter'left));
+
+  p_gen_reset : process(ch01_ref_clk_i)
+  begin
+    if rising_edge(ch01_ref_clk_i) then
+
+      ch01_rst_d0     <= rst_i;
+      ch01_rst_synced <= ch01_rst_d0;
+
+      if(ch01_rst_synced = '1') then
+        ch01_reset_counter <= (others => '0');
+      else
+        if(ch01_reset_counter(ch01_reset_counter'left) = '0') then
+          ch01_reset_counter <= ch01_reset_counter + 1;
+        end if;
+      end if;
+    end if;
+  end process;
+
+
+  
   gen_with_channel0 : if(g_enable_ch0 /= 0) generate
-    ch0_rst_n          <= not ch0_gtp_reset;
     ch0_tx_disparity_o <= ch0_disp_pipe(0);
 
-    ch0_gtp_reset <= ch0_rst_synced or std_logic(not ch0_reset_counter(ch0_reset_counter'left));
-
+    
     gen_disp_ch0 : process(ch01_ref_clk_i)
     begin
       if rising_edge(ch01_ref_clk_i) then
-        if(ch0_tx_chardispmode = '1' or ch0_rst_n = '0') then
+        if(ch0_tx_chardispmode = '1' or ch01_gtp_reset = '1') then
           if(g_force_disparity = 0) then
             ch0_cur_disp <= RD_MINUS;
           else
@@ -402,24 +444,6 @@ begin  -- rtl
       end if;
     end process;
 
-
-    p_gen_reset_ch0 : process(ch01_ref_clk_i)
-    begin
-      if rising_edge(ch01_ref_clk_i) then
-
-        ch0_rst_d0     <= ch0_rst_i;
-        ch0_rst_synced <= ch0_rst_d0;
-
-        if(ch0_rst_synced = '1') then
-          ch0_reset_counter <= (others => '0');
-        else
-          if(ch0_reset_counter(ch0_reset_counter'left) = '0') then
-            ch0_reset_counter <= ch0_reset_counter + 1;
-          end if;
-        end if;
-      end if;
-    end process;
-
     U_Rbclk_bufg_ch0 : BUFG
       port map (
         I => ch0_rx_rec_clk_pad,        
@@ -428,24 +452,61 @@ begin  -- rtl
 
     ch0_tx_enc_err_o <= '0';
 
-    U_Align_Detect_CH0: v5_gtp_align_detect
+    ch0_rx_data_raw_int(0) <= ch0_rx_data_raw_int_pre(9);
+    ch0_rx_data_raw_int(1) <= ch0_rx_data_raw_int_pre(8);
+    ch0_rx_data_raw_int(2) <= ch0_rx_data_raw_int_pre(7);
+    ch0_rx_data_raw_int(3) <= ch0_rx_data_raw_int_pre(6);
+    ch0_rx_data_raw_int(4) <= ch0_rx_data_raw_int_pre(5);
+    ch0_rx_data_raw_int(5) <= ch0_rx_data_raw_int_pre(4);
+    ch0_rx_data_raw_int(6) <= ch0_rx_data_raw_int_pre(3);
+    ch0_rx_data_raw_int(7) <= ch0_rx_data_raw_int_pre(2);
+    ch0_rx_data_raw_int(8) <= ch0_rx_data_raw_int_pre(1);
+    ch0_rx_data_raw_int(9) <= ch0_rx_data_raw_int_pre(0);
+
+  
+    gc_dec_8b10b_1: entity work.gc_dec_8b10b
       port map (
-        clk_rx_i  => ch0_rx_rec_clk,
-        rst_i   => ch01_gtp_reset,
-        data_i    => ch0_rx_data_int,
-        k_i       => ch0_rx_k_int,
-        aligned_o => ch0_rx_byte_is_aligned);
+        clk_i       => ch0_rx_rec_clk,
+        rst_n_i     => ch0_gtp_reset_rxclk_n,
+        in_10b_i    => ch0_rx_data_raw_int_pre,
+        ctrl_o      => ch0_rx_k_int,
+        code_err_o  => ch0_rx_invcode,
+        rdisp_err_o => open,
+        out_8b_o    => ch0_rx_data_int);
 
 
+    ch0_rx_disperr <= '0';
+
+    v5_gtp_comma_detect_1: entity work.v5_gtp_comma_detect
+      port map (
+        clk_rx_i      => ch0_rx_rec_clk,
+        rst_n_i         => ch0_gtp_reset_rxclk_n,
+        rx_data_raw_i => ch0_rx_data_raw_int,
+        rx_is_comma_o => ch0_rx_comma_det,
+        aligned_o     => ch0_rx_byte_is_aligned);
+
+
+  U_sync_3 : gc_sync_ffs
+      generic map (
+        g_sync_edge => "positive")
+      port map (
+        clk_i    => ch0_rx_rec_clk,
+        rst_n_i  => '1',
+        data_i   => ch01_gtp_locked,
+        synced_o => ch0_gtp_locked_rxclk,
+        npulse_o => open,
+        ppulse_o => open);
+
+    
     U_bitslide_ch0 : gtp_bitslide
       generic map (
         g_simulation => g_simulation)
       port map (
-        gtp_rst_i                => ch01_gtp_reset,
+        gtp_rst_i                => ch0_gtp_reset_rxclk,
         gtp_rx_clk_i             => ch0_rx_rec_clk,
         gtp_rx_comma_det_i       => ch0_rx_comma_det,
         gtp_rx_byte_is_aligned_i => ch0_rx_byte_is_aligned,
-        serdes_ready_i           => ch01_gtp_locked,
+        serdes_ready_i           => ch0_gtp_locked_rxclk,
         gtp_rx_slide_o           => ch0_rx_slide,
         gtp_rx_cdr_rst_o         => ch0_rx_cdr_rst,
         bitslide_o               => ch0_rx_bitslide_int,
@@ -465,9 +526,9 @@ begin  -- rtl
         npulse_o => open,
         ppulse_o => open);
 
-    p_force_proper_disparity_ch0 : process(ch01_ref_clk_i, ch01_gtp_reset)
+    p_force_proper_disparity_ch0 : process(ch01_ref_clk_i, ch0_gtp_reset)
     begin
-      if (ch01_gtp_reset = '1') then
+      if (ch0_gtp_reset = '1') then
         ch0_disparity_set   <= '0';
         ch0_tx_chardispval  <= '0';
         ch0_tx_chardispmode <= '0';
@@ -487,9 +548,9 @@ begin  -- rtl
       end if;
     end process;
 
-    p_gen_output_ch0 : process(ch0_rx_rec_clk, ch01_gtp_reset)
+    p_gen_output_ch0 : process(ch0_rx_rec_clk, ch0_gtp_reset)
     begin
-      if(ch01_gtp_reset = '1') then
+      if(ch0_gtp_reset = '1') then
         ch0_rx_data_o    <= (others => '0');
         ch0_rx_k_o       <= '0';
         ch0_rx_enc_err_o <= '0';
@@ -523,15 +584,13 @@ begin  -- rtl
 
   gen_with_channel1 : if(g_enable_ch1 /= 0) generate
 
-    ch1_rst_n          <= not ch1_gtp_reset;
     ch1_tx_disparity_o <= ch1_disp_pipe(1);
 
-    ch1_gtp_reset <= ch1_rst_synced or std_logic(not ch1_reset_counter(ch1_reset_counter'left));
 
     gen_disp_ch1 : process(ch01_ref_clk_i)
     begin
       if rising_edge(ch01_ref_clk_i) then
-        if(ch1_tx_chardispmode = '1' or ch1_rst_n = '0') then
+        if(ch1_tx_chardispmode = '1' or ch01_gtp_reset = '1') then
           if(g_force_disparity = 0) then
             ch1_cur_disp <= RD_MINUS;
           else
@@ -546,49 +605,76 @@ begin  -- rtl
       end if;
     end process;
 
-    p_gen_reset_ch1 : process(ch01_ref_clk_i)
-    begin
-      if rising_edge(ch01_ref_clk_i) then
-
-        ch1_rst_d0     <= ch1_rst_i;
-        ch1_rst_synced <= ch1_rst_d0;
-
-        if(ch1_rst_synced = '1') then
-          ch1_reset_counter <= (others => '0');
-        else
-          if(ch1_reset_counter(ch1_reset_counter'left) = '0') then
-            ch1_reset_counter <= ch1_reset_counter + 1;
-          end if;
-        end if;
-      end if;
-    end process;
-
     U_Rbclk_bufg_ch1 : BUFG
       port map (
         I => ch1_rx_rec_clk_pad,        -- replaces "ch1_rx_divclk",
         O => ch1_rx_rec_clk
         );
 
-    U_Align_Detect_CH1: v5_gtp_align_detect
+    -- U_Align_Detect_CH1: v5_gtp_align_detect
+    --   port map (
+    --     clk_rx_i  => ch1_rx_rec_clk,
+    --     rst_i   => ch01_gtp_reset,
+    --     data_i    => ch1_rx_data_int,
+    --     k_i       => ch1_rx_k_int,
+    --     aligned_o => ch1_rx_byte_is_aligned);
+
+    ch1_rx_data_raw_int(0) <= ch1_rx_data_raw_int_pre(9);
+    ch1_rx_data_raw_int(1) <= ch1_rx_data_raw_int_pre(8);
+    ch1_rx_data_raw_int(2) <= ch1_rx_data_raw_int_pre(7);
+    ch1_rx_data_raw_int(3) <= ch1_rx_data_raw_int_pre(6);
+    ch1_rx_data_raw_int(4) <= ch1_rx_data_raw_int_pre(5);
+    ch1_rx_data_raw_int(5) <= ch1_rx_data_raw_int_pre(4);
+    ch1_rx_data_raw_int(6) <= ch1_rx_data_raw_int_pre(3);
+    ch1_rx_data_raw_int(7) <= ch1_rx_data_raw_int_pre(2);
+    ch1_rx_data_raw_int(8) <= ch1_rx_data_raw_int_pre(1);
+    ch1_rx_data_raw_int(9) <= ch1_rx_data_raw_int_pre(0);
+
+    
+    gc_dec_8b10b_2: entity work.gc_dec_8b10b
       port map (
-        clk_rx_i  => ch1_rx_rec_clk,
-        rst_i   => ch01_gtp_reset,
-        data_i    => ch1_rx_data_int,
-        k_i       => ch1_rx_k_int,
-        aligned_o => ch1_rx_byte_is_aligned);
+        clk_i       => ch1_rx_rec_clk,
+        rst_n_i     => ch1_gtp_reset_rxclk_n,
+        in_10b_i    => ch1_rx_data_raw_int_pre,
+        ctrl_o      => ch1_rx_k_int,
+        code_err_o  => ch1_rx_invcode,
+        rdisp_err_o => open,
+        out_8b_o    => ch1_rx_data_int);
 
 
+    ch1_rx_disperr <= '0';
+
+    v5_gtp_comma_detect_2: entity work.v5_gtp_comma_detect
+      port map (
+        clk_rx_i      => ch1_rx_rec_clk,
+        rst_n_i         => ch1_gtp_reset_rxclk_n,
+        rx_data_raw_i => ch1_rx_data_raw_int,
+        rx_is_comma_o => ch1_rx_comma_det,
+        aligned_o     => ch1_rx_byte_is_aligned);
+    
     ch1_tx_enc_err_o <= '0';
+
+      U_sync_4 : gc_sync_ffs
+      generic map (
+        g_sync_edge => "positive")
+      port map (
+        clk_i    => ch1_rx_rec_clk,
+        rst_n_i  => '1',
+        data_i   => ch01_gtp_locked,
+        synced_o => ch1_gtp_locked_rxclk,
+        npulse_o => open,
+        ppulse_o => open);
+
 
     U_bitslide_ch1 : gtp_bitslide
       generic map (
         g_simulation => g_simulation)
       port map (
-        gtp_rst_i                => ch01_gtp_reset,
+        gtp_rst_i                => ch1_gtp_reset_rxclk,
         gtp_rx_clk_i             => ch1_rx_rec_clk,
         gtp_rx_comma_det_i       => ch1_rx_comma_det,
         gtp_rx_byte_is_aligned_i => ch1_rx_byte_is_aligned,
-        serdes_ready_i           => ch01_gtp_locked,
+        serdes_ready_i           => ch1_gtp_locked_rxclk,
         gtp_rx_slide_o           => ch1_rx_slide,
         gtp_rx_cdr_rst_o         => ch1_rx_cdr_rst,
         bitslide_o               => ch1_rx_bitslide_int,
@@ -608,9 +694,9 @@ begin  -- rtl
         npulse_o => open,
         ppulse_o => open);
 
-    p_force_proper_disparity_ch1 : process(ch01_ref_clk_i, ch01_gtp_reset)
+    p_force_proper_disparity_ch1 : process(ch01_ref_clk_i, ch1_gtp_reset)
     begin
-      if (ch01_gtp_reset = '1') then
+      if (ch1_gtp_reset = '1') then
         ch1_disparity_set   <= '0';
         ch1_tx_chardispval  <= '0';
         ch1_tx_chardispmode <= '0';
@@ -631,9 +717,9 @@ begin  -- rtl
       end if;
     end process;
 
-    p_gen_output_ch1 : process(ch1_rx_rec_clk, ch1_rst_i)
+    p_gen_output_ch1 : process(ch1_rx_rec_clk, rst_i)
     begin
-      if(ch1_rst_i = '1') then
+      if(rst_i = '1') then
         ch1_rx_data_o    <= (others => '0');
         ch1_rx_k_o       <= '0';
         ch1_rx_enc_err_o <= '0';
@@ -664,8 +750,6 @@ begin  -- rtl
 
   gen_with_common : if(g_enable_ch0 /= 0) or (g_enable_ch1 /= 0) generate
     
-    ch01_gtp_reset <= ch0_gtp_reset;    -- or ch1_gtp_reset;
-
     ch01_ref_clk_in <= gtp_clk_i;
 
     ch01_gtp_locked <= ch01_gtp_pll_lockdet and (ch0_gtp_reset_done or To_Std_Logic(g_enable_ch0 = 0)) and (ch1_gtp_reset_done or To_Std_Logic(g_enable_ch1 = 0));
@@ -700,23 +784,23 @@ begin  -- rtl
       LOOPBACK0_IN         => ch0_gtp_loopback,
       LOOPBACK1_IN         => ch1_gtp_loopback,
       ----------------------- Receive Ports - 8b10b Decoder ----------------------
-      RXCHARISK0_OUT       => ch0_rx_k_int,
-      RXCHARISK1_OUT       => ch1_rx_k_int,
-      RXDISPERR0_OUT       => ch0_rx_disperr,
-      RXDISPERR1_OUT       => ch1_rx_disperr,
-      RXNOTINTABLE0_OUT    => ch0_rx_invcode,
-      RXNOTINTABLE1_OUT    => ch1_rx_invcode,
+      RXCHARISK0_OUT       => ch0_rx_data_raw_int_pre(8),
+      RXCHARISK1_OUT       => ch1_rx_data_raw_int_pre(8),
+      RXDISPERR0_OUT       => ch0_rx_data_raw_int_pre(9),
+      RXDISPERR1_OUT       => ch1_rx_data_raw_int_pre(9),
+      RXNOTINTABLE0_OUT    => open,
+      RXNOTINTABLE1_OUT    => open,
       --------------- Receive Ports - Comma Detection and Alignment --------------
 -- these don't seem to work on Virtex5 - we need to emulate them.
       RXBYTEISALIGNED0_OUT => open,
       RXBYTEISALIGNED1_OUT => open,
-      RXCOMMADET0_OUT      => ch0_rx_comma_det,
-      RXCOMMADET1_OUT      => ch1_rx_comma_det,
+      RXCOMMADET0_OUT      => open,
+      RXCOMMADET1_OUT      => open,
       RXSLIDE0_IN          => ch0_rx_slide,
       RXSLIDE1_IN          => ch1_rx_slide,
       ------------------- Receive Ports - RX Data Path interface -----------------
-      RXDATA0_OUT          => ch0_rx_data_int,
-      RXDATA1_OUT          => ch1_rx_data_int,
+      RXDATA0_OUT          => ch0_rx_data_raw_int_pre(7 downto 0),
+      RXDATA1_OUT          => ch1_rx_data_raw_int_pre(7 downto 0),
       RXRECCLK0_OUT        => ch0_rx_rec_clk_pad,
       RXRECCLK1_OUT        => ch1_rx_rec_clk_pad,
       RXUSRCLK0_IN         => ch0_rx_rec_clk,
