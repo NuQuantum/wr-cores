@@ -241,19 +241,6 @@ architecture rtl of wr_gtp_phy_virtex5 is
       I : in  std_ulogic);
   end component;
 
-  --component BUFIO2
-  --  generic (
-  --    DIVIDE_BYPASS : boolean := true;
-  --    DIVIDE        : integer := 1;
-  --    I_INVERT      : boolean := false;
-  --    USE_DOUBLER   : boolean := false);
-  --  port (
-  --    DIVCLK       : out std_ulogic;
-  --    IOCLK        : out std_ulogic;
-  --    SERDESSTROBE : out std_ulogic;
-  --    I            : in  std_ulogic);
-  --end component;
-
   component gtp_phase_align
     generic(
       g_simulation : integer);
@@ -369,7 +356,6 @@ architecture rtl of wr_gtp_phy_virtex5 is
   signal ch1_cur_disp  : t_8b10b_disparity;
   signal ch1_disp_pipe : std_logic_vector(1 downto 0);
 
-  signal ch0_rdy, ch1_rdy : std_logic;
   signal ch0_gtp_reset_rxclk_n : std_logic;
   signal ch1_gtp_reset_rxclk_n : std_logic;
   signal ch0_gtp_reset_rxclk : std_logic;
@@ -848,33 +834,7 @@ begin  -- rtl
   -- Debug added by J.Simonin
   ch1_align_done_o <= ch01_align_done;
   ch1_rx_synced_o  <= ch1_rx_synced;
-  -- ML:
-  ch0_rdy_o <= '1'; -- todo
-  ch1_rdy_o <= '1'; -- todo
-
---   ch0_rdy  <= ch01_gtp_locked and ch01_align_done when (g_enable_ch0 = 1) else '0';
---   ch1_rdy  <= ch01_gtp_locked and ch01_align_done when (g_enable_ch1 = 1) else '0';
--- 
---   U_sync_rdy_ch0 : gc_sync_ffs
---     generic map (
---       g_sync_edge => "positive")
---     port map (
---       clk_i    => ch0_rx_rec_clk,
---       rst_n_i  => '1',
---       data_i   => ch0_rdy,
---       synced_o => ch0_rdy_o,
---       npulse_o => open,
---       ppulse_o => open);
---       
---   U_sync_rdy_ch1 : gc_sync_ffs
---     generic map (
---       g_sync_edge => "positive")
---     port map (
---       clk_i    => ch1_rx_rec_clk,
---       rst_n_i  => '1',
---       data_i   => ch1_rdy,
---       synced_o => ch1_rdy_o,
---       npulse_o => open,
---       ppulse_o => open);
+  ch0_rdy_o <= ch0_gtp_locked_rxclk and ch0_rx_enable_output_synced;
+  ch1_rdy_o <= ch1_gtp_locked_rxclk and ch1_rx_enable_output_synced;
 
 end rtl;
