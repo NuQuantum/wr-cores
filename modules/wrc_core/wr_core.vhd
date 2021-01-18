@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2020-11-02
+-- Last update: 2021-01-15
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -345,7 +345,7 @@ architecture struct of wr_core is
 
   function f_check_if_lm32_firmware_necessary return boolean is
   begin
-    if(g_dpram_initf /= "") then
+    if(g_dpram_initf /= "" and g_dpram_initf /= "none") then
       return true;
     else
       return false;
@@ -452,6 +452,8 @@ architecture struct of wr_core is
   signal secbar_master_i : t_wishbone_master_in_array(8 downto 0);
   signal secbar_master_o : t_wishbone_master_out_array(8 downto 0);
 
+
+
   impure function f_pick_secbar_base return std_logic_vector is
   begin
     if g_ram_address_space_size_kb = 128 then
@@ -482,6 +484,15 @@ architecture struct of wr_core is
   signal cbar_slave_o  : t_wishbone_slave_out_array(2 downto 0);
   signal cbar_master_i : t_wishbone_master_in_array(1 downto 0);
   signal cbar_master_o : t_wishbone_master_out_array(1 downto 0);
+
+  attribute mark_debug : string;
+  attribute mark_debug of cbar_master_o : signal is "true";
+  attribute mark_debug of cbar_master_i : signal is "true";
+  attribute mark_debug of cbar_slave_o : signal is "true";
+  attribute mark_debug of cbar_slave_i : signal is "true";
+  attribute mark_debug of secbar_master_o : signal is "true";
+  attribute mark_debug of secbar_master_i : signal is "true";
+
 
   -----------------------------------------------------------------------------
   --External WB interface
@@ -930,6 +941,7 @@ begin
       g_board_name      => g_board_name,
       g_flash_secsz_kb  => g_flash_secsz_kb,
       g_flash_sdbfs_baddr => g_flash_sdbfs_baddr,
+      g_has_preinitialized_firmware => f_check_if_lm32_firmware_necessary,
       g_phys_uart       => g_phys_uart,
       g_virtual_uart    => g_virtual_uart,
       g_mem_words       => g_dpram_size,

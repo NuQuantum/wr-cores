@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-04-04
--- Last update: 2020-08-19
+-- Last update: 2021-01-15
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -51,6 +51,7 @@ entity wrc_periph is
     g_flash_secsz_kb    : integer := 256;        -- default for SVEC (M25P128)
     g_flash_sdbfs_baddr : integer := 16#600000#; -- default for SVEC (M25P128)
     g_phys_uart       : boolean := true;
+    g_has_preinitialized_firmware : boolean;
     g_with_phys_uart_fifo       : boolean                        := false;
     g_phys_uart_tx_fifo_size    : integer                        := 1024;
     g_phys_uart_rx_fifo_size    : integer                        := 1024;
@@ -151,7 +152,14 @@ begin
     if rising_edge(clk_sys_i) then
       if(rst_n_i = '0') then
         rst_net_n_o <= '0';
-        rst_wrc_n_o_reg <= '1';
+        if g_has_preinitialized_firmware then
+          rst_wrc_n_o_reg <= '1';
+        else
+          rst_wrc_n_o_reg <= '0'; -- no firmware in DPRAM? keep in reset so
+                                  -- that the CPU doesn't walk through the
+                                  -- whole address space trying to fetch
+                                  -- instructions (and sometimes freezing the interconnect)
+        end if;
       else
 
         if(sysc_regs_o.rstr_trig_wr_o = '1' and sysc_regs_o.rstr_trig_o = x"deadbee") then

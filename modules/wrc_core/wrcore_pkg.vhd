@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2020-11-02
+-- Last update: 2021-01-15
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -245,6 +245,7 @@ package wrcore_pkg is
       g_board_name      : string  := "NA  ";
       g_flash_secsz_kb    : integer := 64;
       g_flash_sdbfs_baddr : integer := 16#2e0000#;
+      g_has_preinitialized_firmware : boolean;
       g_phys_uart       : boolean := true;
       g_virtual_uart    : boolean := false;
       g_cntr_period     : integer := 62500;
