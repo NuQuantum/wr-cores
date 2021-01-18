@@ -1,0 +1,5 @@
+To build a Vivado project and synthesize the bitstream follow these steps:
+
+$ hdlmake
+$ make files.tcl
+$ vivado -mode tcl -source pxie_fmc.tcl
