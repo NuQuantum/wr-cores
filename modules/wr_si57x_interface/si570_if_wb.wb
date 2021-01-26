@@ -43,7 +43,16 @@ peripheral {
          access_bus = READ_WRITE;
          access_dev = READ_ONLY;
 			};
-   };
+
+			field {
+         name = "Si57x I/F Busy";
+				 prefix = "BUSY";
+         type = BIT;
+         access_bus = READ_ONLY;
+         access_dev = WRITE_ONLY;
+      };
+
+	 };
 
 	 
 	 reg {
@@ -65,7 +74,7 @@ peripheral {
 
 			field {
          name = "RFREQ hi part";
-         size = 8;
+         size = 32;
          type = SLV;
          access_bus = READ_WRITE;
          access_dev = READ_ONLY;
