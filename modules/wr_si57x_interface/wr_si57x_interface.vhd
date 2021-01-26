@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-04-26
--- Last update: 2020-07-03
+-- Last update: 2021-01-26
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -127,14 +127,15 @@ architecture rtl of wr_si57x_interface is
 
   type t_i2c_transaction is (START, STOP, SEND_BYTE);
 
-  type t_state is (IDLE, SI_START0, SI_START1, SI_START2, SI_ADDR0, SI_ADDR1, SI_ADDR2, SI_REG0, SI_REG1, SI_REG2, SI_RF0, SI_RF1, SI_RF2, SI_RF3, SI_RF4, SI_STOP0, SI_STOP1, SI_STOP2, SI_FREEZE0, SI_FREEZE2);
+  type t_state is (IDLE, SI_START0, SI_START1, SI_START2, SI_ADDR0, SI_ADDR1, SI_ADDR2, SI_RFX, SI_REG0, SI_REG1, SI_REG2, SI_RF0, SI_RF1, SI_RF2, SI_RF3, SI_RF4, SI_STOP0, SI_STOP1, SI_STOP2, SI_FREEZE0, SI_FREEZE2);
 
   signal state : t_state;
 
   signal scl_out_host, scl_out_fsm : std_logic;
   signal sda_out_host, sda_out_fsm : std_logic;
 
-  signal n1 : std_logic_vector(1 downto 0);
+  signal n1 : std_logic_vector(6 downto 0);
+  signal hsdiv : std_logic_vector(2 downto 0);
 
   procedure f_i2c_iterate(tick : std_logic; signal counter : inout unsigned; value : std_logic_vector(7 downto 0); trans_type : t_i2c_transaction; signal scl : out std_logic; signal sda : out std_logic; signal state_var : out t_state; next_state : t_state) is
     variable last : boolean;
@@ -208,6 +209,16 @@ architecture rtl of wr_si57x_interface is
     rv( l-1 downto x'length ) := (others => x(x'length-1));
     return rv;
   end f_sign_extend;
+
+  attribute mark_debug : string;
+  attribute mark_debug of rfreq_base : signal is "TRUE";
+  attribute mark_debug of rfreq_adj_scaled : signal is "TRUE";
+  attribute mark_debug of rfreq_new : signal is "TRUE";
+  attribute mark_debug of rfreq_new_p : signal is "TRUE";
+  attribute mark_debug of tm_dac_value_i : signal is "TRUE";
+  attribute mark_debug of tm_dac_value_wr_i : signal is "TRUE";
+  attribute mark_debug of state : signal is "TRUE";
+  
   
 begin  -- rtl
 
@@ -227,10 +238,13 @@ begin  -- rtl
       regs_i     => regs_in,
       regs_o     => regs_out);
 
+  regs_in.cr_busy_i <= '1' when state /= IDLE else '0';
+
   rfreq_base(31 downto 0)  <= unsigned(regs_out.rfreql_o);
   rfreq_base(37 downto 32) <= unsigned(regs_out.rfreqh_o(5 downto 0));
 
-  n1 <= regs_out.rfreqh_o(7 downto 6);
+  n1 <= regs_out.rfreqh_o(8+6 downto 8);
+  hsdiv <= regs_out.rfreqh_o(18 downto 16);
 
   p_rfreq : process(clk_sys_i)
   begin
@@ -290,7 +304,7 @@ begin  -- rtl
             end if;
 
           when SI_START0 =>
-            f_i2c_iterate(i2c_tick, seq_count, x"00", START, scl_out_fsm, sda_out_fsm, state, SI_ADDR1);
+            f_i2c_iterate(i2c_tick, seq_count, x"00", START, scl_out_fsm, sda_out_fsm, state, SI_ADDR0);
           when SI_ADDR0 =>
             f_i2c_iterate(i2c_tick, seq_count, regs_out.cr_i2c_addr_o, SEND_BYTE, scl_out_fsm, sda_out_fsm, state, SI_REG0);
           when SI_REG0 =>
@@ -304,9 +318,13 @@ begin  -- rtl
           when SI_ADDR1 =>
             f_i2c_iterate(i2c_tick, seq_count, regs_out.cr_i2c_addr_o, SEND_BYTE, scl_out_fsm, sda_out_fsm, state, SI_REG1);
           when SI_REG1 =>
-            f_i2c_iterate(i2c_tick, seq_count, x"08", SEND_BYTE, scl_out_fsm, sda_out_fsm, state, SI_RF0);
+            f_i2c_iterate(i2c_tick, seq_count, x"07", SEND_BYTE, scl_out_fsm, sda_out_fsm, state, SI_RFX);
+
+          when SI_RFX =>
+            f_i2c_iterate(i2c_tick, seq_count, hsdiv & n1(6 downto 2), SEND_BYTE, scl_out_fsm, sda_out_fsm, state, SI_RF0);
+
           when SI_RF0 =>
-            f_i2c_iterate(i2c_tick, seq_count, n1 & std_logic_vector(rfreq_current(37 downto 32)), SEND_BYTE, scl_out_fsm, sda_out_fsm, state, SI_RF1);
+            f_i2c_iterate(i2c_tick, seq_count, n1(1 downto 0) & std_logic_vector(rfreq_current(37 downto 32)), SEND_BYTE, scl_out_fsm, sda_out_fsm, state, SI_RF1);
 
           when SI_RF1 =>
             f_i2c_iterate(i2c_tick, seq_count, std_logic_vector(rfreq_current(31 downto 24)), SEND_BYTE, scl_out_fsm, sda_out_fsm, state, SI_RF2);
@@ -321,8 +339,7 @@ begin  -- rtl
             f_i2c_iterate(i2c_tick, seq_count, std_logic_vector(rfreq_current(7 downto 0)), SEND_BYTE, scl_out_fsm, sda_out_fsm, state, SI_STOP1);
 
           when SI_STOP1 =>
-            f_i2c_iterate(i2c_tick, seq_count, x"00", STOP, scl_out_fsm, sda_out_fsm, state, IDLE);
-            
+            f_i2c_iterate(i2c_tick, seq_count, x"00", STOP, scl_out_fsm, sda_out_fsm, state, SI_START2);
           when SI_START2 =>
             f_i2c_iterate(i2c_tick, seq_count, x"00", START, scl_out_fsm, sda_out_fsm, state, SI_ADDR2);
           when SI_ADDR2 =>
