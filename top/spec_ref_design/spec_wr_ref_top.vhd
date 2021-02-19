@@ -63,7 +63,7 @@ use unisim.vcomponents.all;
 
 entity spec_wr_ref_top is
   generic (
-    g_DPRAM_INITF : string := "../../bin/wrpc/wrc_phy8.bram";
+    g_DPRAM_INITF : string := "";
     -- Simulation-mode enable parameter. Set by default (synthesis) to 0, and
     -- changed to non-zero in the instantiation of the top level DUT in the testbench.
     -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
