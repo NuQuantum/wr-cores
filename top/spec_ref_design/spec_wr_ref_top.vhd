@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-20
--- Last update: 2019-04-26
+-- Last update: 2021-02-25
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the SPEC.
@@ -356,7 +356,7 @@ begin  -- architecture top
 
       ---------------------------------------------------------
       -- Interrupt interface
-      dma_irq_o => open,
+    --  dma_irq_o => open,
       irq_p_i   => '0',
       irq_p_o   => gn_gpio(0),
 

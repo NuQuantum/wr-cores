@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2021-02-19
+-- Last update: 2021-02-25
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -1004,6 +1004,10 @@ begin
   secbar_master_i(8).err   <= '0';
   secbar_master_i(8).rty   <= '0';
 
+
+  cpu_csr_wb_in <= secbar_master_o(9);
+  secbar_master_i(9) <= cpu_csr_wb_out;
+  
 
   -----------------------------------------------------------------------------
   -- WBP MUX
