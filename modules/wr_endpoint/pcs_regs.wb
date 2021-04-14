@@ -815,5 +815,29 @@ peripheral {
 		 };
 	};
 
+	reg {
+		 name = "DBG PRBS Control";
+		 prefix = "DBG_PRBS_CONTROL";
+		 field {
+				name = "Control word 0";
+				size = 16;
+				type = SLV;
+				access_bus = READ_WRITE;
+				access_dev = READ_ONLY;
+		 };
+	};
+
+	reg {
+		 name = "DBG PRBS Status";
+		 prefix = "DBG_PRBS_STATUS";
+		 field {
+				name = "Status word 0";
+
+				size = 16;
+				type = SLV;
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+		 };
+	};
 };
 

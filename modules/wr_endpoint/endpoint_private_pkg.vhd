@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2017-02-20
+-- Last update: 2021-04-09
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -206,6 +206,7 @@ package endpoint_private_pkg is
       mdio_mcr_reset_i        : in  std_logic;
       mdio_mcr_pdown_i        : in  std_logic;
       mdio_wr_spec_tx_cal_i   : in  std_logic;
+      mdio_dbg_prbs_en_i : in std_logic;
       an_tx_en_i              : in  std_logic;
       an_tx_val_i             : in  std_logic_vector(15 downto 0);
       timestamp_trigger_p_a_o : out std_logic;
@@ -277,6 +278,10 @@ package endpoint_private_pkg is
       mdio_mcr_pdown_i           : in  std_logic;
       mdio_wr_spec_cal_crst_i    : in  std_logic;
       mdio_wr_spec_rx_cal_stat_o : out std_logic;
+      mdio_dbg_prbs_check_i : in std_logic;
+      mdio_dbg_prbs_latch_count_i : in std_logic;
+      mdio_dbg_prbs_word_sel_i : in std_logic;
+      mdio_dbg_prbs_errors_o : out std_logic_vector(15 downto 0);
       synced_o                   : out std_logic;
       sync_lost_o                : out std_logic;
       an_rx_en_i                 : in  std_logic;
@@ -360,7 +365,10 @@ package endpoint_private_pkg is
       mdio_ectrl_sfp_tx_disable_o  : out std_logic;
       mdio_ectrl_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
       mdio_lpc_phy_stat_i         : in  std_logic_vector(15 downto 0);
-      mdio_lpc_phy_ctrl_o         : out std_logic_vector(15 downto 0));
+      mdio_lpc_phy_ctrl_o         : out std_logic_vector(15 downto 0);
+      mdio_dbg_prbs_control_o                  : out    std_logic_vector(15 downto 0);
+      mdio_dbg_prbs_status_i                   : in     std_logic_vector(15 downto 0)
+      );
   end component ep_pcs_tbi_mdio_wb;
 
   component ep_tx_header_processor
@@ -456,24 +464,24 @@ package endpoint_private_pkg is
       rmon_sent_pause_o  : out std_logic);
   end component;
 
-  component ep_wishbone_controller
-    port (
-      rst_n_i            : in  std_logic;
-      clk_sys_i          : in  std_logic;
-      wb_adr_i          : in  std_logic_vector(4 downto 0);
-      wb_dat_i          : in  std_logic_vector(31 downto 0);
-      wb_dat_o          : out std_logic_vector(31 downto 0);
-      wb_cyc_i           : in  std_logic;
-      wb_sel_i           : in  std_logic_vector(3 downto 0);
-      wb_stb_i           : in  std_logic;
-      wb_we_i            : in  std_logic;
-      wb_ack_o           : out std_logic;
-      wb_stall_o         : out std_logic;
-      tx_clk_i           : in  std_logic;
-      rx_clk_i           : in  std_logic;
-      regs_o             : out t_ep_out_registers;
-      regs_i             : in  t_ep_in_registers);
-  end component;
+  -- component ep_wishbone_controller
+  --   port (
+  --     rst_n_i            : in  std_logic;
+  --     clk_sys_i          : in  std_logic;
+  --     wb_adr_i          : in  std_logic_vector(4 downto 0);
+  --     wb_dat_i          : in  std_logic_vector(31 downto 0);
+  --     wb_dat_o          : out std_logic_vector(31 downto 0);
+  --     wb_cyc_i           : in  std_logic;
+  --     wb_sel_i           : in  std_logic_vector(3 downto 0);
+  --     wb_stb_i           : in  std_logic;
+  --     wb_we_i            : in  std_logic;
+  --     wb_ack_o           : out std_logic;
+  --     wb_stall_o         : out std_logic;
+  --     tx_clk_i           : in  std_logic;
+  --     rx_clk_i           : in  std_logic;
+  --     regs_o             : out t_ep_out_registers;
+  --     regs_i             : in  t_ep_in_registers);
+  -- end component;
 
   component ep_leds_controller
     generic (

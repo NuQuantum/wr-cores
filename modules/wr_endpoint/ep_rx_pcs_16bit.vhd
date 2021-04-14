@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-16
--- Last update: 2017-02-20
+-- Last update: 2021-04-09
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -96,6 +96,10 @@ entity ep_rx_pcs_16bit is
     mdio_mcr_pdown_i           : in  std_logic;
     mdio_wr_spec_cal_crst_i    : in  std_logic;
     mdio_wr_spec_rx_cal_stat_o : out std_logic;
+    mdio_dbg_prbs_check_i  : in std_logic;
+    mdio_dbg_prbs_errors_o : out std_logic_vector(15 downto 0);
+    mdio_dbg_prbs_latch_count_i : in std_logic;
+    mdio_dbg_prbs_word_sel_i : in std_logic;
 
     synced_o    : out std_logic;
     sync_lost_o : out std_logic;
@@ -218,6 +222,34 @@ architecture behavioral of ep_rx_pcs_16bit is
   signal pcs_fab_out       : t_ep_internal_fabric;
   signal pcs_valid_int     : std_logic;
   signal timestamp_pending : std_logic_vector(2 downto 0) := "000";
+
+
+  signal mdio_dbg_prbs_check_synced: std_logic;
+  signal mdio_dbg_prbs_word_sel_synced: std_logic;
+  signal mdio_dbg_prbs_latch_count_synced_p: std_logic;
+
+  signal lfsr_rst : std_logic;
+  
+  component lfsr_prbs_check is
+    generic
+      (
+        DATA_WIDTH : integer := 16
+        );
+    port (
+      clk : in std_logic;
+      rst : in std_logic;
+      data_in : in std_logic_vector(DATA_WIDTH-1 downto 0);
+      data_in_valid : in std_logic;
+      data_out : out std_logic_vector(DATA_WIDTH-1 downto 0)
+      );
+  end component;
+
+  signal prbs_error_count : unsigned(31 downto 0);
+  signal prbs_error_count_latched : unsigned(31 downto 0);
+  signal prbs_data_in : std_logic_vector(15 downto 0);
+  signal prbs_data_in_valid : std_logic;
+  signal prbs_data_out : std_logic_vector(15 downto 0);
+  
   
 begin
 -------------------------------------------------------------------------------
@@ -256,6 +288,40 @@ begin
       synced_o => mdio_mcr_reset_synced,
       npulse_o => open,
       ppulse_o => open);
+
+
+  U_sync_check_en : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_rx_clk_i,
+      rst_n_i  => '1',
+      data_i   => mdio_dbg_prbs_check_i,
+      synced_o => mdio_dbg_prbs_check_synced,
+      npulse_o => open,
+      ppulse_o => open);
+
+  
+  U_sync_check_word_sel : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_rx_clk_i,
+      rst_n_i  => '1',
+      data_i   => mdio_dbg_prbs_word_sel_i,
+      synced_o => mdio_dbg_prbs_word_sel_synced,
+      npulse_o => open,
+      ppulse_o => open);
+
+  U_sync_check_latch : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_rx_clk_i,
+      rst_n_i  => '1',
+      data_i   => mdio_dbg_prbs_latch_count_i,
+      npulse_o => open,
+      ppulse_o => mdio_dbg_prbs_latch_count_synced_p);
 
   U_sync_power_down : gc_sync_ffs
     generic map (
@@ -341,6 +407,63 @@ begin
   end process;
 
 
+  U_lfsr_prbs_check: lfsr_prbs_check
+    generic map (
+      DATA_WIDTH => 16)
+    port map (
+      clk           => phy_rx_clk_i,
+      rst           => lfsr_rst,
+      data_in       => prbs_data_in,
+      data_in_valid => prbs_data_in_valid,
+      data_out      => prbs_data_out);
+
+
+  lfsr_rst <= '1' when rst_n_rx = '0' or mdio_dbg_prbs_check_synced = '0' else '0';
+  p_prbs_check: process(phy_rx_clk_i)
+    begin
+      if rising_edge(phy_rx_clk_i) then
+        if rst_n_rx = '0' then
+          prbs_error_count <= (others => '0');
+          prbs_data_in_valid <= '0';
+        else
+          if mdio_dbg_prbs_check_synced = '1' then
+          
+            if phy_rx_data_i = (c_K28_5 & c_d16_2) and phy_rx_k_i = "10" then
+              prbs_data_in_valid <= '0';
+            else
+              prbs_data_in_valid <= '1';
+              prbs_data_in <= phy_rx_data_i;
+            end if;
+
+            if prbs_data_out /= x"0000" then
+              prbs_error_count <= prbs_error_count + 1;
+            end if;
+            
+
+          else
+            prbs_error_count <= (others => '0');
+          end if;
+          
+          
+
+          if mdio_dbg_prbs_latch_count_synced_p = '1' then
+            prbs_error_count_latched <= prbs_error_count;
+          end if;
+
+          if mdio_dbg_prbs_word_sel_i = '0' then
+            mdio_dbg_prbs_errors_o <= std_logic_vector(prbs_error_count_latched(15 downto 0));
+          else
+            mdio_dbg_prbs_errors_o <= std_logic_vector(prbs_error_count_latched(31 downto 16));
+          end if;
+          
+        end if;
+      end if;
+      
+    end process;
+    
+                                      
+                                        
+  
 -------------------------------------------------------------------------------
 -- Clock adjustment FIFO
 -------------------------------------------------------------------------------  
