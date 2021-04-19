@@ -320,7 +320,7 @@ begin
   txprecursor_int  <= "00000";
   txpostcursor_int <= "00000";
   eyescanreset_int <= '0';
-  rxlpmen_int      <= '0';
+  rxlpmen_int      <= '1';
   rx8b10ben_int    <= '1';
 
 
