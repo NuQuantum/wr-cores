@@ -1150,7 +1150,7 @@ module gtwizard_ultrascale_2_gtwizard_gthe4 #(
       for (cm = 0; cm < `gtwizard_ultrascale_2_gtwizard_gthe4_MAX_NUM_COMMONS; cm = cm + 1) begin : gen_common_container
         if (P_COMMON_ENABLE[cm] == 1'b1) begin : gen_enabled_common
 
-          gtwizard_ultrascale_2_gthe4_common_wrapper gthe4_common_wrapper_inst (
+   /*       gtwizard_ultrascale_2_gthe4_common_wrapper gthe4_common_wrapper_inst (
             .GTHE4_COMMON_BGBYPASSB         (bgbypassb_int         [f_ub_cm( 1,(4*cm)+3) : f_lb_cm( 1,4*cm)]),
             .GTHE4_COMMON_BGMONITORENB      (bgmonitorenb_int      [f_ub_cm( 1,(4*cm)+3) : f_lb_cm( 1,4*cm)]),
             .GTHE4_COMMON_BGPDB             (bgpdb_int             [f_ub_cm( 1,(4*cm)+3) : f_lb_cm( 1,4*cm)]),
@@ -1238,7 +1238,7 @@ module gtwizard_ultrascale_2_gtwizard_gthe4 #(
             .GTHE4_COMMON_SDM1TESTDATA      (sdm1testdata_int      [f_ub_cm(15,(4*cm)+3) : f_lb_cm(15,4*cm)]),
             .GTHE4_COMMON_TCONGPO           (tcongpo_int           [f_ub_cm(10,(4*cm)+3) : f_lb_cm(10,4*cm)]),
             .GTHE4_COMMON_TCONRSVDOUT0      (tconrsvdout0_int      [f_ub_cm( 1,(4*cm)+3) : f_lb_cm( 1,4*cm)])
-          );
+          );*/
 
         end
       end
@@ -2595,80 +2595,80 @@ module gtwizard_ultrascale_2_gtwizard_gthe4 #(
       assign drpen_ch_int          = drpen_int;
       assign drpwe_ch_int          = drpwe_int;
     end
-    if (0) begin : gen_cpll_cal_gtye4
-
-      gtwizard_ultrascale_v1_7_7_gtye4_cpll_cal #(
-          .C_SIM_CPLL_CAL_BYPASS( 
-      //pragma translate_off
-                  C_SIM_CPLL_CAL_BYPASS  ||
-      //pragma translate_on
-                  1'b0
-          ),
-        .C_PCIE_ENABLE(C_PCIE_ENABLE),
-        .C_FREERUN_FREQUENCY(C_FREERUN_FREQUENCY),
-        .C_RX_PLL_TYPE(C_RX_PLL_TYPE),
-        .C_TX_PLL_TYPE(C_TX_PLL_TYPE),
-        .C_PCIE_CORECLK_FREQ (C_PCIE_CORECLK_FREQ)
-      ) gtwizard_ultrascale_v1_7_7_gtye4_cpll_cal_inst (
-        .TXOUTCLK_PERIOD_IN         (18'b0),
-        .WAIT_DEASSERT_CPLLPD_IN    (16'b0),
-        .CNT_TOL_IN                 (18'b0),
-        .FREQ_COUNT_WINDOW_IN       (16'b0),
-        .RESET_IN                   (1'b0),
-        .CLK_IN                     (1'b0),
-        .DRPRST_IN                  (1'b0),
-        .USER_TXOUTCLK_BUFG_CE_IN   (1'b0),
-        .USER_TXOUTCLK_BUFG_CLR_IN  (1'b0),
-        .USER_TXPROGDIVRESET_IN     (1'b0),
-        .GTYE4_RXOUTCLK_IN              (1'b0),
-        .GTYE4_RXPMARESETDONE_IN        (1'b0),
-        .GTYE4_RXPRGDIVRESETDONE_IN     (1'b0),
-        .USER_GTRXRESET_IN              (1'b0),
-        .USER_RXCDRHOLD_IN              (1'b0),
-        .USER_RXOUTCLK_BUFG_CE_IN       (1'b0),
-        .USER_RXOUTCLK_BUFG_CLR_IN      (1'b0),
-        .USER_RXPMARESET_IN             (1'b0),
-        .USER_RXPROGDIVRESET_IN         (1'b0),
-        .USER_RXPLLCLKSEL               (2'b00),
-        .USER_TXPLLCLKSEL               (2'b00),
-        .USER_RXOUTCLKSEL_IN            (3'b010),
-        .GTYE4_GTRXRESET_OUT            (),
-        .GTYE4_RXCDRHOLD_OUT            (),
-        .GTYE4_RXPMARESET_OUT           (),
-        .GTYE4_RXPROGDIVRESET_OUT       (),
-        .USER_RXPMARESETDONE_OUT        (),
-        .USER_RXPRGDIVRESETDONE_OUT     (),
-        .GTYE4_RXOUTCLKSEL_OUT          (),
-        .USER_TXPRGDIVRESETDONE_OUT (),
-        .USER_TXOUTCLKSEL_IN        (3'b0),
-        .USER_CPLLLOCK_OUT          (),
-        .USER_CHANNEL_DRPADDR_IN    (9'b0),
-        .USER_CHANNEL_DRPDI_IN      (16'b0),
-        .USER_CHANNEL_DRPEN_IN      (1'b0),
-        .USER_CHANNEL_DRPWE_IN      (1'b0),
-        .USER_CHANNEL_DRPRDY_OUT    (),
-        .USER_CHANNEL_DRPDO_OUT     (),
-        .CPLL_CAL_FAIL              (),
-        .CPLL_CAL_DONE              (),
-        .DEBUG_OUT                  (),
-        .CAL_FREQ_CNT               (),
-        .REPEAT_RESET_LIMIT         (4'd15),
-        .GTYE4_TXOUTCLK_IN          (1'b0),
-        .GTYE4_CPLLLOCK_IN          (1'b0),
-        .GTYE4_CPLLRESET_OUT        (),
-        .GTYE4_CPLLPD_OUT           (),
-        .GTYE4_TXPROGDIVRESET_OUT   (),
-        .GTYE4_TXOUTCLKSEL_OUT      (),
-        .GTYE4_TXPRGDIVRESETDONE_IN (1'b0),
-        .GTYE4_CHANNEL_DRPADDR_OUT  (),
-        .GTYE4_CHANNEL_DRPDI_OUT    (),
-        .GTYE4_CHANNEL_DRPEN_OUT    (),
-        .GTYE4_CHANNEL_DRPWE_OUT    (),
-        .GTYE4_CHANNEL_DRPRDY_IN    (1'b0),
-        .GTYE4_CHANNEL_DRPDO_IN     (16'b0)
-      );
-
-    end
+//GD    if (0) begin : gen_cpll_cal_gtye4
+//GD
+//GD      gtwizard_ultrascale_v1_7_7_gtye4_cpll_cal #(
+//GD          .C_SIM_CPLL_CAL_BYPASS( 
+//GD      //pragma translate_off
+//GD                  C_SIM_CPLL_CAL_BYPASS  ||
+//GD      //pragma translate_on
+//GD                  1'b0
+//GD          ),
+//GD        .C_PCIE_ENABLE(C_PCIE_ENABLE),
+//GD        .C_FREERUN_FREQUENCY(C_FREERUN_FREQUENCY),
+//GD        .C_RX_PLL_TYPE(C_RX_PLL_TYPE),
+//GD        .C_TX_PLL_TYPE(C_TX_PLL_TYPE),
+//GD        .C_PCIE_CORECLK_FREQ (C_PCIE_CORECLK_FREQ)
+//GD      ) gtwizard_ultrascale_v1_7_7_gtye4_cpll_cal_inst (
+//GD        .TXOUTCLK_PERIOD_IN         (18'b0),
+//GD        .WAIT_DEASSERT_CPLLPD_IN    (16'b0),
+//GD        .CNT_TOL_IN                 (18'b0),
+//GD        .FREQ_COUNT_WINDOW_IN       (16'b0),
+//GD        .RESET_IN                   (1'b0),
+//GD        .CLK_IN                     (1'b0),
+//GD        .DRPRST_IN                  (1'b0),
+//GD        .USER_TXOUTCLK_BUFG_CE_IN   (1'b0),
+//GD        .USER_TXOUTCLK_BUFG_CLR_IN  (1'b0),
+//GD        .USER_TXPROGDIVRESET_IN     (1'b0),
+//GD        .GTYE4_RXOUTCLK_IN              (1'b0),
+//GD        .GTYE4_RXPMARESETDONE_IN        (1'b0),
+//GD        .GTYE4_RXPRGDIVRESETDONE_IN     (1'b0),
+//GD        .USER_GTRXRESET_IN              (1'b0),
+//GD        .USER_RXCDRHOLD_IN              (1'b0),
+//GD        .USER_RXOUTCLK_BUFG_CE_IN       (1'b0),
+//GD        .USER_RXOUTCLK_BUFG_CLR_IN      (1'b0),
+//GD        .USER_RXPMARESET_IN             (1'b0),
+//GD        .USER_RXPROGDIVRESET_IN         (1'b0),
+//GD        .USER_RXPLLCLKSEL               (2'b00),
+//GD        .USER_TXPLLCLKSEL               (2'b00),
+//GD        .USER_RXOUTCLKSEL_IN            (3'b010),
+//GD        .GTYE4_GTRXRESET_OUT            (),
+//GD        .GTYE4_RXCDRHOLD_OUT            (),
+//GD        .GTYE4_RXPMARESET_OUT           (),
+//GD        .GTYE4_RXPROGDIVRESET_OUT       (),
+//GD        .USER_RXPMARESETDONE_OUT        (),
+//GD        .USER_RXPRGDIVRESETDONE_OUT     (),
+//GD        .GTYE4_RXOUTCLKSEL_OUT          (),
+//GD        .USER_TXPRGDIVRESETDONE_OUT (),
+//GD        .USER_TXOUTCLKSEL_IN        (3'b0),
+//GD        .USER_CPLLLOCK_OUT          (),
+//GD        .USER_CHANNEL_DRPADDR_IN    (9'b0),
+//GD        .USER_CHANNEL_DRPDI_IN      (16'b0),
+//GD        .USER_CHANNEL_DRPEN_IN      (1'b0),
+//GD        .USER_CHANNEL_DRPWE_IN      (1'b0),
+//GD        .USER_CHANNEL_DRPRDY_OUT    (),
+//GD        .USER_CHANNEL_DRPDO_OUT     (),
+//GD        .CPLL_CAL_FAIL              (),
+//GD        .CPLL_CAL_DONE              (),
+//GD        .DEBUG_OUT                  (),
+//GD        .CAL_FREQ_CNT               (),
+//GD        .REPEAT_RESET_LIMIT         (4'd15),
+//GD        .GTYE4_TXOUTCLK_IN          (1'b0),
+//GD        .GTYE4_CPLLLOCK_IN          (1'b0),
+//GD        .GTYE4_CPLLRESET_OUT        (),
+//GD        .GTYE4_CPLLPD_OUT           (),
+//GD        .GTYE4_TXPROGDIVRESET_OUT   (),
+//GD        .GTYE4_TXOUTCLKSEL_OUT      (),
+//GD        .GTYE4_TXPRGDIVRESETDONE_IN (1'b0),
+//GD        .GTYE4_CHANNEL_DRPADDR_OUT  (),
+//GD        .GTYE4_CHANNEL_DRPDI_OUT    (),
+//GD        .GTYE4_CHANNEL_DRPEN_OUT    (),
+//GD        .GTYE4_CHANNEL_DRPWE_OUT    (),
+//GD        .GTYE4_CHANNEL_DRPRDY_IN    (1'b0),
+//GD        .GTYE4_CHANNEL_DRPDO_IN     (16'b0)
+//GD      );
+//GD
+//GD    end
 
     genvar pwrgood_delay;
     for (pwrgood_delay = 0; pwrgood_delay < `gtwizard_ultrascale_2_gtwizard_gthe4_N_CH; pwrgood_delay = pwrgood_delay + 1) begin : gen_pwrgood_delay_inst
