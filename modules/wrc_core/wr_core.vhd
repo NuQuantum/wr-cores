@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2021-01-15
+-- Last update: 2021-06-19
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -425,15 +425,15 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   --WB Peripherials
   -----------------------------------------------------------------------------
-  signal periph_slave_i : t_wishbone_slave_in_array(0 to 3);
-  signal periph_slave_o : t_wishbone_slave_out_array(0 to 3);
+  signal periph_slave_i : t_wishbone_slave_in_array(0 to 4);
+  signal periph_slave_o : t_wishbone_slave_out_array(0 to 4);
   signal sysc_in_regs   : t_sysc_in_registers;
   signal sysc_out_regs  : t_sysc_out_registers;
 
   -----------------------------------------------------------------------------
   --WB Secondary Crossbar
   -----------------------------------------------------------------------------
-  constant c_secbar_layout : t_sdb_record_array(8 downto 0) :=
+  constant c_secbar_layout : t_sdb_record_array(9 downto 0) :=
     (0 => f_sdb_embed_device(c_xwr_mini_nic_sdb, x"00000000"),
      1 => f_sdb_embed_device(c_xwr_endpoint_sdb, x"00000100"),
      2 => f_sdb_embed_device(c_xwr_softpll_ng_sdb, x"00000200"),
@@ -441,16 +441,19 @@ architecture struct of wr_core is
      4 => f_sdb_embed_device(c_wrc_periph0_sdb, x"00000400"),  -- Syscon
      5 => f_sdb_embed_device(c_wrc_periph1_sdb, x"00000500"),  -- UART
      6 => f_sdb_embed_device(c_wrc_periph2_sdb, x"00000600"),  -- 1-Wire
-     7 => f_sdb_embed_device(c_wrc_periph4_sdb, x"00000800"),  -- WRPC diag registers
-     8 => f_sdb_embed_device(g_aux_sdb,         x"00008000")   -- aux WB bus
+     -- WRPC diag registers (user access)
+     7 => f_sdb_embed_device(c_wrc_periph4_sdb, x"00000800"),
+     -- WRPC diag registers (WRC private)
+     8 => f_sdb_embed_device(c_wrc_periph5_sdb, x"00000900"),
+     9 => f_sdb_embed_device(g_aux_sdb,         x"00008000")   -- aux WB bus
      );
 
   constant c_secbar_sdb_address : t_wishbone_address := x"00000C00";
   constant c_secbar_bridge_sdb  : t_sdb_bridge       :=
     f_xwb_bridge_layout_sdb(true, c_secbar_layout, c_secbar_sdb_address);
 
-  signal secbar_master_i : t_wishbone_master_in_array(8 downto 0);
-  signal secbar_master_o : t_wishbone_master_out_array(8 downto 0);
+  signal secbar_master_i : t_wishbone_master_in_array(9 downto 0);
+  signal secbar_master_o : t_wishbone_master_out_array(9 downto 0);
 
 
 
@@ -1093,7 +1096,7 @@ begin
     generic map(
       g_verbose     => g_verbose,
       g_num_masters => 1,
-      g_num_slaves  => 9,
+      g_num_slaves  => 10,
       g_registered  => true,
       g_wraparound  => true,
       g_layout      => c_secbar_layout,
@@ -1123,24 +1126,27 @@ begin
   secbar_master_i(5) <= periph_slave_o(1);
   secbar_master_i(6) <= periph_slave_o(2);
   secbar_master_i(7) <= periph_slave_o(3);
+  secbar_master_i(8) <= periph_slave_o(4);
+
   periph_slave_i(0)  <= secbar_master_o(4);
   periph_slave_i(1)  <= secbar_master_o(5);
   periph_slave_i(2)  <= secbar_master_o(6);
   periph_slave_i(3)  <= secbar_master_o(7);
+  periph_slave_i(4)  <= secbar_master_o(8);
 
 
-  aux_adr_o <= secbar_master_o(8).adr;
-  aux_dat_o <= secbar_master_o(8).dat;
-  aux_sel_o <= secbar_master_o(8).sel;
-  aux_cyc_o <= secbar_master_o(8).cyc;
-  aux_stb_o <= secbar_master_o(8).stb;
-  aux_we_o  <= secbar_master_o(8).we;
+  aux_adr_o <= secbar_master_o(9).adr;
+  aux_dat_o <= secbar_master_o(9).dat;
+  aux_sel_o <= secbar_master_o(9).sel;
+  aux_cyc_o <= secbar_master_o(9).cyc;
+  aux_stb_o <= secbar_master_o(9).stb;
+  aux_we_o  <= secbar_master_o(9).we;
 
-  secbar_master_i(8).dat   <= aux_dat_i;
-  secbar_master_i(8).ack   <= aux_ack_i;
-  secbar_master_i(8).stall <= aux_stall_i;
-  secbar_master_i(8).err   <= '0';
-  secbar_master_i(8).rty   <= '0';
+  secbar_master_i(9).dat   <= aux_dat_i;
+  secbar_master_i(9).ack   <= aux_ack_i;
+  secbar_master_i(9).stall <= aux_stall_i;
+  secbar_master_i(9).err   <= '0';
+  secbar_master_i(9).rty   <= '0';
 
 
   -----------------------------------------------------------------------------

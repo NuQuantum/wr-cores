@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2021-01-15
+-- Last update: 2021-06-19
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -240,6 +240,22 @@ package wrcore_pkg is
         date      => x"20170424",
         name      => "WR-Periph-WRPC-DIAG")));
 
+  constant c_wrc_periph5_sdb : t_sdb_device := (
+    abi_class     => x"0000",              -- undocumented device
+    abi_ver_major => x"01",
+    abi_ver_minor => x"01",
+    wbd_endian    => c_sdb_endian_big,
+    wbd_width     => x"7",                 -- 8/16/32-bit port granularity
+    sdb_component => (
+      addr_first  => x"0000000000000000",
+      addr_last   => x"00000000000000ff",
+      product     => (
+        vendor_id => x"000000000000CE42",  -- CERN
+        device_id => x"779c544a",
+        version   => x"00000001",
+        date      => x"20210620",
+        name      => "WR-Periph-DIAG-PRIV")));
+
   component wrc_periph is
     generic(
       g_board_name      : string  := "NA  ";
@@ -282,8 +298,8 @@ package wrcore_pkg is
       spi_ncs_o   : out std_logic;
       spi_mosi_o  : out std_logic;
       spi_miso_i  : in  std_logic;
-      slave_i     : in  t_wishbone_slave_in_array(0 to 3);
-      slave_o     : out t_wishbone_slave_out_array(0 to 3);
+      slave_i     : in  t_wishbone_slave_in_array(0 to 4);
+      slave_o     : out t_wishbone_slave_out_array(0 to 4);
       uart_rxd_i  : in  std_logic;
       uart_txd_o  : out std_logic;
       owr_pwren_o : out std_logic_vector(1 downto 0);
