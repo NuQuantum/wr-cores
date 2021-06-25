@@ -38,7 +38,6 @@ library work;
 use work.genram_pkg.all;
 use work.wishbone_pkg.all;
 use work.sysc_wbgen2_pkg.all;
-use work.wrc_diags_wbgen2_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.softpll_pkg.all;
@@ -142,22 +141,6 @@ package wrcore_pkg is
   -----------------------------------------------------------------------------
   -- PERIPHERIALS
   -----------------------------------------------------------------------------
-  component xwr_diags_wb is
-    generic(
-      g_interface_mode      : t_wishbone_interface_mode      := CLASSIC;
-      g_address_granularity : t_wishbone_address_granularity := WORD
-    );
-    port (
-      rst_n_i   : in  std_logic;
-      clk_sys_i : in  std_logic;
-
-      slave_i   : in  t_wishbone_slave_in;
-      slave_o   : out t_wishbone_slave_out;
-
-      regs_i    : in  t_wrc_diags_in_registers;
-      regs_o    : out t_wrc_diags_out_registers
-    );
-  end component;
 
   constant c_wrc_periph0_sdb : t_sdb_device := (
     abi_class     => x"0000",              -- undocumented device

@@ -43,7 +43,6 @@ library work;
 use work.wrcore_pkg.all;
 use work.wishbone_pkg.all;
 use work.sysc_wbgen2_pkg.all;
-use work.wrc_diags_wbgen2_pkg.all;
 
 entity wrc_periph is
   generic(
@@ -142,8 +141,6 @@ architecture struct of wrc_periph is
   signal diag_dat : std_logic_vector(31 downto 0);
   signal diag_out_regs : t_generic_word_array(g_diag_rw_size - 1 downto 0);
   signal diag_in       : t_generic_word_array(g_diag_ro_size + g_diag_rw_size-1 downto 0);
-  signal wrpc_diag_regs_in     : t_wrc_diags_in_registers;
-  signal wrpc_diag_regs_out    : t_wrc_diags_out_registers;
 
 begin
 
