@@ -109,7 +109,9 @@ elif (syn_device[0:4].upper()=="XCKU"): # Kintex Ultrascale GTH
         "family7-gthe3/gc_reset_synchronizer.vhd" ])
     files.extend( xilinx_ip_gthe3 );
     files.extend( xilinx_ip_common );
-elif (syn_device[0:4].upper()=="XCZU"): # Zynq Ultrascale GTH
+elif (syn_device[0:4].upper()=="XCZU" or   # Zynq Ultrascale GTH
+      syn_device[0:6].upper()=="XCAU10" or # Artix Ultrascale+ AU10P AU15P GTH
+      syn_device[0:6].upper()=="XCAU15"):
     files.extend(["family7-gthe4/wr_gthe4_phy_family7.vhd",
         "family7-gthe4/wr_gthe4_phy_family7_xilinx_ip.vhd",
         "family7-gthe4/wr_gthe4_reset.vhd",
