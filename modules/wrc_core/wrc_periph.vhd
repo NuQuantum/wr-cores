@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-04-04
--- Last update: 2021-06-19
+-- Last update: 2022-01-25
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -142,18 +142,36 @@ architecture struct of wrc_periph is
   signal diag_out_regs : t_generic_word_array(g_diag_rw_size - 1 downto 0);
   signal diag_in       : t_generic_word_array(g_diag_ro_size + g_diag_rw_size-1 downto 0);
 
+  signal rst_net_n, rst_net_n_d0 : std_logic;
+  signal rst_wrc_n, rst_wrc_n_d0 : std_logic;
+  
+  
 begin
 
-  rst_wrc_n_o <= rst_n_i and rst_wrc_n_o_reg;
+  process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' then
+        rst_wrc_n_o <= '0';
+      else
+        rst_net_n_o <= rst_net_n_d0;
+        rst_net_n_d0 <= rst_net_n;
+
+        rst_wrc_n_o <= rst_wrc_n_d0;
+        rst_wrc_n_d0 <= rst_wrc_n;
+      end if;
+    end if;
+  end process;
+
   process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if(rst_n_i = '0') then
-        rst_net_n_o <= '0';
+        rst_net_n <= '0';
         if g_has_preinitialized_firmware then
-          rst_wrc_n_o_reg <= '1';
+          rst_wrc_n <= '1';
         else
-          rst_wrc_n_o_reg <= '0'; -- no firmware in DPRAM? keep in reset so
+          rst_wrc_n <= '0'; -- no firmware in DPRAM? keep in reset so
                                   -- that the CPU doesn't walk through the
                                   -- whole address space trying to fetch
                                   -- instructions (and sometimes freezing the interconnect)
@@ -161,10 +179,10 @@ begin
       else
 
         if(sysc_regs_o.rstr_trig_wr_o = '1' and sysc_regs_o.rstr_trig_o = x"deadbee") then
-          rst_wrc_n_o_reg <= not sysc_regs_o.rstr_rst_o;
+          rst_wrc_n <= not sysc_regs_o.rstr_rst_o;
         end if; 
             
-        rst_net_n_o <= not sysc_regs_o.gpsr_net_rst_o;
+        rst_net_n <= not sysc_regs_o.gpsr_net_rst_o;
       end if; 
     end if; 
   end process;
