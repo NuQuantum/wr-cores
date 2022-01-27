@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2021-06-19
+-- Last update: 2022-01-17
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -383,6 +383,7 @@ package wrcore_pkg is
       g_tx_runt_padding           : boolean                        := true;
       g_dpram_initf               : string                         := "default";
       g_dpram_size                : integer                        := 131072/4;  --in 32-bit words
+      g_use_platform_specific_dpram : boolean                      := false;
       g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
       g_address_granularity       : t_wishbone_address_granularity := BYTE;
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
@@ -537,6 +538,7 @@ package wrcore_pkg is
       g_tx_runt_padding           : boolean                        := true;
       g_dpram_initf               : string                         := "default";
       g_dpram_size                : integer                        := 131072/4;  --in 32-bit words
+      g_use_platform_specific_dpram : boolean                      := false;
       g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
       g_address_granularity       : t_wishbone_address_granularity := BYTE;
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
@@ -784,6 +786,20 @@ package wrcore_pkg is
       dac_din_o   : out std_logic);
   end component;
 
+  component wrc_platform_dpram is
+    generic (
+      g_size                  : natural;
+      g_init_file             : string;
+      g_must_have_init_file   : boolean);
+    port (
+      clk_sys_i : in  std_logic;
+      rst_n_i   : in  std_logic;
+      slave1_i  : in  t_wishbone_slave_in;
+      slave1_o  : out t_wishbone_slave_out;
+      slave2_i  : in  t_wishbone_slave_in;
+      slave2_o  : out t_wishbone_slave_out);
+  end component wrc_platform_dpram;
+  
 end wrcore_pkg;
 
 package body wrcore_pkg is

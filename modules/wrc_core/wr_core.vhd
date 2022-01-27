@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2021-06-19
+-- Last update: 2022-01-17
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -92,6 +92,7 @@ entity wr_core is
     g_tx_runt_padding           : boolean                        := true;
     g_dpram_initf               : string                         := "default";
     g_dpram_size                : integer                        := 131072/4;  --in 32-bit words
+    g_use_platform_specific_dpram        : boolean := FALSE;
     g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
     g_address_granularity       : t_wishbone_address_granularity := BYTE;
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
@@ -103,7 +104,8 @@ entity wr_core is
     g_diag_id                   : integer                        := 0;
     g_diag_ver                  : integer                        := 0;
     g_diag_ro_size              : integer                        := 0;
-    g_diag_rw_size              : integer                        := 0);
+    g_diag_rw_size              : integer                        := 0
+    );
   port(
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -910,25 +912,29 @@ begin
   -----------------------------------------------------------------------------
   -- Dual-port RAM
   -----------------------------------------------------------------------------
-  DPRAM : xwb_dpram
-    generic map(
-      g_size                  => g_dpram_size,
-      g_init_file             => f_choose_lm32_firmware_file,
-      g_must_have_init_file   => f_check_if_lm32_firmware_necessary,
-      g_slave1_interface_mode => PIPELINED,
-      g_slave2_interface_mode => PIPELINED,
-      g_slave1_granularity    => BYTE,
-      g_slave2_granularity    => WORD)
-    port map(
-      clk_sys_i => clk_sys_i,
-      rst_n_i   => rst_n_i,
 
-      slave1_i => cbar_master_o(0),
-      slave1_o => cbar_master_i(0),
-      slave2_i => dpram_wbb_i,
-      slave2_o => open
-      );
+  gen_use_generic_dpram : if g_use_platform_specific_dpram = false generate
+    DPRAM : xwb_dpram
+      generic map(
+        g_size                  => g_dpram_size,
+        g_init_file             => f_choose_lm32_firmware_file,
+        g_must_have_init_file   => f_check_if_lm32_firmware_necessary,
+        g_slave1_interface_mode => PIPELINED,
+        g_slave2_interface_mode => PIPELINED,
+        g_slave1_granularity    => BYTE,
+        g_slave2_granularity    => WORD)
+      port map(
+        clk_sys_i => clk_sys_i,
+        rst_n_i   => rst_n_i,
 
+        slave1_i => cbar_master_o(0),
+        slave1_o => cbar_master_i(0),
+        slave2_i => dpram_wbb_i,
+        slave2_o => open
+        );
+  end generate gen_use_generic_dpram;
+  
+  
   dpram_wbb_i.cyc <= '0';
   dpram_wbb_i.stb <= '0';
   dpram_wbb_i.adr <= (others=>'0');
@@ -936,6 +942,23 @@ begin
   dpram_wbb_i.we  <= '0'; --mnic_mem_wr_o;
   dpram_wbb_i.dat <= (others=>'0'); --mnic_mem_data_o;
 
+  gen_use_platform_dpram : if g_use_platform_specific_dpram = true generate
+    DPRAM : wrc_platform_dpram
+      generic map(
+        g_size                  => g_dpram_size,
+        g_init_file             => f_choose_lm32_firmware_file,
+        g_must_have_init_file   => f_check_if_lm32_firmware_necessary)
+      port map(
+        clk_sys_i => clk_sys_i,
+        rst_n_i   => rst_n_i,
+
+        slave1_i => cbar_master_o(0),
+        slave1_o => cbar_master_i(0),
+        slave2_i => dpram_wbb_i,
+        slave2_o => open
+        );
+  end generate gen_use_platform_dpram;
+  
   -----------------------------------------------------------------------------
   -- WB Peripherials
   -----------------------------------------------------------------------------

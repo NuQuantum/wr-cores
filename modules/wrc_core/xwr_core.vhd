@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2020-11-02
+-- Last update: 2022-01-17
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -92,6 +92,7 @@ entity xwr_core is
     g_tx_runt_padding           : boolean                        := true;
     g_dpram_initf               : string                         := "";
     g_dpram_size                : integer                        := 131072/4;  --in 32-bit words
+    g_use_platform_specific_dpram        : boolean := FALSE;
     g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
     g_address_granularity       : t_wishbone_address_granularity := BYTE;
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
@@ -103,7 +104,8 @@ entity xwr_core is
     g_diag_id                   : integer                        := 0;
     g_diag_ver                  : integer                        := 0;
     g_diag_ro_size              : integer                        := 0;
-    g_diag_rw_size              : integer                        := 0);
+    g_diag_rw_size              : integer                        := 0
+    );
   port(
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -314,7 +316,8 @@ begin
       g_diag_id                   => g_diag_id,
       g_diag_ver                  => g_diag_ver,
       g_diag_ro_size              => g_diag_ro_size,
-      g_diag_rw_size              => g_diag_rw_size
+      g_diag_rw_size              => g_diag_rw_size,
+      g_use_platform_specific_dpram => g_use_platform_specific_dpram
       )
     port map(
       clk_sys_i     => clk_sys_i,
