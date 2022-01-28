@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2022-03-28
+-- Last update: 2022-04-19
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -104,8 +104,8 @@ entity wr_core is
     g_diag_id                   : integer                        := 0;
     g_diag_ver                  : integer                        := 0;
     g_diag_ro_size              : integer                        := 0;
-    g_diag_rw_size              : integer                        := 0
-    );
+    g_diag_rw_size              : integer                        := 0;
+    g_dac_bits                  : integer                        := 16);
   port(
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -140,10 +140,10 @@ entity wr_core is
     --Timing system
     -----------------------------------------
     dac_hpll_load_p1_o : out std_logic;
-    dac_hpll_data_o    : out std_logic_vector(15 downto 0);
+    dac_hpll_data_o    : out std_logic_vector(g_dac_bits-1 downto 0);
 
     dac_dpll_load_p1_o : out std_logic;
-    dac_dpll_data_o    : out std_logic_vector(15 downto 0);
+    dac_dpll_data_o    : out std_logic_vector(g_dac_bits-1 downto 0);
 
     -- PHY I/f
     phy_ref_clk_i : in std_logic;
@@ -293,7 +293,7 @@ entity wr_core is
 
     tm_link_up_o         : out std_logic;
     -- DAC Control
-    tm_dac_value_o       : out std_logic_vector(23 downto 0);
+    tm_dac_value_o       : out std_logic_vector(31 downto 0);
     tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
     -- Aux clock lock enable
     tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
@@ -518,7 +518,7 @@ architecture struct of wr_core is
 
   signal spll_out_locked : std_logic_vector(g_aux_clks downto 0);
 
-  signal dac_dpll_data    : std_logic_vector(15 downto 0);
+  signal dac_dpll_data    : std_logic_vector(g_dac_bits-1 downto 0);
   signal dac_dpll_sel     : std_logic_vector(3 downto 0);
   signal dac_dpll_load_p1 : std_logic;
 
@@ -647,6 +647,7 @@ begin
       g_divide_input_by_2    => not g_pcs_16bit,
       g_with_debug_fifo      => g_softpll_enable_debugger,
       g_tag_bits             => 22,
+      g_dac_bits             => g_dac_bits,
       g_interface_mode       => PIPELINED,
       g_address_granularity  => BYTE,
       g_num_ref_inputs       => 1,
@@ -708,7 +709,7 @@ begin
   dac_dpll_data_o    <= dac_dpll_data;
   dac_dpll_load_p1_o <= '1' when (dac_dpll_load_p1 = '1' and dac_dpll_sel = x"0") else '0';
 
-  tm_dac_value_o <= x"00" & dac_dpll_data;
+  tm_dac_value_o <= (31 downto dac_dpll_data'length => '0') & dac_dpll_data;
 
   p_decode_dac_writes : process(dac_dpll_load_p1, dac_dpll_sel)
   begin

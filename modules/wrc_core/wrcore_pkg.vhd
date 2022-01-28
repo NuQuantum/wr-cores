@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2022-03-28
+-- Last update: 2022-04-19
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -331,6 +331,7 @@ package wrcore_pkg is
   component xwr_softpll_ng
     generic (
       g_tag_bits             : integer;
+      g_dac_bits             : integer;
       g_num_ref_inputs       : integer;
       g_num_outputs          : integer;
       g_num_exts             : integer;
@@ -359,9 +360,9 @@ package wrcore_pkg is
       clk_ext_rst_o        : out std_logic;
       pps_csync_p1_i  : in  std_logic;
       pps_ext_a_i     : in  std_logic;
-      dac_dmtd_data_o : out std_logic_vector(15 downto 0);
+      dac_dmtd_data_o : out std_logic_vector(g_dac_bits-1 downto 0);
       dac_dmtd_load_o : out std_logic;
-      dac_out_data_o  : out std_logic_vector(15 downto 0);
+      dac_out_data_o  : out std_logic_vector(g_dac_bits-1 downto 0);
       dac_out_sel_o   : out std_logic_vector(3 downto 0);
       dac_out_load_o  : out std_logic;
       out_enable_i    : in  std_logic_vector(g_num_outputs-1 downto 0);
@@ -411,7 +412,8 @@ package wrcore_pkg is
       g_diag_id                   : integer                        := 0;
       g_diag_ver                  : integer                        := 0;
       g_diag_ro_size              : integer                        := 0;
-      g_diag_rw_size              : integer                        := 0);
+      g_diag_rw_size              : integer                        := 0;
+      g_dac_bits                  : integer                        := 16);
     port(
       clk_sys_i            : in std_logic;
       clk_dmtd_i           : in std_logic := '0';
@@ -426,9 +428,9 @@ package wrcore_pkg is
       rst_n_i              : in std_logic;
 
       dac_hpll_load_p1_o   : out std_logic;
-      dac_hpll_data_o      : out std_logic_vector(15 downto 0);
+      dac_hpll_data_o      : out std_logic_vector(g_dac_bits-1 downto 0);
       dac_dpll_load_p1_o   : out std_logic;
-      dac_dpll_data_o      : out std_logic_vector(15 downto 0);
+      dac_dpll_data_o      : out std_logic_vector(g_dac_bits-1 downto 0);
       -----------------------------------------
       -- PHY I/f
       -----------------------------------------
@@ -511,7 +513,7 @@ package wrcore_pkg is
       fc_tx_pause_ready_o : out std_logic;
 
       tm_link_up_o         : out std_logic;
-      tm_dac_value_o       : out std_logic_vector(23 downto 0);
+      tm_dac_value_o       : out std_logic_vector(31 downto 0);
       tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
       tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
       tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
@@ -566,7 +568,8 @@ package wrcore_pkg is
       g_diag_id                   : integer                        := 0;
       g_diag_ver                  : integer                        := 0;
       g_diag_ro_size              : integer                        := 0;
-      g_diag_rw_size              : integer                        := 0);
+      g_diag_rw_size              : integer                        := 0;
+      g_dac_bits                  : integer                        := 16);
     port(
       ---------------------------------------------------------------------------
       -- Clocks/resets
@@ -601,10 +604,10 @@ package wrcore_pkg is
       --Timing system
       -----------------------------------------
       dac_hpll_load_p1_o : out std_logic;
-      dac_hpll_data_o    : out std_logic_vector(15 downto 0);
+      dac_hpll_data_o    : out std_logic_vector(g_dac_bits-1 downto 0);
 
       dac_dpll_load_p1_o : out std_logic;
-      dac_dpll_data_o    : out std_logic_vector(15 downto 0);
+      dac_dpll_data_o    : out std_logic_vector(g_dac_bits-1 downto 0);
 
       -----------------------------------------
       -- PHY I/f
@@ -758,7 +761,7 @@ package wrcore_pkg is
 
       tm_link_up_o         : out std_logic;
 
-      tm_dac_value_o       : out std_logic_vector(23 downto 0);
+      tm_dac_value_o       : out std_logic_vector(31 downto 0);
       tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0) ;
       tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
       tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0) ;

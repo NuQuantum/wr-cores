@@ -40,12 +40,13 @@ use work.wishbone_pkg.all;
 
 entity xwr_sit5359_interface is
   generic (
-    g_simulation : integer := 0);
+    g_simulation : integer := 0;
+    g_dac_bits   : integer := 16);
   port (
     clk_sys_i         : in  std_logic;
     rst_n_i           : in  std_logic;
     
-    tm_dac_value_i    : in  std_logic_vector(15 downto 0) := (others => '0');
+    tm_dac_value_i    : in  std_logic_vector(g_dac_bits-1 downto 0) := (others => '0');
     tm_dac_value_wr_i : in  std_logic                     := '0';
     
     scl_pad_oen_o     : out std_logic;
@@ -62,11 +63,12 @@ architecture wrapper of xwr_sit5359_interface is
 
   component wr_sit5359_interface
     generic (
-      g_simulation : integer);
+      g_simulation : integer;
+      g_dac_bits   : integer);
     port (
       clk_sys_i         : in  std_logic;
       rst_n_i           : in  std_logic;
-      tm_dac_value_i    : in  std_logic_vector(15 downto 0)                           := (others => '0');
+      tm_dac_value_i    : in  std_logic_vector(g_dac_bits-1 downto 0)                           := (others => '0');
       tm_dac_value_wr_i : in  std_logic                                               := '0';
       scl_pad_oen_o     : out std_logic;
       sda_pad_oen_o     : out std_logic;
@@ -88,7 +90,8 @@ begin  -- wrapper
 
   U_Wrapped_sit5359 : wr_sit5359_interface
     generic map (
-      g_simulation => g_simulation)
+      g_simulation => g_simulation,
+      g_dac_bits   => g_dac_bits)
     port map (
       clk_sys_i         => clk_sys_i,
       rst_n_i           => rst_n_i,

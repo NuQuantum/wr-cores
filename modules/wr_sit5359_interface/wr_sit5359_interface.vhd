@@ -51,9 +51,10 @@ use work.sit5359_wbgen2_pkg.all;
 entity wr_sit5359_interface is
   
   generic (
-    g_simulation : integer := 0;
+    g_simulation     : integer := 0;
     g_sys_clock_freq : integer := 62500000;
-    g_i2c_freq : integer := 400000
+    g_i2c_freq       : integer := 400000;
+    g_dac_bits       : integer range 1 to 26 := 16  -- SiTime 5359 Frequency Control word = 26 bits
     );
 
   port (
@@ -61,7 +62,7 @@ entity wr_sit5359_interface is
     rst_n_i   : in std_logic;
 
     -- WR Core timing interface: aux clock tune port
-    tm_dac_value_i    : in std_logic_vector(15 downto 0) := (others => '0');
+    tm_dac_value_i    : in std_logic_vector(g_dac_bits-1 downto 0) := (others => '0');
     tm_dac_value_wr_i : in std_logic := '0';
 
     -- I2C bus: output enable (active low)
@@ -106,15 +107,17 @@ architecture rtl of wr_sit5359_interface is
       regs_o     : out t_sit5359_out_registers);
   end component;
 
+  constant c_dac_half_scale : integer := 2**(g_dac_bits-1);
+
   signal regs_in  : t_sit5359_in_registers;
   signal regs_out : t_sit5359_out_registers;
 
   signal rfreq_new_p                   : std_logic;
   signal rfreq_current, rfreq_new      : unsigned(31 downto 0);
 
-  signal tm_dac_value_wr_d : std_logic;
+  signal tm_dac_value_wr_d  : std_logic;
   signal tm_dac_value_wr_d1 : std_logic;
-  signal tm_dac_value     : std_logic_vector(15 downto 0);
+  signal tm_dac_value       : std_logic_vector(g_dac_bits-1 downto 0);
 
   signal i2c_tick    : std_logic;
   signal i2c_divider : unsigned(7 downto 0);
@@ -244,9 +247,9 @@ begin  -- rtl
         -- next pipeline stage, create fromatted frequency tune word
         if(tm_dac_value_wr_d = '1'  and tm_dac_value_wr_d1 = '0') then
           -- Sit5359 Freqency Control Word is 26 bits signed
-          -- Convert 16 bit unsigned DAC value to 17 bit signed and
-          -- shift DAC bits to MSB bits of 26 bit Freqency Control Word.
-          rfreq_new <= "00000" & regs_out.cr_osc_oe_o & unsigned((signed('0' & tm_dac_value(15 downto 0)) - to_signed(32768, 17)) & "000000000");
+          -- Convert "g_dac_bits" unsigned DAC value to signed and shift left DAC bits and pad with '0'
+          -- to compose 26 bit Freqency Control Word (including Output Enable bit).
+          rfreq_new <= "00000" & regs_out.cr_osc_oe_o & unsigned(signed(tm_dac_value) - to_signed(c_dac_half_scale, g_dac_bits)) & ((25-g_dac_bits) downto 0 => '0');
         end if;
 
         rfreq_new_p <= tm_dac_value_wr_d and not tm_dac_value_wr_d1 and regs_out.cr_spll_en_o;
