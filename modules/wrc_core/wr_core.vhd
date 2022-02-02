@@ -490,13 +490,13 @@ architecture struct of wr_core is
   signal cbar_master_i : t_wishbone_master_in_array(1 downto 0);
   signal cbar_master_o : t_wishbone_master_out_array(1 downto 0);
 
-  attribute mark_debug : string;
-  attribute mark_debug of cbar_master_o : signal is "true";
-  attribute mark_debug of cbar_master_i : signal is "true";
-  attribute mark_debug of cbar_slave_o : signal is "true";
-  attribute mark_debug of cbar_slave_i : signal is "true";
-  attribute mark_debug of secbar_master_o : signal is "true";
-  attribute mark_debug of secbar_master_i : signal is "true";
+  --attribute mark_debug : string;
+  --attribute mark_debug of cbar_master_o : signal is "true";
+  --attribute mark_debug of cbar_master_i : signal is "true";
+  --attribute mark_debug of cbar_slave_o : signal is "true";
+  --attribute mark_debug of cbar_slave_i : signal is "true";
+  --attribute mark_debug of secbar_master_o : signal is "true";
+  --attribute mark_debug of secbar_master_i : signal is "true";
 
 
   -----------------------------------------------------------------------------
