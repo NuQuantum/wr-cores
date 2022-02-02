@@ -335,7 +335,8 @@ package streamers_pkg is
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
     g_slave_granularity        : t_wishbone_address_granularity := BYTE;
     g_simulation               : integer := 0;
-    g_sim_cycle_counter_range  : integer := 125000
+    g_sim_cycle_counter_range  : integer := 125000;
+    g_with_dbg_word : boolean := TRUE
     );
 
   port (

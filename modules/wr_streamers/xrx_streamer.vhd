@@ -186,14 +186,14 @@ architecture rtl of xrx_streamer is
   signal fifo_sync, fifo_last, frames_lost, blocks_lost      : std_logic;
   signal fifo_dout, fifo_din                                 : std_logic_vector(g_data_width + 1 + 28 + 1 downto 0);
 
-  attribute mark_debug                : string;
-  attribute mark_debug of fifo_drop   : signal is "true";
-  attribute mark_debug of fifo_accept : signal is "true";
-  attribute mark_debug of fifo_dvalid : signal is "true";
-  attribute mark_debug of state       : signal is "true";
-  attribute mark_debug of fsm_in      : signal is "true";
-  attribute mark_debug of fifo_full   : signal is "true";
-  attribute mark_debug of fifo_dreq   : signal is "true";
+  --attribute mark_debug                : string;
+  --attribute mark_debug of fifo_drop   : signal is "true";
+  --attribute mark_debug of fifo_accept : signal is "true";
+  --attribute mark_debug of fifo_dvalid : signal is "true";
+  --attribute mark_debug of state       : signal is "true";
+  --attribute mark_debug of fsm_in      : signal is "true";
+  --attribute mark_debug of fifo_full   : signal is "true";
+  --attribute mark_debug of fifo_dreq   : signal is "true";
 
   signal fifo_target_ts_en : std_logic;
   signal fifo_target_ts    : std_logic_vector(28 downto 0);

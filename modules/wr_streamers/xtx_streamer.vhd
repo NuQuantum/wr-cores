@@ -208,12 +208,12 @@ architecture rtl of xtx_streamer is
   signal link_ok_ref : std_logic;
 
 
-  attribute mark_debug : string;
+  --attribute mark_debug : string;
 
-  attribute mark_debug of link_ok_delay_cnt         : signal is "true";
-  attribute mark_debug of link_ok_delay_expired_ref : signal is "true";
-  attribute mark_debug of link_ok_delay_expired     : signal is "true";
-  attribute mark_debug of link_ok_ref               : signal is "true";
+  --attribute mark_debug of link_ok_delay_cnt         : signal is "true";
+  --attribute mark_debug of link_ok_delay_expired_ref : signal is "true";
+  --attribute mark_debug of link_ok_delay_expired     : signal is "true";
+  --attribute mark_debug of link_ok_ref               : signal is "true";
 
 
   signal clk_data  : std_logic;
