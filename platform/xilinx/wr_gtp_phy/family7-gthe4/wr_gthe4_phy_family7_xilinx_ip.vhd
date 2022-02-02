@@ -205,7 +205,7 @@ begin
   
   U_Sync2 : gc_sync_ffs
     port map (
-      clk_i    => tx_clk,
+      clk_i    => rx_clk,
       rst_n_i  => rst_n,
       data_i   => gtwiz_buffbypass_rx_reset_pre,
       synced_o => gtwiz_buffbypass_rx_reset_in);
