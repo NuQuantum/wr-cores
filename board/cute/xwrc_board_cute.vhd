@@ -602,6 +602,7 @@ begin  -- architecture struct
       g_simulation                => g_simulation,
       g_with_external_clock_input => g_with_external_clock_input,
       g_board_name                => "CUTE",
+      g_ram_address_space_size_kb => 256,
       g_flash_secsz_kb            => 64,         -- sector size for M25P32
       g_flash_sdbfs_baddr         => 16#2e0000#, -- sdbfs after multiboot bitstream
       g_phys_uart                 => TRUE,
@@ -610,7 +611,7 @@ begin  -- architecture struct
       g_ep_rxbuf_size             => 1024,
       g_tx_runt_padding           => TRUE,
       g_dpram_initf               => g_dpram_initf,
-      g_dpram_size                => 131072/4,
+      g_dpram_size                => 144*1024/4,
       g_interface_mode            => PIPELINED,
       g_address_granularity       => BYTE,
       g_aux_sdb                   => g_aux_sdb,

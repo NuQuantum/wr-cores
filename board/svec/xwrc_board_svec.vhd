@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2019-09-25
+-- Last update: 2022-03-10
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -443,6 +443,7 @@ begin  -- architecture struct
       g_verbose                   => g_verbose,
       g_with_external_clock_input => g_with_external_clock_input,
       g_board_name                => "SVEC",
+      g_ram_address_space_size_kb => 256,
       g_flash_secsz_kb            => 256,        -- default for M25P128
       g_flash_sdbfs_baddr         => 16#600000#, -- default for M25P128
       g_phys_uart                 => TRUE,
@@ -451,7 +452,7 @@ begin  -- architecture struct
       g_ep_rxbuf_size             => 1024,
       g_tx_runt_padding           => TRUE,
       g_dpram_initf               => g_dpram_initf,
-      g_dpram_size                => 131072/4,
+      g_dpram_size                => 144*1024/4,
       g_interface_mode            => PIPELINED,
       g_address_granularity       => BYTE,
       g_aux_sdb                   => c_wrc_periph3_sdb,

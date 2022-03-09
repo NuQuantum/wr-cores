@@ -101,6 +101,7 @@ package wr_board_pkg is
       g_simulation                : integer                        := 0;
       g_verbose                   : boolean                        := TRUE;
       g_with_external_clock_input : boolean                        := TRUE;
+      g_ram_address_space_size_kb : integer                        := 128;
       g_board_name                : string                         := "NA  ";
       g_flash_secsz_kb            : integer                        := 256;        -- default for M25P128
       g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for M25P128
