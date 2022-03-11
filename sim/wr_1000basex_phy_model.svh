@@ -12,6 +12,10 @@ module wr_1000basex_phy_tx_path_model
 
    input [15:0] tx_data_i,
    input [1:0] 	tx_k_i,
+   input [19:0] tx_raw_i,
+   input [15:0] tx_data_i,
+   input [1:0] 	tx_k_i,
+   input tx_is_raw_i,
    output 	tx_disparity_o,
    
 
@@ -29,6 +33,22 @@ module wr_1000basex_phy_tx_path_model
    
    reg 	      clk_tx = 0;
    
+<<<<<<< HEAD
+=======
+
+   function bit[31:0] f_reverse(bit[31:0] x, int n);
+
+      bit [31:0] rv;
+      int 	 i;
+      
+      for(i=0;i<n;i++)
+	rv[n-1-i]=x[i];
+      return rv;
+   endfunction // f_reverse
+   
+
+     
+>>>>>>> origin/Virtex5_PHY_fix
    
    always@(posedge clk_ref_i)
      if(pll_en)
@@ -76,6 +96,13 @@ module wr_1000basex_phy_tx_path_model
    reg [19:0] tx_sreg;
    int 	      tx_bit_count = 0;
    reg 	      clk_ref_d = 0;
+
+   wire [19:0] tx_raw_rev ;
+   
+   assign tx_raw_rev[19:10] = f_reverse(tx_raw_i[19:10], 10);
+   assign tx_raw_rev[9:0] = f_reverse(tx_raw_i[9:0], 10);
+
+   wire [19:0] tx_d_mux = tx_is_raw_i ? tx_raw_rev : tx_d;
    
    
    always@(posedge clk_tx)
@@ -84,9 +111,10 @@ module wr_1000basex_phy_tx_path_model
 	
 	if(!clk_ref_d && clk_ref_i)
 	  begin
-	     tx_sreg <= tx_d;
+	     $display("Tx %b", tx_d_mux);
+	     tx_sreg <= tx_d_mux;
 	     tx_bit_count <= 1;
-	     tx_o <= tx_d[0];
+	     tx_o <= tx_d_mux[0];
 	  end else begin
 	     tx_bit_count <= tx_bit_count + 1;
 	     tx_o <= tx_sreg[tx_bit_count];
@@ -258,7 +286,10 @@ module wr_1000basex_phy_model
  input [1:0]   tx_k_i,
  output        tx_disparity_o,
  output        tx_enc_err_o,
+ input [19:0]  tx_raw_i,
+ input 	       tx_is_raw_i,
 
+ 
  output        rx_rbclk_o,
  output [15:0] rx_data_o,
  output [1:0]  rx_k_o,
@@ -287,6 +318,8 @@ module wr_1000basex_phy_model
      (
       .clk_ref_i(clk_ref_i),
       .rst_n_i(~rst_i),
+      .tx_raw_i(tx_raw_i),
+      .tx_is_raw_i(tx_is_raw_i),
       .tx_data_i(tx_data_i),
       .tx_k_i(tx_k_i),
       .tx_disparity_o(tx_disparity_o),
