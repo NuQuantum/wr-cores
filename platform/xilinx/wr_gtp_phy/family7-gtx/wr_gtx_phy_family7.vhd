@@ -118,7 +118,7 @@ end wr_gtx_phy_family7;
 
 architecture rtl of wr_gtx_phy_family7 is
 
-  component WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT is
+  component whiterabbit_gtxe2_channel_wrapper_gt is
     generic
     (
         -- Simulation attributes
@@ -208,7 +208,7 @@ architecture rtl of wr_gtx_phy_family7 is
     ------------------ Transmit Ports - pattern Generator Ports ----------------
     TXPRBSSEL_IN                            : in   std_logic_vector(2 downto 0)
 	);
-  end component WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT;
+  end component whiterabbit_gtxe2_channel_wrapper_gt;
 
   component BUFG
     port (
@@ -325,11 +325,14 @@ begin  -- rtl
   tx_is_k_swapped <= tx_k_i(0) & tx_k_i(1);
   tx_data_swapped <= tx_data_i(7 downto 0) & tx_data_i(15 downto 8);
   
-U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
+  U_GTX_INST : whiterabbit_gtxe2_channel_wrapper_gt 
     generic map
     (
        -- Simulation attributes
-       GT_SIM_GTRESET_SPEEDUP    =>  "TRUE"        -- Set to "true" to speed up sim reset
+       GT_SIM_GTRESET_SPEEDUP    =>  "TRUE",       -- Set to "true" to speed up sim reset
+       RX_DFE_KL_CFG2_IN         =>  X"3010D90C",
+       PMA_RSV_IN                =>  X"00018480",
+       PCS_RSVD_ATTR_IN          =>  X"000000000000"
     )
     port map
     (

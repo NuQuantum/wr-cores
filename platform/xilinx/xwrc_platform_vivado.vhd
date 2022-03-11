@@ -189,7 +189,8 @@ begin  -- architecture rtl
   -----------------------------------------------------------------------------
   -- Check for unsupported features and/or misconfiguration
   -----------------------------------------------------------------------------
-  gen_unknown_fpga : if (g_fpga_family /= "kintex7" and g_fpga_family /= "artix7" and g_fpga_family /= "zynqus") generate
+  gen_unknown_fpga : if (g_fpga_family /= "kintex7" and g_fpga_family /=
+  "artix7" and g_fpga_family /= "zynqus" and g_fpga_family /= "zynqus_epll") generate
     assert FALSE
       report "Xilinx FPGA family [" & g_fpga_family & "] is not supported"
       severity ERROR;
@@ -548,6 +549,25 @@ begin  -- architecture rtl
     end generate gen_zynqus_default_plls;
 
     ---------------------------------------------------------------------------
+    --   Zynq US+ Buffers when external PLLs are used
+    ---------------------------------------------------------------------------
+    gen_zynqus_si5341_plls: if (g_fpga_family = "zynqus_epll") generate
+
+      cmp_clk_ref_buf: BUFG
+      port map (
+        I => clk_125m_pllref_i, -- 62.5MHz in DI/OT
+        O => clk_sys);
+
+      clk_62m5_sys_o <= clk_sys;
+      pll_locked_o   <= '1'; --pll_sys_locked;
+
+      cmp_clk_dmtd_buf_o: BUFG
+        port map (
+          O   => clk_62m5_dmtd_o,
+          I   => clk_125m_dmtd_i);
+    end generate gen_zynqus_si5341_plls;
+
+    ---------------------------------------------------------------------------
     
     gen_no_ext_ref_pll : if (g_with_external_clock_input = FALSE) generate
       clk_10m_ext_o         <= '0';
@@ -739,7 +759,7 @@ begin  -- architecture rtl
   ---------------------------------------------------------------------------
   --   ZynqUS+ PHY
   ---------------------------------------------------------------------------
-  gen_phy_zynqus : if (g_fpga_family = "zynqus") generate
+  gen_phy_zynqus : if (g_fpga_family = "zynqus" or g_fpga_family = "zynqus_epll") generate
 
     signal clk_125m_gth_buf  : std_logic;
     signal clk_ref : std_logic;

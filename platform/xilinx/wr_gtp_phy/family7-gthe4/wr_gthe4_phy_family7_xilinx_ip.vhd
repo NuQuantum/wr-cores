@@ -75,6 +75,76 @@ end wr_gthe4_phy_family7_xilinx_ip;
 architecture rtl of wr_gthe4_phy_family7_xilinx_ip is
 
 
+  component gtwizard_ultrascale_2 is
+    port (
+      gthrxn_in                            : in  std_logic;
+      gthrxp_in                            : in  std_logic;
+      gthtxn_out                           : out std_logic;
+      gthtxp_out                           : out std_logic;
+      gtwiz_userclk_tx_reset_in            : in  std_logic_vector(0 downto 0);
+      gtwiz_userclk_tx_usrclk_out          : out std_logic_vector(0 downto 0);
+      gtwiz_userclk_tx_usrclk2_out         : out std_logic_vector(0 downto 0);
+      gtwiz_userclk_tx_active_out          : out std_logic_vector(0 downto 0);
+      gtwiz_userclk_rx_reset_in            : in  std_logic_vector(0 downto 0);
+      gtwiz_userclk_rx_usrclk_out          : out std_logic_vector(0 downto 0);
+      gtwiz_userclk_rx_usrclk2_out         : out std_logic_vector(0 downto 0);
+      gtwiz_userclk_rx_active_out          : out std_logic_vector(0 downto 0);
+      gtwiz_buffbypass_tx_reset_in         : in  std_logic_vector(0 downto 0);
+      gtwiz_buffbypass_tx_start_user_in    : in  std_logic_vector(0 downto 0); 
+      gtwiz_buffbypass_tx_done_out         : out std_logic_vector(0 downto 0);
+      gtwiz_buffbypass_tx_error_out        : out std_logic_vector(0 downto 0);
+      gtwiz_buffbypass_rx_reset_in         : in  std_logic_vector(0 downto 0); 
+      gtwiz_buffbypass_rx_start_user_in    : in  std_logic_vector(0 downto 0);
+      gtwiz_buffbypass_rx_done_out         : out std_logic_vector(0 downto 0);
+      gtwiz_buffbypass_rx_error_out        : out std_logic_vector(0 downto 0);
+      drpaddr_in                           : in  std_logic_vector(9 downto 0);
+      drpclk_in                            : in  std_logic;
+      drpdi_in                             : in  std_logic_vector(15 downto 0);
+      drpen_in                             : in  std_logic;
+      drpwe_in                             : in  std_logic;
+      eyescanreset_in                      : in  std_logic;
+
+      gtrefclk0_in : in std_logic;
+
+      gtwiz_reset_clk_freerun_in           : in  std_logic_vector(0 downto 0);
+      gtwiz_reset_all_in                   : in  std_logic_vector(0 downto 0);
+      gtwiz_reset_tx_pll_and_datapath_in   : in  std_logic_vector(0 downto 0);
+      gtwiz_reset_tx_datapath_in           : in  std_logic_vector(0 downto 0);
+      gtwiz_reset_rx_pll_and_datapath_in   : in  std_logic_vector(0 downto 0);
+      gtwiz_reset_rx_datapath_in           : in  std_logic_vector(0 downto 0);
+      gtwiz_reset_rx_cdr_stable_out        : out std_logic_vector(0 downto 0);
+      gtwiz_reset_tx_done_out              : out std_logic_vector(0 downto 0);
+      gtwiz_reset_rx_done_out              : out std_logic_vector(0 downto 0);
+      gtwiz_userdata_tx_in                 : in  std_logic_vector(15 downto 0);
+      gtwiz_userdata_rx_out                : out std_logic_vector(15 downto 0);
+      rx8b10ben_in                         : in  std_logic_vector(0 downto 0);
+      rxcommadeten_in                      : in  std_logic_vector(0 downto 0);
+      rxmcommaalignen_in                   : in  std_logic_vector(0 downto 0);
+      rxpcommaalignen_in                   : in  std_logic_vector(0 downto 0);
+      rxslide_in                           : in  std_logic_vector(0 downto 0);
+      tx8b10ben_in                         : in  std_logic_vector(0 downto 0);
+      txctrl0_in                           : in  std_logic_vector(15 downto 0);
+      txctrl1_in                           : in  std_logic_vector(15 downto 0);
+      txctrl2_in                           : in  std_logic_vector(7 downto 0);
+      rxbyteisaligned_out                  : out std_logic_vector(0 downto 0);
+      rxbyterealign_out                    : out std_logic;
+      rxcommadet_out                       : out std_logic_vector(0 downto 0);
+      rxctrl0_out                          : out std_logic_vector(15 downto 0);
+      rxctrl1_out                          : out std_logic_vector(15 downto 0);
+      rxctrl2_out                          : out std_logic_vector(7 downto 0);
+      rxctrl3_out                          : out std_logic_vector(7 downto 0);
+      rxpmaresetdone_out                   : out std_logic_vector(0 downto 0);
+      txpmaresetdone_out                   : out std_logic_vector(0 downto 0);
+
+      rxlpmen_in      : in std_logic_vector(0 downto 0);
+      rxrate_in       : in std_logic_vector(2 downto 0);
+      txdiffctrl_in   : in std_logic_vector(4 downto 0);
+      txpostcursor_in : in std_logic_vector(4 downto 0);
+      txprecursor_in  : in std_logic_vector(4 downto 0)
+      );
+  end component gtwizard_ultrascale_2;
+
+
   signal gtwiz_userclk_tx_reset_in     : std_logic;
 --  signal gtwiz_userclk_tx_srcclk_out        : std_logic;
 --  signal gtwiz_userclk_tx_usrclk_out        : std_logic;
@@ -240,18 +310,19 @@ begin
 
   gtwiz_reset_all_in <= rst_i;
 
-  U_gtwizard_gthe4 : entity work.gtwizard_ultrascale_2
+  -- U_gtwizard_gthe4 : entity work.gtwizard_ultrascale_2
+  U_gtwizard_gthe4 : gtwizard_ultrascale_2
     port map (
       gthrxn_in                            => pad_rxn_i,
       gthrxp_in                            => pad_rxp_i,
       gthtxn_out                           => pad_txn_o,
       gthtxp_out                           => pad_txp_o,
       gtwiz_userclk_tx_reset_in(0)         => gtwiz_userclk_tx_reset_in,
---     gtwiz_userclk_tx_usrclk_out(0)        => gtwiz_userclk_tx_usrclk_out,
+--     gtwiz_userclk_tx_usrclk_out(0)       => open,
       gtwiz_userclk_tx_usrclk2_out(0)      => tx_clk,
       gtwiz_userclk_tx_active_out(0)       => gtwiz_userclk_tx_active_out,
       gtwiz_userclk_rx_reset_in(0)         => gtwiz_userclk_rx_reset_in,
---     gtwiz_userclk_rx_usrclk_out(0)        => gtwiz_userclk_rx_usrclk_out,
+--      gtwiz_userclk_rx_usrclk_out(0)        => open,
       gtwiz_userclk_rx_usrclk2_out(0)      => rx_clk,
       gtwiz_userclk_rx_active_out(0)       => gtwiz_userclk_rx_active_out,
       gtwiz_buffbypass_tx_reset_in(0)      => gtwiz_buffbypass_tx_reset_in,

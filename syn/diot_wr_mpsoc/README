@@ -1,0 +1,2 @@
+To create Xilinx project for DI/OT System Board execute:
+$ vivado -mode batch -source build.tcl
