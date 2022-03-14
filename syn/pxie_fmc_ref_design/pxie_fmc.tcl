@@ -50,3 +50,5 @@ set end_time [clock seconds]
 set total_time [ expr { $end_time - $start_time} ]
 set absolute_time [clock format $total_time -format {%H:%M:%S} -gmt true ]
 puts "\ntotal build time: $absolute_time\n"
+
+exit 0
