@@ -102,7 +102,9 @@ entity xwr_streamers is
 
     -- shorten the duration of second to see TAI seconds for simulation only (i.e.
     -- only if g_simulation = 1)
-    g_sim_cycle_counter_range  : integer := 125000
+    g_sim_cycle_counter_range  : integer := 125000;
+
+    g_with_dbg_word : boolean := TRUE
     );
 
   port (
@@ -467,24 +469,27 @@ begin
   --   word is of sufficient width
   -------------------------------------------------------------------------------------------
   start_bit <= from_wb.dbg_ctrl_start_byte_o & "000";
-  p_debug_mux: process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
-        dbg_word <= (others =>'0');
-      else
-        if(from_wb.dbg_ctrl_mux_o = '1') then --rx
-          if(rx_valid = '1') then
-            dbg_word <= f_dbg_word_starting_at_bit(rx_data,start_bit,g_rx_streamer_params.data_width);
-          end if;
-        else -- tx
-          if(tx_valid_i = '1') then
-            dbg_word <= f_dbg_word_starting_at_bit(tx_data_i,start_bit,g_tx_streamer_params.data_width);
+
+  gen_with_dbg_word: if g_with_dbg_word generate
+    p_debug_mux: process(clk_sys_i)
+    begin
+      if rising_edge(clk_sys_i) then
+        if rst_n_i = '0' then
+          dbg_word <= (others =>'0');
+        else
+          if(from_wb.dbg_ctrl_mux_o = '1') then --rx
+            if(rx_valid = '1') then
+              dbg_word <= f_dbg_word_starting_at_bit(rx_data,start_bit,g_rx_streamer_params.data_width);
+            end if;
+          else -- tx
+            if(tx_valid_i = '1') then
+              dbg_word <= f_dbg_word_starting_at_bit(tx_data_i,start_bit,g_tx_streamer_params.data_width);
+            end if;
           end if;
         end if;
       end if;
-    end if;
-  end process;
+    end process;
+  end generate gen_with_dbg_word;
 
   ------------------------------------------------------------------------------------------------------
   --------------------------------- Assemble the final snmp/diag output --------------------------------

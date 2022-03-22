@@ -219,21 +219,21 @@ architecture rtl of wr_gthe4_phy_family7_xilinx_ip is
   end component gtp_bitslide;
 
   signal rx_clk, tx_clk                                           : std_logic;
-  signal serdes_ready, rx_comma_det, rx_byte_is_aligned, rx_slide : std_logic;
+  signal serdes_ready_a, serdes_ready_txclk, serdes_ready_rxclk, rx_comma_det, rx_byte_is_aligned, rx_slide : std_logic;
   signal rx_synced, rst_rxclk                                     : std_logic;
 
-  attribute mark_debug : string;
-  attribute mark_debug of serdes_ready : signal is "true";
-  attribute mark_debug of rx_comma_det : signal is "true";
-  attribute mark_debug of rx_byte_is_aligned : signal is "true";
-  attribute mark_debug of rx_slide : signal is "true";
-  attribute mark_debug of rx_synced : signal is "true";
+  -- attribute mark_debug : string;
+  -- attribute mark_debug of serdes_ready : signal is "true";
+  -- attribute mark_debug of rx_comma_det : signal is "true";
+  -- attribute mark_debug of rx_byte_is_aligned : signal is "true";
+  -- attribute mark_debug of rx_slide : signal is "true";
+  -- attribute mark_debug of rx_synced : signal is "true";
   
 
-  attribute mark_debug of gtwiz_reset_all_in : signal is "true";
-  attribute mark_debug of gtwiz_reset_rx_done_out : signal is "true";
-  attribute mark_debug of gtwiz_buffbypass_rx_done_out : signal is "true";
-  attribute mark_debug of gtwiz_buffbypass_tx_done_out : signal is "true";
+  -- attribute mark_debug of gtwiz_reset_all_in : signal is "true";
+  -- attribute mark_debug of gtwiz_reset_rx_done_out : signal is "true";
+  -- attribute mark_debug of gtwiz_buffbypass_rx_done_out : signal is "true";
+  -- attribute mark_debug of gtwiz_buffbypass_tx_done_out : signal is "true";
 
   
   signal rx_data_int : std_logic_vector(15 downto 0);
@@ -275,7 +275,7 @@ begin
   
   U_Sync2 : gc_sync_ffs
     port map (
-      clk_i    => tx_clk,
+      clk_i    => rx_clk,
       rst_n_i  => rst_n,
       data_i   => gtwiz_buffbypass_rx_reset_pre,
       synced_o => gtwiz_buffbypass_rx_reset_in);
@@ -299,7 +299,7 @@ begin
       gtp_rx_clk_i             => rx_clk,
       gtp_rx_comma_det_i       => rx_comma_det,
       gtp_rx_byte_is_aligned_i => rx_byte_is_aligned,
-      serdes_ready_i           => serdes_ready,
+      serdes_ready_i           => serdes_ready_rxclk,
       gtp_rx_slide_o           => rx_slide,
       gtp_rx_cdr_rst_o         => open,
       bitslide_o               => rx_bitslide_o,
@@ -442,10 +442,24 @@ begin
   --     tx_k_i               => tx_is_k_swapped,
   --     ready_o              => serdes_ready);
 
-  serdes_ready <=
+  serdes_ready_a <=
     not (
       gtwiz_reset_all_in or not gtwiz_reset_rx_done_out or not gtwiz_buffbypass_rx_done_out or not gtwiz_buffbypass_tx_done_out);
 
+  U_Sync_Serdes_RDY1 : gc_sync_ffs
+    port map (
+      clk_i    => rx_clk,
+      rst_n_i  => '1',
+      data_i   => serdes_ready_a,
+      synced_o => serdes_ready_rxclk);
+
+  U_Sync_Serdes_RDY2 : gc_sync_ffs
+    port map (
+      clk_i    => tx_clk,
+      rst_n_i  => '1',
+      data_i   => serdes_ready_a,
+      synced_o => serdes_ready_txclk);
+  
   txctrl0_int <= x"0000";
   txctrl1_int <= x"0000";
   txctrl2_int <= "000000" & tx_is_k_swapped;
@@ -459,7 +473,7 @@ begin
       rx_k_o       <= (others => '0');
       rx_enc_err_o <= '0';
     elsif rising_edge(rx_clk) then
-      if(serdes_ready = '1' and rx_synced = '1') then
+      if(serdes_ready_rxclk = '1' and rx_synced = '1') then
         rx_data_o    <= rx_data_int(7 downto 0) & rx_data_int(15 downto 8);
         rx_k_o       <= rx_k_int(0) & rx_k_int(1);
         rx_enc_err_o <= '0';  --rx_disp_err(0) or rx_disp_err(1) or rx_code_err(0) or rx_code_err(1);
@@ -474,7 +488,7 @@ begin
   p_gen_tx_disparity : process(tx_clk)
   begin
     if rising_edge(tx_clk) then
-      if serdes_ready = '0' then
+      if serdes_ready_txclk = '0' then
         cur_disp <= RD_MINUS;
       else
         cur_disp <= f_next_8b10b_disparity16(cur_disp, tx_k_i, tx_data_i);
@@ -487,7 +501,7 @@ begin
   tx_out_clk_o <= tx_clk;
   rx_rbclk_o   <= rx_clk;
 
-  rdy_o        <= serdes_ready and rx_synced;
+  rdy_o        <= serdes_ready_rxclk and rx_synced;
   tx_locked_o  <= '1';
   tx_enc_err_o <= '0';
 
