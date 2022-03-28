@@ -6,4 +6,4 @@ files = ["dmtd_phase_meas.vhd",
          "pulse_gen.vhd",
          "pulse_stamper.vhd",
          "pulse_stamper_sync.vhd",
-         "dmtd_sampler.vhd" ]
+]

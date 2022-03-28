@@ -279,6 +279,18 @@ peripheral {
       };
 
       field {
+         name = "Map version";
+         description = "memory map version";
+         prefix = "mapver";
+         type = CONSTANT;
+         align = 12;
+         size = 4;
+         value = 1;
+         access_bus = READ_ONLY;
+         access_dev = WRITE_ONLY;
+      };
+
+      field {
          name = "Storage sector size";
          prefix = "STORAGE_SEC";
          size = 16;

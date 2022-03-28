@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2019-04-18
+-- Last update: 2021-04-09
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -264,7 +264,10 @@ architecture rtl of ep_1000basex_pcs is
   signal rmon_rx_overrun  : std_logic;
   signal rmon_rx_inv_code : std_logic;
   signal rmon_rx_sync_lost: std_logic;
-  
+
+  signal dbg_prbs_control : std_logic_vector(15 downto 0);
+  signal dbg_prbs_status : std_logic_vector(15 downto 0);
+
 begin  -- rtl
 
   pcs_reset_n <= '0' when (mdio_mcr_reset = '1' or rst_n_i = '0') else '1';
@@ -285,6 +288,7 @@ begin  -- rtl
         mdio_mcr_reset_i      => mdio_mcr_reset,
         mdio_mcr_pdown_i      => mdio_mcr_pdown,
         mdio_wr_spec_tx_cal_i => mdio_wr_spec_tx_cal,
+        mdio_dbg_prbs_en_i => dbg_prbs_control(0),
 
         an_tx_en_i              => an_tx_en,
         an_tx_val_i             => an_tx_val,
@@ -323,6 +327,10 @@ begin  -- rtl
         mdio_mcr_pdown_i           => mdio_mcr_pdown,
         mdio_wr_spec_cal_crst_i    => mdio_wr_spec_cal_crst,
         mdio_wr_spec_rx_cal_stat_o => mdio_wr_spec_rx_cal_stat,
+        mdio_dbg_prbs_check_i =>  dbg_prbs_control(1),
+        mdio_dbg_prbs_word_sel_i => dbg_prbs_control(2),
+        mdio_dbg_prbs_latch_count_i => dbg_prbs_control(3),
+        mdio_dbg_prbs_errors_o => dbg_prbs_status,
 
         synced_o        => synced,
         sync_lost_o     => sync_lost,
@@ -364,7 +372,7 @@ begin  -- rtl
         mdio_mcr_reset_i      => mdio_mcr_reset,
         mdio_mcr_pdown_i      => mdio_mcr_pdown,
         mdio_wr_spec_tx_cal_i => mdio_wr_spec_tx_cal,
-
+        
         an_tx_en_i              => an_tx_en,
         an_tx_val_i             => an_tx_val,
         timestamp_trigger_p_a_o => txpcs_timestamp_trigger_p_a_o,
@@ -481,7 +489,8 @@ begin  -- rtl
       mdio_ectrl_tx_prbs_sel_o     => serdes_tx_prbs_sel_o,
       mdio_lpc_phy_stat_i          => serdes_stat_i,
       mdio_lpc_phy_ctrl_o          => serdes_ctrl_o,
-      
+      mdio_dbg_prbs_status_i => dbg_prbs_status,
+      mdio_dbg_prbs_control_o => dbg_prbs_control,
       lstat_read_notify_o => lstat_read_notify
       );
 

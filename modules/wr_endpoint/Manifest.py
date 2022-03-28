@@ -37,5 +37,11 @@ files = [	"endpoint_private_pkg.vhd",
                 "ep_tx_inject_ctrl.vhd",
                 "endpoint_pkg.vhd",
                 "wr_endpoint.vhd",
-                "xwr_endpoint.vhd"
+                "xwr_endpoint.vhd",
+		"prbs/lfsr_crc.v",
+		"prbs/lfsr_descramble.v",
+		"prbs/lfsr_prbs_check.v",
+		"prbs/lfsr_prbs_gen.v",
+		"prbs/lfsr_scramble.v",
+		"prbs/lfsr.v"
                 ];

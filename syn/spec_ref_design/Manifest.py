@@ -12,6 +12,7 @@ syn_project = "spec_wr_ref.xise"
 syn_tool = "ise"
 
 files = [
+#    "synthesis_descriptor.vhd",
     "spec_wr_ref_top.ucf",
 ]
 

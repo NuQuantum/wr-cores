@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2022-01-17
+-- Last update: 2022-03-28
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -138,10 +138,26 @@ package wrcore_pkg is
       int_o               : out std_logic);
   end component;
 
+  constant c_wrc_cpu_csr_sdb : t_sdb_device := (
+    abi_class     => x"0000",              -- undocumented device
+    abi_ver_major => x"01",
+    abi_ver_minor => x"01",
+    wbd_endian    => c_sdb_endian_big,
+    wbd_width     => x"7",                 -- 8/16/32-bit port granularity
+    sdb_component => (
+      addr_first  => x"0000000000000000",
+      addr_last   => x"00000000000000ff",
+      product     => (
+        vendor_id => x"000000000000CE42",  -- CERN
+        device_id => x"f1394102",
+        version   => x"00000001",
+        date      => x"20120305",
+        name      => "WR-urv-cpu-csr     ")));
+  
+
   -----------------------------------------------------------------------------
   -- PERIPHERIALS
   -----------------------------------------------------------------------------
-
   constant c_wrc_periph0_sdb : t_sdb_device := (
     abi_class     => x"0000",              -- undocumented device
     abi_ver_major => x"01",

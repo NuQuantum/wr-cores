@@ -9,8 +9,9 @@ modules = {
         "../../",
     ],
     "git" : [
-        "git://ohwr.org/hdl-core-lib/general-cores.git",
-        "git://ohwr.org/hdl-core-lib/gn4124-core.git",
-        "git://ohwr.org/hdl-core-lib/etherbone-core.git",
+        "git://ohwr.org/project/general-cores.git",
+        "git://ohwr.org/project/gn4124-core.git",
+        "git://ohwr.org/project/etherbone-core.git",
+        "git://ohwr.org/project/urv-core.git",
     ],
 }
