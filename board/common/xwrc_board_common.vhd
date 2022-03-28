@@ -496,86 +496,86 @@ begin  -- architecture struct
 
   gen_wr_streamers : if (g_fabric_iface = STREAMERS) generate
 
---GD    cmp_xwr_streamers : xwr_streamers
---GD      generic map (
---GD        g_streamers_op_mode  => g_streamers_op_mode,
---GD        g_tx_streamer_params => g_tx_streamer_params,
---GD        g_rx_streamer_params => g_rx_streamer_params,
---GD        g_simulation         => g_simulation,
---GD        g_clk_ref_rate       => f_pick_clk_ref_rate(g_pcs_16bit))
---GD      port map (
---GD        clk_sys_i       => clk_sys_i,
---GD        rst_n_i         => rst_n_i,
---GD        src_i           => wrf_snk_out,
---GD        src_o           => wrf_snk_in,
---GD        snk_i           => wrf_src_out,
---GD        snk_o           => wrf_src_in,
---GD        tx_data_i       => wrs_tx_data_i,
---GD        tx_valid_i      => wrs_tx_valid_i,
---GD        tx_dreq_o       => wrs_tx_dreq_o,
---GD        tx_last_p1_i    => wrs_tx_last_i,
---GD        tx_flush_p1_i   => wrs_tx_flush_i,
---GD        rx_first_p1_o   => wrs_rx_first_o,
---GD        rx_last_p1_o    => wrs_rx_last_o,
---GD        rx_data_o       => wrs_rx_data_o,
---GD        rx_valid_o      => wrs_rx_valid_o,
---GD        rx_dreq_i       => wrs_rx_dreq_i,
---GD        clk_ref_i       => clk_ref_i,
---GD        tm_time_valid_i => tm_time_valid,
---GD        tm_tai_i        => tm_tai,
---GD        tm_cycles_i     => tm_cycles,
---GD        link_ok_i       => link_ok,
---GD        wb_slave_i      => aux_master_out,
---GD        wb_slave_o      => aux_master_in,
---GD        snmp_array_o    => aux_diag_in(c_WR_STREAMERS_ARR_SIZE_OUT-1 downto 0),
---GD        snmp_array_i    => aux_diag_out(c_WR_STREAMERS_ARR_SIZE_IN-1 downto 0),
---GD        tx_streamer_cfg_i=> wrs_tx_cfg_i,
---GD        rx_streamer_cfg_i=> wrs_rx_cfg_i);
---GD
---GD    -- unused output ports
---GD    wrf_src_o <= c_dummy_snk_in;
---GD    wrf_snk_o <= c_dummy_src_in;
---GD
---GD    aux_master_o    <= cc_dummy_master_out;
---GD    wb_eth_master_o <= cc_dummy_master_out;
---GD
---GD    aux_diag_in(c_diag_ro_size-1 downto c_WR_STREAMERS_ARR_SIZE_OUT) <= aux_diag_i;
---GD    aux_diag_o                                                   <= aux_diag_out(c_diag_rw_size-1 downto c_WR_STREAMERS_ARR_SIZE_IN);
+    cmp_xwr_streamers : xwr_streamers
+      generic map (
+        g_streamers_op_mode  => g_streamers_op_mode,
+        g_tx_streamer_params => g_tx_streamer_params,
+        g_rx_streamer_params => g_rx_streamer_params,
+        g_simulation         => g_simulation,
+        g_clk_ref_rate       => f_pick_clk_ref_rate(g_pcs_16bit))
+      port map (
+        clk_sys_i       => clk_sys_i,
+        rst_n_i         => rst_n_i,
+        src_i           => wrf_snk_out,
+        src_o           => wrf_snk_in,
+        snk_i           => wrf_src_out,
+        snk_o           => wrf_src_in,
+        tx_data_i       => wrs_tx_data_i,
+        tx_valid_i      => wrs_tx_valid_i,
+        tx_dreq_o       => wrs_tx_dreq_o,
+        tx_last_p1_i    => wrs_tx_last_i,
+        tx_flush_p1_i   => wrs_tx_flush_i,
+        rx_first_p1_o   => wrs_rx_first_o,
+        rx_last_p1_o    => wrs_rx_last_o,
+        rx_data_o       => wrs_rx_data_o,
+        rx_valid_o      => wrs_rx_valid_o,
+        rx_dreq_i       => wrs_rx_dreq_i,
+        clk_ref_i       => clk_ref_i,
+        tm_time_valid_i => tm_time_valid,
+        tm_tai_i        => tm_tai,
+        tm_cycles_i     => tm_cycles,
+        link_ok_i       => link_ok,
+        wb_slave_i      => aux_master_out,
+        wb_slave_o      => aux_master_in,
+        snmp_array_o    => aux_diag_in(c_WR_STREAMERS_ARR_SIZE_OUT-1 downto 0),
+        snmp_array_i    => aux_diag_out(c_WR_STREAMERS_ARR_SIZE_IN-1 downto 0),
+        tx_streamer_cfg_i=> wrs_tx_cfg_i,
+        rx_streamer_cfg_i=> wrs_rx_cfg_i);
+
+    -- unused output ports
+    wrf_src_o <= c_dummy_snk_in;
+    wrf_snk_o <= c_dummy_src_in;
+
+    aux_master_o    <= cc_dummy_master_out;
+    wb_eth_master_o <= cc_dummy_master_out;
+
+    aux_diag_in(c_diag_ro_size-1 downto c_WR_STREAMERS_ARR_SIZE_OUT) <= aux_diag_i;
+    aux_diag_o                                                   <= aux_diag_out(c_diag_rw_size-1 downto c_WR_STREAMERS_ARR_SIZE_IN);
 
   end generate gen_wr_streamers;
 
   gen_etherbone : if (g_fabric_iface = ETHERBONE) generate
 
---GD    cmp_eb_ethernet_slave : eb_ethernet_slave
---GD      generic map (
---GD        g_sdb_address => x"0000000000030000")
---GD      port map (
---GD        clk_i       => clk_sys_i,
---GD        nRst_i      => aux_rst_n,
---GD        src_o       => wrf_snk_in,
---GD        src_i       => wrf_snk_out,
---GD        snk_o       => wrf_src_in,
---GD        snk_i       => wrf_src_out,
---GD        cfg_slave_o => aux_master_in,
---GD        cfg_slave_i => aux_master_out,
---GD        master_o    => wb_eth_master_o,
---GD        master_i    => wb_eth_master_i);
---GD
---GD    -- unused output ports
---GD    wrf_src_o <= c_dummy_snk_in;
---GD    wrf_snk_o <= c_dummy_src_in;
---GD
---GD    wrs_tx_dreq_o  <= '0';
---GD    wrs_rx_first_o <= '0';
---GD    wrs_rx_last_o  <= '0';
---GD    wrs_rx_valid_o <= '0';
---GD    wrs_rx_data_o  <= (others => '0');
---GD
---GD    aux_master_o <= cc_dummy_master_out;
---GD
---GD    -- unused inputs to WR PTP core
---GD    aux_diag_in <= aux_diag_i;
---GD    aux_diag_o  <= aux_diag_out;
+    cmp_eb_ethernet_slave : eb_ethernet_slave
+      generic map (
+        g_sdb_address => x"0000000000030000")
+      port map (
+        clk_i       => clk_sys_i,
+        nRst_i      => aux_rst_n,
+        src_o       => wrf_snk_in,
+        src_i       => wrf_snk_out,
+        snk_o       => wrf_src_in,
+        snk_i       => wrf_src_out,
+        cfg_slave_o => aux_master_in,
+        cfg_slave_i => aux_master_out,
+        master_o    => wb_eth_master_o,
+        master_i    => wb_eth_master_i);
+
+    -- unused output ports
+    wrf_src_o <= c_dummy_snk_in;
+    wrf_snk_o <= c_dummy_src_in;
+
+    wrs_tx_dreq_o  <= '0';
+    wrs_rx_first_o <= '0';
+    wrs_rx_last_o  <= '0';
+    wrs_rx_valid_o <= '0';
+    wrs_rx_data_o  <= (others => '0');
+
+    aux_master_o <= cc_dummy_master_out;
+
+    -- unused inputs to WR PTP core
+    aux_diag_in <= aux_diag_i;
+    aux_diag_o  <= aux_diag_out;
 
   end generate gen_etherbone;
 
