@@ -173,7 +173,7 @@ begin
       g_WITH_BYTE_ENABLE         => TRUE,
       g_ADDR_CONFLICT_RESOLUTION => "dont_care",
       g_INIT_FILE                => g_IRAM_INIT,
-      g_FAIL_IF_FILE_NOT_FOUND   => FALSE,
+      g_FAIL_IF_FILE_NOT_FOUND   => TRUE,
       g_DUAL_CLOCK               => FALSE)
     port map (
       rst_n_i => rst_n_i,

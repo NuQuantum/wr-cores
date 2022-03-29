@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-20
--- Last update: 2021-02-25
+-- Last update: 2022-03-29
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the SPEC.
@@ -56,14 +56,13 @@ use work.wishbone_pkg.all;
 use work.gn4124_core_pkg.all;
 use work.wr_board_pkg.all;
 use work.wr_spec_pkg.all;
-use work.synthesis_descriptor.all;
 
 library unisim;
 use unisim.vcomponents.all;
 
 entity spec_wr_ref_top is
   generic (
-    g_DPRAM_INITF : string := "";
+    g_DPRAM_INITF : string := "../../bin/wrpc/wrc_phy8.bram";
     -- Simulation-mode enable parameter. Set by default (synthesis) to 0, and
     -- changed to non-zero in the instantiation of the top level DUT in the testbench.
     -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
