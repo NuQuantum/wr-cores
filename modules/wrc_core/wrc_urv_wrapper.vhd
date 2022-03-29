@@ -84,7 +84,6 @@ architecture arch of wrc_urv_wrapper is
 
   signal cpu_rst        : std_logic;
   signal cpu_rst_d      : std_logic;
-  signal core_sel_match : std_logic;
 
   signal im_addr  : std_logic_vector(31 downto 0);
   signal im_data  : std_logic_vector(31 downto 0);
@@ -198,20 +197,16 @@ begin
       if rst_n_i = '0' then
         ha_im_write <= '0';
       else
-        if regs_in.udata_load_o = '1' and core_sel_match = '1' then
+        if regs_in.udata_load_o = '1' then
           ha_im_wdata <= f_swap_endian_32(regs_in.udata_o);
           ha_im_write <= '1';
         else
           ha_im_write <= '0';
         end if;
 
-        if core_sel_match = '1' then
-          ha_im_addr(21 downto 0)  <= regs_in.uaddr_addr_o & "00";
-          ha_im_addr(31 downto 22) <= (others => '0');
-          regs_out.udata_i        <= f_swap_endian_32(im_data);
-        else
-          regs_out.udata_i <= (others => '0');
-        end if;
+        ha_im_addr(21 downto 0)  <= regs_in.uaddr_addr_o & "00";
+        ha_im_addr(31 downto 22) <= (others => '0');
+        regs_out.udata_i        <= f_swap_endian_32(im_data);
       end if;
     end if;
   end process p_iram_host_access;
@@ -322,7 +317,6 @@ begin
     end if;
   end process p_im_valid;
 
-  core_sel_match <= '1';
   cpu_rst        <= not rst_n_i or regs_in.reset_o(0);
 
 end architecture arch;

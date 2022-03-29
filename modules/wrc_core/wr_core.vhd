@@ -52,7 +52,7 @@
 --      0x600: OneWire
 --      0x800: WRPC diagnostics registers (for user)
 --      0x900: WRPC diagnostics registers (for firmware)
---      0xf00: cpu csr
+--      0xb00: cpu csr
 --      0x8000: Auxillary space (Etherbone config, etc)
 
 library ieee;
@@ -493,8 +493,6 @@ architecture struct of wr_core is
 
   signal softpll_irq : std_logic;
 
-  signal irq_slv : std_logic_vector(7 downto 0);
-
   signal cpu_dwb_out : t_wishbone_master_out;
   signal cpu_dwb_in : t_wishbone_master_in;
   
@@ -858,8 +856,6 @@ begin
       host_slave_o => cpu_csr_wb_out
       );
   
-  irq_slv(7 downto 1) <= (others => '0');
-  irq_slv(0)           <= softpll_irq;  -- according to the doc, it's active low.
   -----------------------------------------------------------------------------
   -- WB Peripherials
   -----------------------------------------------------------------------------
