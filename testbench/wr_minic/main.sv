@@ -1,9 +1,9 @@
-`include "if_wb_master.svh"
-`include "if_wb_slave.svh"
-`include "wb_packet_source.svh"
-`include "wb_packet_sink.svh"
+`include "../../sim/if_wb_master.svh"
+`include "../../sim/if_wb_slave.svh"
+`include "../../sim/wb_packet_source.svh"
+`include "../../sim/wb_packet_sink.svh"
 
-`include "drivers/simdrv_minic.svh"
+`include "../../sim/drivers/simdrv_minic.svh"
 //`include "ep2ep_wrapper.svh"
 
 `define TEST_TX 1
@@ -177,9 +177,11 @@ module main;
       #40us;
       @(posedge clk_sys);
 
-      force DUT.irq_tx_mask = 1;
-      force DUT.irq_tx_ack  = 1;
-      force DUT.irq_rx_ack = 1;
+      // These are internal signals of the DUT
+      // and we can not just force an initial value
+      // force DUT.irq_tx_mask = 1;
+      // force DUT.irq_tx_ack  = 1;
+      // force DUT.irq_rx_ack = 1;
       txp_minic_frames = 0;
       txp_snk_frames   = 0;
       txp_lost_frames  = 0;
