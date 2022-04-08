@@ -105,7 +105,7 @@ class CSimUtils;
 
 endclass // CSimUtils
 
-static CSimUtils SimUtils;
+CSimUtils SimUtils; //static
 
 
 
