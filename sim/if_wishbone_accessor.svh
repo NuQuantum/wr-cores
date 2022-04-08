@@ -130,7 +130,7 @@ virtual class CWishboneAccessor extends CBusAccessor;
    
 endclass // CWishboneAccessor
 
-static int seed = 0;
+int seed = 0; //static
 
 function automatic int probability_hit(real prob);
    real rand_val;
