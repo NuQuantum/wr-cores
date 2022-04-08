@@ -2,7 +2,7 @@
 # testbenches added for CI
 
 TB_DIRS=wr_minic
-TB_DIRS+=wrc_core
+#TB_DIRS+=wrc_core
 #TB_DIRS+=wr_streamers/streamers_multi_test
 
 
