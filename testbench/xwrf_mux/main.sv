@@ -3,6 +3,7 @@
 `include "if_wb_link.svh"
 `include "wb_packet_source.svh"
 `include "wb_packet_sink.svh"
+
 import wr_fabric_pkg::*;
 
 `define WIRE_WB_SINK(iface, prefix) \
