@@ -2,7 +2,8 @@
 # testbenches added for CI
 
 TB_DIRS=wr_minic
-#TB_DIRS+=wrc_core
+TB_DIRS+=wrc_core
+TB_DIRS+=xwrf_loopback
 #TB_DIRS+=wr_streamers/streamers_multi_test
 
 
@@ -22,7 +23,7 @@ $(TB_DIRS):
 
 	@echo "Run vsim"
 	cd "$@" ;\
-	vsim -c -do "run_ci.do" ;\
+	vsim -c -do "run_ci_riv.do" ;\
 	echo "vsim returned $$?"
 
 summary: $(TB_DIRS)
