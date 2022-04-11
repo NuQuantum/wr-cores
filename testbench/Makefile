@@ -6,7 +6,8 @@
 #TB_DIRS+=xwrf_loopback
 #TB_DIRS+=wr_ep_prbs_checker
 #TB_DIRS+=wr_streamers/streamers-only_basic-transfer
-TB_DIRS+=wr_streamers/streamers-only-fixed-latency
+#TB_DIRS+=wr_streamers/streamers-only-fixed-latency
+TB_DIRS+=wr_streamers/streamers-only_multiword-transfer
 
 #TB_DIRS+=xwrf_mux
 #TB_DIRS+=wr_streamers/streamers_multi_test

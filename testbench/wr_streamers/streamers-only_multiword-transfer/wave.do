@@ -1,5 +1,5 @@
 onerror {resume}
-quietly WaveActivateNextPane {} 0
+quiet WaveActivateNextPane {} 0
 add wave -noupdate /main/U_TX_Streamer/tx_flush_i
 add wave -noupdate /main/U_TX_Streamer/tx_last_i
 add wave -noupdate /main/U_TX_Streamer/tx_data_i
