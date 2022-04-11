@@ -4,7 +4,9 @@
 #TB_DIRS=wr_minic
 #TB_DIRS+=wrc_core
 #TB_DIRS+=xwrf_loopback
-TB_DIRS+=xwrf_mux
+TB_DIRS+=wr_ep_prbs_checker
+
+#TB_DIRS+=xwrf_mux
 #TB_DIRS+=wr_streamers/streamers_multi_test
 
 

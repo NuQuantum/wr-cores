@@ -4,6 +4,6 @@ set NumericStdNoWarnings 1
 
 
 radix -hexadecimal
-run 10us
+run 1ms
 wave zoomfull
 radix -hexadecimal
