@@ -180,15 +180,14 @@ module main;
 
    // Client-side reception logic. Compares the received records with their copies
    // stored in the queue.
-   
    always@(posedge clk)
      if(!rst)
        begin
           rx_streamer_dreq <= 0;
        end else begin
+         $display("rx_latency = %h",rx_latency);
           // throttle the RX path a little bit
           rx_streamer_dreq  <= {$random}%100 < 80;
-
           if(rx_streamer_dvalid)
             begin
                // Got a record? Compare it against the copy stored in queue.
