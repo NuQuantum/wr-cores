@@ -7,10 +7,10 @@
 #TB_DIRS+=wr_ep_prbs_checker
 #TB_DIRS+=wr_streamers/streamers-only_basic-transfer
 #TB_DIRS+=wr_streamers/streamers-only-fixed-latency
-TB_DIRS+=wr_streamers/streamers-only_multiword-transfer
+#TB_DIRS+=wr_streamers/streamers-only_multiword-transfer
+TB_DIRS+=wr_streamers/streamers_multi_test
 
 #TB_DIRS+=xwrf_mux
-#TB_DIRS+=wr_streamers/streamers_multi_test
 
 
 test_results_xml=test_results.xml
