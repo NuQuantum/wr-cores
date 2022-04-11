@@ -1,11 +1,12 @@
 action= "simulation"
 target= "xilinx"
 syn_device="xc6slx45t"
-sim_tool="modelsim"
+#sim_tool="modelsim"
+sim_tool="riviera"
 top_module="main"
 sim_top="main"
 
-vcom_opt="-mixedsvvh l"
+vcom_opt="-packagevhdlsv"
 
 fetchto="../../../ip_cores"
 
