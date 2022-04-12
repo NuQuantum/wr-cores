@@ -8,10 +8,10 @@
 #TB_DIRS+=wr_streamers/streamers-only_basic-transfer
 #TB_DIRS+=wr_streamers/streamers-only-fixed-latency
 #TB_DIRS+=wr_streamers/streamers-only_multiword-transfer
-TB_DIRS+=xwrf_mux
+#TB_DIRS+=xwrf_mux
 
 #TB_DIRS+=wr_streamers/streamers-on-spec-trigger-distribution
-#TB_DIRS+=wr_streamers/streamers_multi_test
+TB_DIRS+=wr_streamers/streamers_multi_test
 #TB_DIRS+=xwrf_mux
 
 

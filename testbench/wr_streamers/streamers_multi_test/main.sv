@@ -551,8 +551,6 @@ module main;
               end
             join
             
-            wait (rx_frame_received);
-            wait (tx_frame_sent);
             test_num ++;
 
             //Tx TEST 4: Check that minimum number of words/frame triggers transmission
@@ -603,7 +601,8 @@ module main;
             @(posedge clk) tx_flush = 0; 
             tx_frm_queue.push_back(frm);  
             
-            @(posedge U_TX_Streamer.U_Wrapped_Streamer.U_Fab_Source.sof_i) clk_cycle_frm_txed = tm_cycle_counter;
+            //@(posedge U_TX_Streamer.U_Wrapped_Streamer.U_Fab_Source.sof_i) clk_cycle_frm_txed = tm_cycle_counter;
+            @(posedge $signal_agent("U_TX_Streamer.U_Wrapped_Streamer.U_Fab_Source.sof_i", "sof_i",1)) clk_cycle_frm_txed = tm_cycle_counter;
             //$display("frame received @ %d, time %t\n", clk_cycle_frm_txed, $time);
             @(posedge rx_streamer_first) clk_cycle_frm_valid = tm_cycle_counter;
             //$display("frame out valid @ %d, time %t\n", clk_cycle_frm_valid, $time);
@@ -701,7 +700,9 @@ end
    // Client-side reception logic. Compares the received records with their copies
    // stored in the transfer queue.  
    int new_block = 1;
-   
+   block_t rblk;
+   streamer_frame_t tfrm, l_tfrm, l_trm;
+
    always@(posedge clk)
  
      if(rst_n)
