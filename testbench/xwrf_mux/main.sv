@@ -190,13 +190,14 @@ module main;
            n++;
            snk.recv(pkt);
            from_q  = q.pop_front();
-
+           $display("n=%h, from_q=%p, pkt=%p",n,from_q,pkt);
 
 
            if(!pkt.equal(from_q))
              begin
                 pkt.dump();
-                from_q.dump();                $stop;
+                from_q.dump();                
+                $stop;
              end
         end
 
@@ -204,12 +205,12 @@ module main;
    endtask // verify_rx_queue
    
   task automatic send_random_packets(WBPacketSource src,ref EthPacket q[$], input int n_packets,  input int pclass);
-     EthPacket pkt, tmpl;
-     EthPacketGenerator gen  = new;
+     automatic EthPacket pkt, tmpl;
+     automatic EthPacketGenerator gen  = new(); //added parentheses KB
      int i;
      
 
-      tmpl                   = new;
+      tmpl                   = new();
       tmpl.src               = '{1,2,3,4,5,6};
       tmpl.dst               = '{10,11,12,13,14,15};
       tmpl.has_smac          = 1;
@@ -225,15 +226,18 @@ module main;
           pkt.pclass  = pclass;
           
           q.push_back(pkt);
-          src.send(pkt);
+          src.send(pkt); 
        end
    endtask // send_random_packets
    
    task test_classifier(int n_packets);
-      int i, seed = 0,n1=0,n2=0;
+      automatic int i, seed,n1, n2;
       EthPacket pkt, tmpl;
       EthPacket to_ext[$], to_minic[$];
-      EthPacketGenerator gen  = new;
+      automatic EthPacketGenerator gen  = new;
+      seed = 0;
+      n1   = 0;
+      n2   = 0;
 
       tmpl                = new;
       tmpl.src                = '{1,2,3,4,5,6};
@@ -320,7 +324,7 @@ module main;
            
         end // while (DUT.ep_snk.poll())
       $display("PASS");
-      
+      $display("n=%d, n1=%d, n2=%d, n_packets=%d",n,n1,n2,n_packets); //KB 
       
       
    endtask // test_arbiter
@@ -334,12 +338,13 @@ module main;
    initial begin
       int i;
       EthPacket pkt, tmpl;
-      EthPacketGenerator gen  = new;
+      automatic EthPacketGenerator gen  = new;
       
       @(posedge rst_n);
       @(posedge clk_sys);
+      $display("rst_n=%h, clk_sys=%h",rst_n, clk_sys);
 //      test_classifier(100);
-      test_arbiter(100);
+      test_arbiter(100); 
       
       
    end

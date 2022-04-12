@@ -9,7 +9,7 @@ sim_tool = "riviera"
 top_module = "main"
 fetchto = "../../ip_cores"
 vlog_opt="+incdir+../../sim"
-
+vcom_opt="-packagevhdlsv"
 include_dirs = [ "../../sim", "../../modules/fabric" ]
 
 modules ={"local" : ["../../",
