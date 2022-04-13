@@ -112,8 +112,13 @@ module endpoint_phy_wrapper
              .g_simulation(1)
              ) U_PHY 
              (
-              .clk_ref_i(clk_ref_i),
-              .clk_ref_o(tx_clock),
+               //some signals are commented because
+               //don't exist in wr_gtp_phy_spartan6
+
+//              .clk_ref_i(clk_ref_i),
+//              .clk_ref_o(tx_clock),
+              .ch0_ref_clk_i(tx_clock),
+              .gtp0_clk_i   (clk_ref_i),
               
               .ch0_tx_data_i (gtx_data[7:0]),
               .ch0_tx_k_i (gtx_k[0]),
@@ -125,14 +130,20 @@ module endpoint_phy_wrapper
               .ch0_rx_enc_err_o (grx_enc_error),
               .ch0_rx_bitslide_o  (),
 
-              .rst_i    (!rst_n_i),
-              .loopen_i (1'b0),
+//              .rst_i    (!rst_n_i),
+              .ch0_rst_i(!rst_n_i),            
+//              .loopen_i (1'b0),
+              .ch0_loopen_i(1'b0),
 
-              .pad_txn_o (txn_o),
-              .pad_txp_o (txp_o),
+//              .pad_txn_o (txn_o),
+//              .pad_txp_o (txp_o),
+              .pad_txn0_o(txn_o),
+              .pad_txp0_o(txp_o),
 
-              .pad_rxn_i (rxn_i),
-              .pad_rxp_i (rxp_i)
+//              .pad_rxn_i (rxn_i),
+//              .pad_rxp_i (rxp_i)
+              .pad_rxn0_i(rxn_i),
+              .pad_rxp0_i(rxp_i)
               );
          
       end // else: !if(g_phy_type == "TBI")
@@ -147,7 +158,7 @@ module endpoint_phy_wrapper
    wr_endpoint
      #(
        .g_simulation          (1),
-       .g_pcs_16bit(g_phy_type == "GTX" ? 1: 0),
+       .g_pcs_16bit(g_phy_type == "GTP" ? 1 : 0),  //"GTX" ? 1: 0),
        .g_rx_buffer_size (1024),
        .g_with_rx_buffer(0),
        .g_with_timestamper    (1),
@@ -160,13 +171,14 @@ module endpoint_phy_wrapper
               .clk_ref_i (clk_ref_i),
               .clk_sys_i (clk_sys_i),
               .clk_dmtd_i (clk_ref_i),
-              .rst_n_i  (rst_n_i),
+//              .rst_n_i  (rst_n_i),
+              .rst_sys_n_i (rst_n_i),
               .pps_csync_p1_i (1'b0),
 
               .phy_rst_o   (),
               .phy_loopen_o (),
-              .phy_enable_o (),
-              .phy_syncen_o (),
+//              .phy_enable_o (),
+//              .phy_syncen_o (),
 
               .phy_ref_clk_i      (tx_clock),
               .phy_tx_data_o      (gtx_data),
