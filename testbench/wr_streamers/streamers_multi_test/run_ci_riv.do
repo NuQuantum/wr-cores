@@ -1,8 +1,8 @@
-vsim -L unisim work.main -voptargs="+acc" -sv_seed random 
+vsim -L unisim work.main +access +r -voptargs="+acc" -sv_seed random 
 set StdArithNoWarnings 1
 set NumericStdNoWarnings 1
 do wave_ci.do
-run 10us
+run 20us
 wave zoomfull
 radix -hex
 quit 

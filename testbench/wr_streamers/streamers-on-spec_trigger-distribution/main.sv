@@ -91,8 +91,8 @@ module main;
    
 
    // observe the link LEDs on both sides, and tell us when the link is ready.
-   wire link_up_a = SPEC_A.cmp_xwrc_board_spec.led_link_o;
-   wire link_up_b = SPEC_B.cmp_xwrc_board_spec.led_link_o;
+   wire link_up_a = $signal_agent("SPEC_A.cmp_xwrc_board_spec.led_link_o","led_link_o",1);
+   wire link_up_b = $signal_agent("SPEC_B.cmp_xwrc_board_spec.led_link_o","lend_link_o",1);
 
   initial begin
       // wait until both SPECs see the Ethernet link. Otherwise the packet we're going 
