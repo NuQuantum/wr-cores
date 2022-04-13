@@ -168,7 +168,7 @@ module main;
    IWishboneMaster 
      #(
        .g_data_width(32),
-       .g_addr_width(7))
+       .g_addr_width(8))
    U_sys_bus_master
      (
       .clk_i(clk_sys),
