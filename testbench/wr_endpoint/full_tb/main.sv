@@ -197,7 +197,7 @@ module main;
    
    old_endpoint_test_wrapper
      #(
-       .g_phy_type("TBI"))
+       .g_phy_type("GTP")) //("TBI"))
    U_oldep_wrap   
      (
       .clk_sys_i(clk_sys),
@@ -224,7 +224,7 @@ module main;
    
    endpoint_phy_wrapper
      #(
-       .g_phy_type("TBI")) 
+       .g_phy_type("GTP")) //("TBI")) 
    U_Wrapped_EP
      (
       .clk_sys_i(clk_sys),
