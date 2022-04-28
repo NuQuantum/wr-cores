@@ -181,10 +181,9 @@ entity clbv3_wr_ref_top is
     dio_led_top_o : out std_logic;
     dio_led_bot_o : out std_logic;
 
-    -- I2C interface for accessing FMC EEPROM. Deprecated, was used in
-    -- pre-v3.0 releases to store WRPC configuration. Now we use Flash for this.
-    dio_scl_b : inout std_logic;
-    dio_sda_b : inout std_logic;
+    -- I2C interface for accessing EEPROM.
+    eeprom_scl_b : inout std_logic;
+    eeprom_sda_b : inout std_logic;
 
     -- Bulls-eye connector outputs
     txts_p_o : out std_logic;
@@ -362,10 +361,10 @@ begin  -- architecture top
   dio_term_en_o          <= "11000";
 
   -- EEPROM I2C tri-states
-  dio_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
-  eeprom_sda_in <= dio_sda_b;
-  dio_scl_b <= '0' when (eeprom_scl_out = '0') else 'Z';
-  eeprom_scl_in <= dio_scl_b;
+  eeprom_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
+  eeprom_sda_in <= eeprom_sda_b;
+  eeprom_scl_b <= '0' when (eeprom_scl_out = '0') else 'Z';
+  eeprom_scl_in <= eeprom_scl_b;
 
   -- Div by 2 reference clock to LEMO connector
   process(clk_ref_62m5)

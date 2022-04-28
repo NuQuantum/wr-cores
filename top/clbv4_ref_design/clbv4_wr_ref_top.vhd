@@ -185,8 +185,8 @@ entity clbv4_wr_ref_top is
 
     -- I2C interface for accessing FMC EEPROM. Deprecated, was used in
     -- pre-v3.0 releases to store WRPC configuration. Now we use Flash for this.
-    dio_scl_b : inout std_logic;
-    dio_sda_b : inout std_logic;
+    eeprom_scl_b : inout std_logic;
+    eeprom_sda_b : inout std_logic;
 
     -- Bulls-eye connector outputs
     txts_p_o : out std_logic;
@@ -262,7 +262,7 @@ begin  -- architecture top
   suicide<= '1';
   reset_n <= not reset_i; -- Reset = high active on CLB
   WDI <= '0';
-  WD_SET <="001"; --disable Watchdog
+  WD_SET <="011"; --disable Watchdog
   
   -----------------------------------------------------------------------------
   -- The WR PTP core board package (WB Slave + WB Master)
@@ -365,10 +365,10 @@ begin  -- architecture top
   dio_term_en_o          <= "11000";
 
   -- EEPROM I2C tri-states
-  dio_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
-  eeprom_sda_in <= dio_sda_b;
-  dio_scl_b <= '0' when (eeprom_scl_out = '0') else 'Z';
-  eeprom_scl_in <= dio_scl_b;
+  eeprom_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
+  eeprom_sda_in <= eeprom_sda_b;
+  eeprom_scl_b <= '0' when (eeprom_scl_out = '0') else 'Z';
+  eeprom_scl_in <= eeprom_scl_b;
 
   -- Div by 2 reference clock to LEMO connector
   process(clk_ref_62m5)

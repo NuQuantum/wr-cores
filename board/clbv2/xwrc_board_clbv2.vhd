@@ -7,7 +7,7 @@
 -- Author(s)  : Peter Jansweijer <peterj@nikhef.nl>
 -- Company    : Nikhef
 -- Created    : 2017-11-08
--- Last update: 2017-11-08
+-- Last update: 2022-05-18
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -42,7 +42,6 @@ library work;
 use work.gencores_pkg.all;
 use work.wrcore_pkg.all;
 use work.wishbone_pkg.all;
---use work.etherbone_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.streamers_pkg.all;
