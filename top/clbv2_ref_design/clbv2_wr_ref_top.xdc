@@ -12,22 +12,22 @@ set_property PACKAGE_PIN D6 [get_ports clk_125m_gtx_p_i]
 set_property PACKAGE_PIN D5 [get_ports clk_125m_gtx_n_i]
 
 create_clock -period 50.000 -name clk_20m_vcxo_i -waveform {0.000 25.000} [get_ports clk_20m_vcxo_i]
-create_clock -period 8.000 -name clk_125m_gtx_p_i -waveform {0.000 4.000} [get_ports clk_125m_gtx_p_i]
-#create_clock -period 8.000 -name clk_125m_gtx_n_i -waveform {0.000 4.000} [get_ports clk_125m_gtx_n_i]  # AR57109: "Only P side needs constraint"
+create_clock -period 8.000 -name clk_125m_gtx -waveform {0.000 4.000} [get_ports clk_125m_gtx_p_i]
+#create_clock -period 8.000 -name clk_125m_gtx -waveform {0.000 4.000} [get_ports clk_125m_gtx_n_i]  # AR57109: "Only P side needs constraint"
 
-create_clock -period 16.000 -name RXOUTCLK -waveform {0.000 8.000} [get_pins cmp_xwrc_board_clbv2/cmp_xwrc_platform/gen_phy_kintex7.cmp_gtx/U_GTX_INST/gtxe2_i/RXOUTCLK]
-create_clock -period 16.000 -name TXOUTCLK -waveform {0.000 8.000} [get_pins cmp_xwrc_board_clbv2/cmp_xwrc_platform/gen_phy_kintex7.cmp_gtx/U_GTX_INST/gtxe2_i/TXOUTCLK]
+create_clock -period 16.000 -name RXOUTCLK -waveform {0.000 8.000} [get_pins cmp_xwrc_board_clbv2/cmp_gtx_lp/U_GTX_INST/gtxe2_i/RXOUTCLK]
+create_clock -period 16.000 -name TXOUTCLK -waveform {0.000 8.000} [get_pins cmp_xwrc_board_clbv2/cmp_gtx_lp/U_GTX_INST/gtxe2_i/TXOUTCLK]
 create_clock -period 100.000 -name dio_clk_p_i -waveform {0.000 50.000} [get_ports dio_clk_p_i]
 
 set_clock_groups -asynchronous \
--group {clk_sys } \
--group {clk_dmtd } \
--group {clk_20m_vcxo_i } \
--group {clk_125m_gtx_p_i } \
--group {RXOUTCLK} \
--group {TXOUTCLK} \
--group {clk_ext_mul } \
--group {dio_clk_p_i}
+-group clk_20m_vcxo_i \
+-group clk_dmtd_pll \
+-group clk_125m_gtx \
+-group clk_125m_gtx_odiv2 \
+-group RXOUTCLK \
+-group TXOUTCLK \
+-group clk_ext_mul \
+-group dio_clk_p_i
 
 #   ---------------------------------------------------------------------------
 #   -- SPI interface to DACs
@@ -221,7 +221,6 @@ set_property IOSTANDARD LVDS_25 [get_ports {dio_p_i[0]}]
   #LA33_N 
 set_property PACKAGE_PIN P20 [get_ports {dio_n_i[0]}]
 set_property IOSTANDARD LVDS_25 [get_ports {dio_n_i[0]}]
-
 
 #   -- Differential outputs. When the I/O (N+1) is configured as output (i.e. when
 #   -- dio_oe_n_o(N) = 0), the value of dio_p_o(N) determines the logic state

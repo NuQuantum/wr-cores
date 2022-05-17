@@ -7,7 +7,7 @@
 -- Author(s)  : Pascal Bos <bosp@nikhef.nl>
 -- Company    : Nikhef
 -- Created    : 2019-05-22
--- Last update: 2019-05-22
+-- Last update: 2022-05-18
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -87,10 +87,10 @@ entity wrc_board_clbv4 is
     -- reset PLLs.
     areset_edge_n_i     : in  std_logic := '1';
     -- Clock inputs from the board
-    clk_125m_dmtd_p_i : in  std_logic;
-    clk_125m_dmtd_n_i : in  std_logic;
-    clk_125m_gtp_n_i    : in  std_logic;
-    clk_125m_gtp_p_i    : in  std_logic;
+    clk_125m_dmtd_p_i   : in  std_logic;
+    clk_125m_dmtd_n_i   : in  std_logic;
+    clk_125m_gtx_n_i    : in  std_logic;
+    clk_125m_gtx_p_i    : in  std_logic;
     -- 10MHz ext ref clock input (g_with_external_clock_input = TRUE)
     clk_10m_ext_i       : in  std_logic := '0';
     -- External PPS input (g_with_external_clock_input = TRUE)

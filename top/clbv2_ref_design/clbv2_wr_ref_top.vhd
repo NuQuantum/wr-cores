@@ -7,8 +7,8 @@
 -- File       : clbv2_wr_ref_top.vhd
 -- Author(s)  : Peter Jansweijer <peterj@nikhef.nl>
 -- Company    : Nikhef
--- Created    : 2017-11-08
--- Last update: 2019-06-28
+-- Created    : 2022-05-08
+-- Last update: 2022-05-18
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the CLBv2.
@@ -245,8 +245,8 @@ begin  -- architecture top
     port map (
       areset_n_i          => reset_n,
       clk_20m_vcxo_i      => clk_20m_vcxo_i,
-      clk_125m_gtp_n_i    => clk_125m_gtx_n_i,
-      clk_125m_gtp_p_i    => clk_125m_gtx_p_i,
+      clk_125m_gtx_n_i    => clk_125m_gtx_n_i,
+      clk_125m_gtx_p_i    => clk_125m_gtx_p_i,
       clk_10m_ext_i       => clk_ext_10m,
       clk_sys_62m5_o      => clk_sys_62m5,
       clk_ref_62m5_o      => clk_ref_62m5,

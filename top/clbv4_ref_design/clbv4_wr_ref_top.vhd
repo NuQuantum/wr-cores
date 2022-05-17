@@ -7,8 +7,8 @@
 -- File       : clbv4_wr_ref_top.vhd
 -- Author(s)  : Pascal Bos <bosp@nikhef.nl>
 -- Company    : Nikhef
--- Created    : 2019-05-06
--- Last update: 2019-05-06
+-- Created    : 2022-05-18
+-- Last update: 2022-05-18
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the clbv4.
@@ -128,7 +128,7 @@ entity clbv4_wr_ref_top is
     ---------------------------------------------------------------------------
 
     ---------------------------------------------------------------------------
-    -- Miscellanous clbv3 pins
+    -- Miscellanous clbv4 pins
     ---------------------------------------------------------------------------
     -- Red LED next to the SFP: blinking indicates that packets are being
     -- transferred.
@@ -183,8 +183,7 @@ entity clbv4_wr_ref_top is
     dio_led_top_o : out std_logic;
     dio_led_bot_o : out std_logic;
 
-    -- I2C interface for accessing FMC EEPROM. Deprecated, was used in
-    -- pre-v3.0 releases to store WRPC configuration. Now we use Flash for this.
+    -- I2C interface for accessing EEPROM.
     eeprom_scl_b : inout std_logic;
     eeprom_sda_b : inout std_logic;
 
