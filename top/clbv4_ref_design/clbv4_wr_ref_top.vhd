@@ -7,8 +7,8 @@
 -- File       : clbv4_wr_ref_top.vhd
 -- Author(s)  : Pascal Bos <bosp@nikhef.nl>
 -- Company    : Nikhef
--- Created    : 2019-05-06
--- Last update: 2019-05-06
+-- Created    : 2022-05-18
+-- Last update: 2022-05-18
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the clbv4.
@@ -128,7 +128,7 @@ entity clbv4_wr_ref_top is
     ---------------------------------------------------------------------------
 
     ---------------------------------------------------------------------------
-    -- Miscellanous clbv3 pins
+    -- Miscellanous clbv4 pins
     ---------------------------------------------------------------------------
     -- Red LED next to the SFP: blinking indicates that packets are being
     -- transferred.
@@ -183,10 +183,9 @@ entity clbv4_wr_ref_top is
     dio_led_top_o : out std_logic;
     dio_led_bot_o : out std_logic;
 
-    -- I2C interface for accessing FMC EEPROM. Deprecated, was used in
-    -- pre-v3.0 releases to store WRPC configuration. Now we use Flash for this.
-    dio_scl_b : inout std_logic;
-    dio_sda_b : inout std_logic;
+    -- I2C interface for accessing EEPROM.
+    eeprom_scl_b : inout std_logic;
+    eeprom_sda_b : inout std_logic;
 
     -- Bulls-eye connector outputs
     txts_p_o : out std_logic;
@@ -262,7 +261,7 @@ begin  -- architecture top
   suicide<= '1';
   reset_n <= not reset_i; -- Reset = high active on CLB
   WDI <= '0';
-  WD_SET <="001"; --disable Watchdog
+  WD_SET <="011"; --disable Watchdog
   
   -----------------------------------------------------------------------------
   -- The WR PTP core board package (WB Slave + WB Master)
@@ -365,10 +364,10 @@ begin  -- architecture top
   dio_term_en_o          <= "11000";
 
   -- EEPROM I2C tri-states
-  dio_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
-  eeprom_sda_in <= dio_sda_b;
-  dio_scl_b <= '0' when (eeprom_scl_out = '0') else 'Z';
-  eeprom_scl_in <= dio_scl_b;
+  eeprom_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
+  eeprom_sda_in <= eeprom_sda_b;
+  eeprom_scl_b <= '0' when (eeprom_scl_out = '0') else 'Z';
+  eeprom_scl_in <= eeprom_scl_b;
 
   -- Div by 2 reference clock to LEMO connector
   process(clk_ref_62m5)

@@ -7,7 +7,7 @@
 -- Author(s)  : Peter Jansweijer <peterj@nikhef.nl>
 -- Company    : Nikhef
 -- Created    : 2017-11-08
--- Last update: 2017-11-08
+-- Last update: 2022-05-18
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -88,8 +88,8 @@ entity wrc_board_clbv2 is
     areset_edge_n_i     : in  std_logic := '1';
     -- Clock inputs from the board
     clk_20m_vcxo_i      : in  std_logic;
-    clk_125m_gtp_n_i    : in  std_logic;
-    clk_125m_gtp_p_i    : in  std_logic;
+    clk_125m_gtx_n_i    : in  std_logic;
+    clk_125m_gtx_p_i    : in  std_logic;
     -- 10MHz ext ref clock input (g_with_external_clock_input = TRUE)
     clk_10m_ext_i       : in  std_logic := '0';
     -- External PPS input (g_with_external_clock_input = TRUE)
@@ -222,7 +222,7 @@ entity wrc_board_clbv2 is
     ---------------------------------------------------------------------------
     -- Aux clocks control
     ---------------------------------------------------------------------------
-    tm_dac_value_o       : out std_logic_vector(23 downto 0);
+    tm_dac_value_o       : out std_logic_vector(31 downto 0);
     tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
     tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
     tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
@@ -286,6 +286,10 @@ architecture std_wrapper of wrc_board_clbv2 is
   signal wrf_src_in  : t_wrf_source_in;
   signal wrf_snk_out : t_wrf_sink_out;
   signal wrf_snk_in  : t_wrf_sink_in;
+
+  -- External WB interface
+
+  -- Etherbone interface
 
   -- Aux diagnostics
   constant c_diag_ro_size : integer := g_diag_ro_vector_width/32;
@@ -363,8 +367,8 @@ begin  -- architecture struct
       areset_n_i           => areset_n_i,
       areset_edge_n_i      => areset_edge_n_i,
       clk_20m_vcxo_i       => clk_20m_vcxo_i,
-      clk_125m_gtp_n_i     => clk_125m_gtp_n_i,
-      clk_125m_gtp_p_i     => clk_125m_gtp_p_i,
+      clk_125m_gtx_n_i     => clk_125m_gtx_n_i,
+      clk_125m_gtx_p_i     => clk_125m_gtx_p_i,
       clk_10m_ext_i        => clk_10m_ext_i,
       pps_ext_i            => pps_ext_i,
       clk_sys_62m5_o       => clk_sys_62m5_o,

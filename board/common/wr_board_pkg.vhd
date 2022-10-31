@@ -116,12 +116,14 @@ package wr_board_pkg is
       g_address_granularity       : t_wishbone_address_granularity := BYTE;
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_enable_debugger   : boolean                        := FALSE;
+      g_softpll_use_sampled_ref_clocks : boolean                   := FALSE;
       g_vuart_fifo_size           : integer                        := 1024;
       g_pcs_16bit                 : boolean                        := FALSE;
       g_diag_id                   : integer                        := 0;
       g_diag_ver                  : integer                        := 0;
       g_diag_ro_size              : integer                        := 0;
       g_diag_rw_size              : integer                        := 0;
+      g_dac_bits                  : integer                        := 16;
       g_streamers_op_mode         : t_streamers_op_mode            := TX_AND_RX;
       g_tx_streamer_params        : t_tx_streamer_params           := c_tx_streamer_params_defaut;
       g_rx_streamer_params        : t_rx_streamer_params           := c_rx_streamer_params_defaut;
@@ -140,9 +142,9 @@ package wr_board_pkg is
       pps_ext_i            : in  std_logic                                        := '0';
       rst_n_i              : in  std_logic;
       dac_hpll_load_p1_o   : out std_logic;
-      dac_hpll_data_o      : out std_logic_vector(15 downto 0);
+      dac_hpll_data_o      : out std_logic_vector(g_dac_bits-1 downto 0);
       dac_dpll_load_p1_o   : out std_logic;
-      dac_dpll_data_o      : out std_logic_vector(15 downto 0);
+      dac_dpll_data_o      : out std_logic_vector(g_dac_bits-1 downto 0);
       phy8_o               : out t_phy_8bits_from_wrc;
       phy8_i               : in  t_phy_8bits_to_wrc                               := c_dummy_phy8_to_wrc;
       phy16_o              : out t_phy_16bits_from_wrc;
@@ -195,7 +197,7 @@ package wr_board_pkg is
       wb_eth_master_i      : in  t_wishbone_master_in                             := cc_dummy_master_in;
       aux_diag_i           : in  t_generic_word_array(g_diag_ro_size-1 downto 0)  := (others => (others => '0'));
       aux_diag_o           : out t_generic_word_array(g_diag_rw_size-1 downto 0);
-      tm_dac_value_o       : out std_logic_vector(23 downto 0);
+      tm_dac_value_o       : out std_logic_vector(31 downto 0);
       tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
       tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0)          := (others => '0');
       tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);

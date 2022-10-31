@@ -7,7 +7,7 @@
 -- Author(s)  : Peter Jansweijer <peterj@nikhef.nl>
 -- Company    : Nikhef
 -- Created    : 2017-11-08
--- Last update: 2017-11-08
+-- Last update: 2022-05-18
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Copyright (c) 2017 Nikhef
@@ -63,8 +63,8 @@ package wr_clbv2_pkg is
       areset_n_i           : in  std_logic;
       areset_edge_n_i      : in  std_logic := '1';
       clk_20m_vcxo_i       : in  std_logic;
-      clk_125m_gtp_n_i     : in  std_logic;
-      clk_125m_gtp_p_i     : in  std_logic;
+      clk_125m_gtx_n_i     : in  std_logic;
+      clk_125m_gtx_p_i     : in  std_logic;
       clk_aux_i            : in  std_logic_vector(g_aux_clks-1 downto 0)          := (others => '0');
       clk_10m_ext_i        : in  std_logic                                        := '0';
       pps_ext_i            : in  std_logic                                        := '0';
@@ -115,7 +115,7 @@ package wr_clbv2_pkg is
       wrs_rx_cfg_i         : in t_rx_streamer_cfg                                 := c_rx_streamer_cfg_default;
       aux_diag_i           : in  t_generic_word_array(g_diag_ro_size-1 downto 0)  := (others => (others => '0'));
       aux_diag_o           : out t_generic_word_array(g_diag_rw_size-1 downto 0);
-      tm_dac_value_o       : out std_logic_vector(23 downto 0);
+      tm_dac_value_o       : out std_logic_vector(31 downto 0);
       tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
       tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0)          := (others => '0');
       tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
@@ -158,8 +158,8 @@ package wr_clbv2_pkg is
       areset_n_i           : in  std_logic;
       areset_edge_n_i      : in  std_logic := '1';
       clk_20m_vcxo_i       : in  std_logic;
-      clk_125m_gtp_n_i     : in  std_logic;
-      clk_125m_gtp_p_i     : in  std_logic;
+      clk_125m_gtx_n_i     : in  std_logic;
+      clk_125m_gtx_p_i     : in  std_logic;
       clk_10m_ext_i        : in  std_logic                                               := '0';
       pps_ext_i            : in  std_logic                                               := '0';
       clk_sys_62m5_o       : out std_logic;
@@ -272,7 +272,7 @@ package wr_clbv2_pkg is
       wb_eth_stall_i       : in  std_logic                                               := '0';
       aux_diag_i           : in  std_logic_vector(g_diag_ro_vector_width - 1 downto 0)   := (others => '0');
       aux_diag_o           : out std_logic_vector(g_diag_rw_vector_width - 1 downto 0)   := (others => '0');
-      tm_dac_value_o       : out std_logic_vector(23 downto 0);
+      tm_dac_value_o       : out std_logic_vector(31 downto 0);
       tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
       tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0)                 := (others => '0');
       tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);

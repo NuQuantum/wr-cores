@@ -11,7 +11,7 @@ set_property IOSTANDARD LVDS_25 [get_ports clk_125m_dmtd_n_i]
 
 create_clock -period 8.000 -name clk_125m_dmtd_p_i -waveform {0.000 4.000} [get_ports clk_125m_dmtd_p_i] 
 #create_clock -period 8.000 -name clk_125m_dmtd_n_i -waveform {0.000 4.000} [get_ports clk_125m_dmtd_n_i] # AR57109: "Only P side needs constraint"
-create_generated_clock -name clk_dmtd -source [get_ports clk_125m_dmtd_p_i] -divide_by 2 [get_pins cmp_xwrc_board_clbv4/cmp_xwrc_platform/gen_default_plls.gen_kintex7_artix7_default_plls.gen_kintex7_artix7_direct_dmtd.clk_dmtd_reg/Q]
+create_generated_clock -name clk_dmtd -source [get_ports clk_125m_dmtd_p_i] -divide_by 2 [get_pins cmp_xwrc_board_clbv4/clk_dmtd_reg/Q]
 
     #Bank 116 -- 125.000 MHz GTP reference
 set_property PACKAGE_PIN D6 [get_ports clk_125m_gtx_p_i]
@@ -20,12 +20,11 @@ set_property PACKAGE_PIN D5 [get_ports clk_125m_gtx_n_i]
 create_clock -period 8.000 -name clk_125m_gtx_p_i -waveform {0.000 4.000} [get_ports clk_125m_gtx_p_i]
 #create_clock -period 8.000 -name clk_125m_gtx_n_i -waveform {0.000 4.000} [get_ports clk_125m_gtx_n_i] # AR57109: "Only P side needs constraint"
 
-create_clock -period 16.000 -name RXOUTCLK -waveform {0.000 8.000} [get_pins cmp_xwrc_board_clbv4/cmp_xwrc_platform/gen_phy_kintex7.cmp_gtx/U_GTX_INST/gtxe2_i/RXOUTCLK]
-create_clock -period 16.000 -name TXOUTCLK -waveform {0.000 8.000} [get_pins cmp_xwrc_board_clbv4/cmp_xwrc_platform/gen_phy_kintex7.cmp_gtx/U_GTX_INST/gtxe2_i/TXOUTCLK]
+create_clock -period 16.000 -name RXOUTCLK -waveform {0.000 8.000} [get_pins cmp_xwrc_board_clbv4/cmp_gtx_lp/U_GTX_INST/gtxe2_i/RXOUTCLK]
+create_clock -period 16.000 -name TXOUTCLK -waveform {0.000 8.000} [get_pins cmp_xwrc_board_clbv4/cmp_gtx_lp/U_GTX_INST/gtxe2_i/TXOUTCLK]
 create_clock -period 100.000 -name dio_clk_p_i -waveform {0.000 50.000} [get_ports dio_clk_p_i]
 
 set_clock_groups -asynchronous \
--group {clk_sys } \
 -group {clk_dmtd } \
 -group {clk_125m_dmtd_p_i } \
 -group {clk_125m_gtx_p_i } \
@@ -107,6 +106,14 @@ set_property PULLDOWN true [get_ports uart_rxd_i]
 set_property PACKAGE_PIN D20 [get_ports uart_txd_o]
 set_property IOSTANDARD LVCMOS25 [get_ports uart_txd_o]
 
+#USB Connection on Test&Debug Connector (J35)
+    #Bank 16 VCCO - 3.3 V
+#set_property PACKAGE_PIN F13 [get_ports uart_rxd_i]
+#set_property IOSTANDARD LVCMOS33 [get_ports uart_rxd_i]
+#set_property PULLDOWN true [get_ports uart_rxd_i]
+#set_property PACKAGE_PIN F14 [get_ports uart_rxd_i]
+#set_property IOSTANDARD LVCMOS33 [get_ports uart_rxd_i]
+
     #Bank 15 VCCO - 1.8 V
 #set_property PACKAGE_PIN B19 [get_ports USB_RX2]
 #set_property IOSTANDARD LVCMOS25 [get_ports USB_RX2]
@@ -116,11 +123,6 @@ set_property IOSTANDARD LVCMOS25 [get_ports uart_txd_o]
 
 #USB Connection on Test&Debug Connector (J35)
     #Bank 16 VCCO - 3.3 V
-#set_property PACKAGE_PIN F13 [get_ports USBEXT_RX1]
-#set_property IOSTANDARD LVCMOS33 [get_ports USBEXT_RX1]
-#set_property PULLDOWN true [get_ports USBEXT_RX1]
-#set_property PACKAGE_PIN F14 [get_ports USBEXT_TX1]
-#set_property IOSTANDARD LVCMOS33 [get_ports USBEXT_TX1]
 #set_property PACKAGE_PIN C13 [get_ports USBEXT_RX2]
 #set_property IOSTANDARD LVCMOS33 [get_ports USBEXT_RX2]
 #set_property PULLDOWN true [get_ports USBEXT_RX2]
@@ -231,7 +233,6 @@ set_property IOSTANDARD LVDS_25 [get_ports {dio_n_i[0]}]
 #   -- Differential outputs. When the I/O (N+1) is configured as output (i.e. when
 #   -- dio_oe_n_o(N) = 0), the value of dio_p_o(N) determines the logic state
 #   -- of I/O (N+1) on the front panel of the mezzanine
-
   #LA04_P
 set_property PACKAGE_PIN N18 [get_ports {dio_p_o[4]}]
 set_property IOSTANDARD LVDS_25 [get_ports {dio_p_o[4]}]
@@ -308,13 +309,12 @@ set_property IOSTANDARD LVCMOS25 [get_ports dio_led_top_o]
 set_property PACKAGE_PIN P21 [get_ports dio_led_bot_o]
 set_property IOSTANDARD LVCMOS25 [get_ports dio_led_bot_o]
 
-#   -- I2C interface for accessing FMC EEPROM. Deprecated, was used in
-#   -- pre-v3.0 releases to store WRPC configuration. Now we use Flash for this.
+#   -- I2C interface for accessing EEPROM.
   #Bank 14 VCCO - 3.3 V
-set_property PACKAGE_PIN J25 [get_ports dio_scl_b]
-set_property IOSTANDARD LVCMOS33 [get_ports dio_scl_b]
-set_property PACKAGE_PIN J24 [get_ports dio_sda_b]
-set_property IOSTANDARD LVCMOS33 [get_ports dio_sda_b]
+set_property PACKAGE_PIN D24 [get_ports eeprom_scl_b]
+set_property IOSTANDARD LVCMOS33 [get_ports eeprom_scl_b]
+set_property PACKAGE_PIN D23 [get_ports eeprom_sda_b]
+set_property IOSTANDARD LVCMOS33 [get_ports eeprom_sda_b]
 
 #   ---------------------------------------------------------------------------
 #   -- Bulls-eye connector outputs
@@ -354,3 +354,10 @@ set_property IOSTANDARD LVDS [get_ports clk_dmtd_62m5_p_o]
 #Bank 34 VCCO - 1.8 V -- BullsEye 13
 set_property PACKAGE_PIN W3 [get_ports clk_dmtd_62m5_n_o]
 set_property IOSTANDARD LVDS [get_ports clk_dmtd_62m5_n_o]
+
+#   ---------------------------------------------------------------------------`
+#   -- FLASH PROM properties
+#   ---------------------------------------------------------------------------
+
+set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
+set_property BITSTREAM.CONFIG.SPI_32BIT_ADDR YES [current_design]

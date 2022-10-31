@@ -66,12 +66,14 @@ entity xwrc_board_common is
     g_address_granularity       : t_wishbone_address_granularity := BYTE;
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
     g_softpll_enable_debugger   : boolean                        := FALSE;
+    g_softpll_use_sampled_ref_clocks : boolean                   := FALSE;
     g_vuart_fifo_size           : integer                        := 1024;
     g_pcs_16bit                 : boolean                        := FALSE;
     g_diag_id                   : integer                        := 0;
     g_diag_ver                  : integer                        := 0;
     g_diag_ro_size              : integer                        := 0;
     g_diag_rw_size              : integer                        := 0;
+    g_dac_bits                  : integer                        := 16;
     g_streamers_op_mode         : t_streamers_op_mode            := TX_AND_RX;
     g_tx_streamer_params        : t_tx_streamer_params           := c_tx_streamer_params_defaut;
     g_rx_streamer_params        : t_rx_streamer_params           := c_rx_streamer_params_defaut;
@@ -112,10 +114,10 @@ entity xwrc_board_common is
     --Timing system
     ---------------------------------------------------------------------------
     dac_hpll_load_p1_o : out std_logic;
-    dac_hpll_data_o    : out std_logic_vector(15 downto 0);
+    dac_hpll_data_o    : out std_logic_vector(g_dac_bits-1 downto 0);
 
     dac_dpll_load_p1_o : out std_logic;
-    dac_dpll_data_o    : out std_logic_vector(15 downto 0);
+    dac_dpll_data_o    : out std_logic_vector(g_dac_bits-1 downto 0);
 
     ---------------------------------------------------------------------------
     -- PHY I/f
@@ -219,7 +221,7 @@ entity xwrc_board_common is
     ---------------------------------------------------------------------------
     -- Aux clocks control
     ---------------------------------------------------------------------------
-    tm_dac_value_o       : out std_logic_vector(23 downto 0);
+    tm_dac_value_o       : out std_logic_vector(31 downto 0);
     tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
     tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
     tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
@@ -388,13 +390,15 @@ begin  -- architecture struct
       g_address_granularity       => g_address_granularity,
       g_aux_sdb                   => g_aux_sdb,
       g_softpll_enable_debugger   => g_softpll_enable_debugger,
+      g_softpll_use_sampled_ref_clocks => g_softpll_use_sampled_ref_clocks,
       g_vuart_fifo_size           => g_vuart_fifo_size,
       g_pcs_16bit                 => g_pcs_16bit,
       g_records_for_phy           => TRUE,
       g_diag_id                   => c_diag_id,
       g_diag_ver                  => c_diag_ver,
       g_diag_ro_size              => c_diag_ro_size,
-      g_diag_rw_size              => c_diag_rw_size)
+      g_diag_rw_size              => c_diag_rw_size,
+      g_dac_bits                  => g_dac_bits)
     port map (
       clk_sys_i            => clk_sys_i,
       clk_dmtd_i           => clk_dmtd_i,

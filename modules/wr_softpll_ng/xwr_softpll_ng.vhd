@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2018-11-07
+-- Last update: 2022-01-28
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -51,6 +51,7 @@ entity xwr_softpll_ng is
 -- should be log2(N) + 7 == 21. Note: the value must match the TAG_BITS constant
 -- in spll_defs.h file!
     g_tag_bits : integer;
+    g_dac_bits : integer := 16;
 
 -- These two are obvious:
     g_num_ref_inputs : integer := 1;
@@ -117,11 +118,11 @@ entity xwr_softpll_ng is
     pps_ext_a_i : in std_logic;
 
 -- DMTD oscillator drive
-    dac_dmtd_data_o : out std_logic_vector(15 downto 0);
+    dac_dmtd_data_o : out std_logic_vector(g_dac_bits-1 downto 0);
     dac_dmtd_load_o : out std_logic;
 
 -- Output channel DAC value
-    dac_out_data_o : out std_logic_vector(15 downto 0);
+    dac_out_data_o : out std_logic_vector(g_dac_bits-1 downto 0);
 -- Output channel select (0 = channel 0, etc. )
     dac_out_sel_o  : out std_logic_vector(3 downto 0);
     dac_out_load_o : out std_logic;
@@ -144,6 +145,7 @@ architecture wrapper of xwr_softpll_ng is
   component wr_softpll_ng
     generic (
       g_tag_bits             : integer;
+      g_dac_bits             : integer;
       g_num_ref_inputs       : integer;
       g_num_outputs          : integer;
       g_num_exts             : integer;
@@ -172,9 +174,9 @@ architecture wrapper of xwr_softpll_ng is
       clk_ext_rst_o        : out std_logic;
       pps_csync_p1_i  : in  std_logic;
       pps_ext_a_i     : in  std_logic;
-      dac_dmtd_data_o : out std_logic_vector(15 downto 0);
+      dac_dmtd_data_o : out std_logic_vector(g_dac_bits-1 downto 0);
       dac_dmtd_load_o : out std_logic;
-      dac_out_data_o  : out std_logic_vector(15 downto 0);
+      dac_out_data_o  : out std_logic_vector(g_dac_bits-1 downto 0);
       dac_out_sel_o   : out std_logic_vector(3 downto 0);
       dac_out_load_o  : out std_logic;
       out_enable_i    : in  std_logic_vector(g_num_outputs-1 downto 0);
@@ -199,6 +201,7 @@ begin  -- behavioral
   U_Wrapped_Softpll : wr_softpll_ng
     generic map (
       g_tag_bits             => g_tag_bits,
+      g_dac_bits             => g_dac_bits,
       g_interface_mode       => g_interface_mode,
       g_address_granularity  => g_address_granularity,
       g_num_ref_inputs       => g_num_ref_inputs,

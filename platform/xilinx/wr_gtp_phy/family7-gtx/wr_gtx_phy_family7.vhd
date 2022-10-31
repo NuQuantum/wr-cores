@@ -232,7 +232,7 @@ architecture rtl of wr_gtx_phy_family7 is
       synced_o                 : out std_logic);
   end component;
 
-  constant c_rxcdrlock_max            : integer := 3;
+  constant c_rxcdrlock_max            : integer := 1;
   constant c_reset_cnt_max            : integer := 64;	-- Reset pulse width 64 * 8 = 512 ns
   
   signal rst_synced                   : std_logic;

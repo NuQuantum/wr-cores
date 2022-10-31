@@ -113,6 +113,14 @@ set_property PULLDOWN true [get_ports uart_rxd_i]
 set_property PACKAGE_PIN W5 [get_ports uart_txd_o]
 set_property IOSTANDARD LVCMOS25 [get_ports uart_txd_o]
 
+#USB Connection on Test&Debug Connector (J20)
+  #Bank 16 VCCO - 3.3 V
+#set_property PACKAGE_PIN D19 [get_ports uart_rxd_i]
+#set_property IOSTANDARD LVCMOS33 [get_ports uart_rxd_i]
+#set_property PULLDOWN true [get_ports uart_rxd_i]
+#set_property PACKAGE_PIN E19 [get_ports uart_rxd_i]
+#set_property IOSTANDARD LVCMOS33 [get_ports uart_rxd_i]
+
   #Bank 34 VCCO - 1.8 V
 #set_property PACKAGE_PIN U6 [get_ports USB_RX2]
 #set_property IOSTANDARD LVCMOS25 [get_ports USB_RX2]
@@ -122,11 +130,6 @@ set_property IOSTANDARD LVCMOS25 [get_ports uart_txd_o]
 
 #USB Connection on Test&Debug Connector (J20)
   #Bank 16 VCCO - 3.3 V
-#set_property PACKAGE_PIN D19 [get_ports USBEXT_RX1]
-#set_property IOSTANDARD LVCMOS33 [get_ports USBEXT_RX1]
-#set_property PULLDOWN true [get_ports USBEXT_RX1]
-#set_property PACKAGE_PIN E19 [get_ports USBEXT_TX1]
-#set_property IOSTANDARD LVCMOS33 [get_ports USBEXT_TX1]
 #set_property PACKAGE_PIN F19 [get_ports USBEXT_RX2]
 #set_property IOSTANDARD LVCMOS33 [get_ports USBEXT_RX2]
 #set_property PULLDOWN true [get_ports USBEXT_RX2]
@@ -310,13 +313,12 @@ set_property IOSTANDARD LVCMOS25 [get_ports dio_led_top_o]
 set_property PACKAGE_PIN AB12 [get_ports dio_led_bot_o]
 set_property IOSTANDARD LVCMOS25 [get_ports dio_led_bot_o]
 
-#   -- I2C interface for accessing FMC EEPROM. Deprecated, was used in
-#   -- pre-v3.0 releases to store WRPC configuration. Now we use Flash for this.
+#   -- I2C interface for accessing EEPROM.
   #Bank 14 VCCO - 3.3 V
-set_property PACKAGE_PIN P17 [get_ports dio_scl_b]
-set_property IOSTANDARD LVCMOS33 [get_ports dio_scl_b]
-set_property PACKAGE_PIN N17 [get_ports dio_sda_b]
-set_property IOSTANDARD LVCMOS33 [get_ports dio_sda_b]
+set_property PACKAGE_PIN V20 [get_ports eeprom_scl_b]
+set_property IOSTANDARD LVCMOS33 [get_ports eeprom_scl_b]
+set_property PACKAGE_PIN U20 [get_ports eeprom_sda_b]
+set_property IOSTANDARD LVCMOS33 [get_ports eeprom_sda_b]
 
 #   ---------------------------------------------------------------------------
 #   -- Bulls-eye connector outputs
@@ -706,4 +708,10 @@ set_property IOSTANDARD LVDS_25 [get_ports clk_dmtd_62m5_n_o]
 #NET "PMT_N[29]"      LOC =       | IOSTANDARD = LVDS | DIFF_TERM = "TRUE";     #Bank ?? VCCO - ?.? V
 #NET "PMT_P[30]"      LOC =       | IOSTANDARD = LVDS | DIFF_TERM = "TRUE";     #Bank ?? VCCO - ?.? V
 #NET "PMT_N[30]"      LOC =       | IOSTANDARD = LVDS | DIFF_TERM = "TRUE";     #Bank ?? VCCO - ?.? V
-                                                                        
+
+#   ---------------------------------------------------------------------------`
+#   -- FLASH PROM properties
+#   ---------------------------------------------------------------------------
+
+set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
+set_property BITSTREAM.CONFIG.SPI_32BIT_ADDR YES [current_design]

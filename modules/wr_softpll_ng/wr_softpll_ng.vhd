@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2019-09-18
+-- Last update: 2022-01-28
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -56,6 +56,7 @@ entity wr_softpll_ng is
 -- should be log2(N) + 7 == 21. Note: the value must match the TAG_BITS constant
 -- in spll_defs.h file!
     g_tag_bits : integer;
+    g_dac_bits : integer := 16;
 
 -- These two are obvious:
     g_num_ref_inputs : integer := 1;
@@ -127,12 +128,12 @@ entity wr_softpll_ng is
     pps_ext_a_i    : in std_logic;
 
 -- DMTD oscillator drive
-    dac_dmtd_data_o : out std_logic_vector(15 downto 0);
+    dac_dmtd_data_o : out std_logic_vector(g_dac_bits-1 downto 0);
 -- When HI, load the data from dac_dmtd_data_o to the DAC.
     dac_dmtd_load_o : out std_logic;
 
 -- Output channel DAC value
-    dac_out_data_o : out std_logic_vector(15 downto 0);
+    dac_out_data_o : out std_logic_vector(g_dac_bits-1 downto 0);
 -- Output channel select (0 = Output channel 0, 1 == OC 1, etc...)
     dac_out_sel_o  : out std_logic_vector(3 downto 0);
     dac_out_load_o : out std_logic;

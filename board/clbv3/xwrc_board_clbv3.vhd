@@ -7,7 +7,7 @@
 -- Author(s)  : Peter Jansweijer <peterj@nikhef.nl>
 -- Company    : Nikhef
 -- Created    : 2017-11-08
--- Last update: 2017-11-08
+-- Last update: 2022-05-20
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -42,7 +42,6 @@ library work;
 use work.gencores_pkg.all;
 use work.wrcore_pkg.all;
 use work.wishbone_pkg.all;
---use work.etherbone_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.streamers_pkg.all;
@@ -200,7 +199,7 @@ entity xwrc_board_clbv3 is
     ---------------------------------------------------------------------------
     -- Aux clocks control
     ---------------------------------------------------------------------------
-    tm_dac_value_o       : out std_logic_vector(23 downto 0);
+    tm_dac_value_o       : out std_logic_vector(31 downto 0);
     tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
     tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
     tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
@@ -247,7 +246,6 @@ entity xwrc_board_clbv3 is
     );
 
 end entity xwrc_board_clbv3;
-
 
 architecture struct of xwrc_board_clbv3 is
 

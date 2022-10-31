@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2022-03-28
+-- Last update: 2022-04-19
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -104,8 +104,8 @@ entity wr_core is
     g_diag_id                   : integer                        := 0;
     g_diag_ver                  : integer                        := 0;
     g_diag_ro_size              : integer                        := 0;
-    g_diag_rw_size              : integer                        := 0
-    );
+    g_diag_rw_size              : integer                        := 0;
+    g_dac_bits                  : integer                        := 16);
   port(
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -140,10 +140,10 @@ entity wr_core is
     --Timing system
     -----------------------------------------
     dac_hpll_load_p1_o : out std_logic;
-    dac_hpll_data_o    : out std_logic_vector(15 downto 0);
+    dac_hpll_data_o    : out std_logic_vector(g_dac_bits-1 downto 0);
 
     dac_dpll_load_p1_o : out std_logic;
-    dac_dpll_data_o    : out std_logic_vector(15 downto 0);
+    dac_dpll_data_o    : out std_logic_vector(g_dac_bits-1 downto 0);
 
     -- PHY I/f
     phy_ref_clk_i : in std_logic;
@@ -293,7 +293,7 @@ entity wr_core is
 
     tm_link_up_o         : out std_logic;
     -- DAC Control
-    tm_dac_value_o       : out std_logic_vector(23 downto 0);
+    tm_dac_value_o       : out std_logic_vector(31 downto 0);
     tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
     -- Aux clock lock enable
     tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
@@ -404,6 +404,7 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   signal phy_rx_clk  : std_logic;
   signal phy_tx_clk  : std_logic;
+  signal clk_rx_sampled : std_logic;
   signal spll_wb_in  : t_wishbone_slave_in;
   signal spll_wb_out : t_wishbone_slave_out;
 
@@ -517,7 +518,7 @@ architecture struct of wr_core is
 
   signal spll_out_locked : std_logic_vector(g_aux_clks downto 0);
 
-  signal dac_dpll_data    : std_logic_vector(15 downto 0);
+  signal dac_dpll_data    : std_logic_vector(g_dac_bits-1 downto 0);
   signal dac_dpll_sel     : std_logic_vector(3 downto 0);
   signal dac_dpll_load_p1 : std_logic;
 
@@ -533,16 +534,19 @@ begin
   GEN_16BIT_PHY_IF: if g_pcs_16bit and g_records_for_phy generate
     phy_rx_clk <= phy16_i.rx_clk;
     phy_tx_clk <= phy16_i.ref_clk;
+    clk_rx_sampled <= phy16_i.rx_sampled_clk;
   end generate;
 
   GEN_8BIT_PHY_IF: if not g_pcs_16bit and g_records_for_phy generate
     phy_rx_clk <= phy8_i.rx_clk;
     phy_tx_clk <= phy8_i.ref_clk;
+    clk_rx_sampled <= phy8_i.rx_sampled_clk;
   end generate;
 
   GEN_STD_PHY_IF: if not g_records_for_phy generate
     phy_rx_clk <= phy_rx_rbclk_i;
     phy_tx_clk <= phy_ref_clk_i;
+    clk_rx_sampled <= phy_rx_rbclk_sampled_i;
   end generate;
 
   -----------------------------------------------------------------------------
@@ -643,6 +647,7 @@ begin
       g_divide_input_by_2    => not g_pcs_16bit,
       g_with_debug_fifo      => g_softpll_enable_debugger,
       g_tag_bits             => 22,
+      g_dac_bits             => g_dac_bits,
       g_interface_mode       => PIPELINED,
       g_address_granularity  => BYTE,
       g_num_ref_inputs       => 1,
@@ -660,7 +665,7 @@ begin
 
       -- Reference inputs (i.e. the RX clocks recovered by the PHYs)
       clk_ref_i(0) => phy_rx_clk,
-      clk_ref_sampled_i(0) => phy_rx_rbclk_sampled_i,
+      clk_ref_sampled_i(0) => clk_rx_sampled,
       -- Feedback clocks (i.e. the outputs of the main or aux oscillator)
       clk_fb_i     => clk_fb,
       -- DMTD Offset clock
@@ -704,7 +709,7 @@ begin
   dac_dpll_data_o    <= dac_dpll_data;
   dac_dpll_load_p1_o <= '1' when (dac_dpll_load_p1 = '1' and dac_dpll_sel = x"0") else '0';
 
-  tm_dac_value_o <= x"00" & dac_dpll_data;
+  tm_dac_value_o <= (31 downto dac_dpll_data'length => '0') & dac_dpll_data;
 
   p_decode_dac_writes : process(dac_dpll_load_p1, dac_dpll_sel)
   begin

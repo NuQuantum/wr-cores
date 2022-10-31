@@ -7,8 +7,8 @@
 -- File       : clbv2_wr_ref_top.vhd
 -- Author(s)  : Peter Jansweijer <peterj@nikhef.nl>
 -- Company    : Nikhef
--- Created    : 2017-11-08
--- Last update: 2019-06-28
+-- Created    : 2022-05-08
+-- Last update: 2022-05-18
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the CLBv2.
@@ -177,10 +177,9 @@ entity clbv2_wr_ref_top is
     dio_led_top_o : out std_logic;
     dio_led_bot_o : out std_logic;
 
-    -- I2C interface for accessing FMC EEPROM. Deprecated, was used in
-    -- pre-v3.0 releases to store WRPC configuration. Now we use Flash for this.
-    dio_scl_b : inout std_logic;
-    dio_sda_b : inout std_logic
+    -- I2C interface for accessing EEPROM.
+    eeprom_scl_b : inout std_logic;
+    eeprom_sda_b : inout std_logic
 
   );
 end entity clbv2_wr_ref_top;
@@ -246,8 +245,8 @@ begin  -- architecture top
     port map (
       areset_n_i          => reset_n,
       clk_20m_vcxo_i      => clk_20m_vcxo_i,
-      clk_125m_gtp_n_i    => clk_125m_gtx_n_i,
-      clk_125m_gtp_p_i    => clk_125m_gtx_p_i,
+      clk_125m_gtx_n_i    => clk_125m_gtx_n_i,
+      clk_125m_gtx_p_i    => clk_125m_gtx_p_i,
       clk_10m_ext_i       => clk_ext_10m,
       clk_sys_62m5_o      => clk_sys_62m5,
       clk_ref_62m5_o      => clk_ref_62m5,
@@ -330,10 +329,10 @@ begin  -- architecture top
   dio_term_en_o          <= "11000";
 
   -- EEPROM I2C tri-states
-  dio_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
-  eeprom_sda_in <= dio_sda_b;
-  dio_scl_b <= '0' when (eeprom_scl_out = '0') else 'Z';
-  eeprom_scl_in <= dio_scl_b;
+  eeprom_sda_b <= '0' when (eeprom_sda_out = '0') else 'Z';
+  eeprom_sda_in <= eeprom_sda_b;
+  eeprom_scl_b <= '0' when (eeprom_scl_out = '0') else 'Z';
+  eeprom_scl_in <= eeprom_scl_b;
 
   -- Div by 2 reference clock to LEMO connector
   process(clk_ref_62m5)
