@@ -135,7 +135,7 @@ package wr_svec_pkg is
       wb_eth_master_i      : in  t_wishbone_master_in                             := cc_dummy_master_in;
       aux_diag_i           : in  t_generic_word_array(g_diag_ro_size-1 downto 0)  := (others => (others => '0'));
       aux_diag_o           : out t_generic_word_array(g_diag_rw_size-1 downto 0);
-      tm_dac_value_o       : out std_logic_vector(23 downto 0);
+      tm_dac_value_o       : out std_logic_vector(31 downto 0);
       tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
       tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0)          := (others => '0');
       tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
@@ -291,7 +291,7 @@ package wr_svec_pkg is
       wb_eth_stall_i       : in  std_logic                                               := '0';
       aux_diag_i           : in  std_logic_vector(g_diag_ro_vector_width - 1 downto 0)   := (others => '0');
       aux_diag_o           : out std_logic_vector(g_diag_rw_vector_width - 1 downto 0)   := (others => '0');
-      tm_dac_value_o       : out std_logic_vector(23 downto 0);
+      tm_dac_value_o       : out std_logic_vector(31 downto 0);
       tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
       tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0)                 := (others => '0');
       tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
