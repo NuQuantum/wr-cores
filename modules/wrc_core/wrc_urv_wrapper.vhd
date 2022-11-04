@@ -164,8 +164,6 @@ begin
   -- 1st MByte of the mem is the IRAM
   dm_is_wishbone <= '1' when dm_addr(31 downto 20) /= x"000" else '0';
 
-  dm_data_write <= not dm_is_wishbone and dm_store;
-
   U_iram : generic_dpram
     generic map (
       g_DATA_WIDTH               => 32,
