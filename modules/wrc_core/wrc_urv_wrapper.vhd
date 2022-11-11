@@ -30,7 +30,8 @@ use ieee.numeric_std.all;
 use work.genram_pkg.all;
 use work.wishbone_pkg.all;
 use work.wrc_cpu_csr_wbgen2_pkg.all;
-  
+use work.urv_pkg.all;
+
 entity wrc_urv_wrapper is
   generic(
     g_IRAM_SIZE : integer;
@@ -116,7 +117,7 @@ architecture arch of wrc_urv_wrapper is
 
   signal regs_in : t_wrc_cpu_csr_out_registers;
   signal regs_out : t_wrc_cpu_csr_in_registers;
-    
+
 begin
 
   wrc_cpu_csr_wb_slave_1: entity work.wrc_cpu_csr_wb_slave
@@ -130,7 +131,7 @@ begin
 
   dwb_o <= dwb_out;
 
-  U_cpu_core : entity work.urv_cpu
+  U_cpu_core : urv_cpu
     generic map (
       g_with_hw_debug => 1,
       g_with_hw_mulh => 1,
