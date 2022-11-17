@@ -16,7 +16,6 @@ syn_post_project_cmd = "quartus_sh -t quartus_preflow.tcl"
 
 files = [
     "vfchd_wr_ref.sdc",
-    "quartus_preflow.tcl",
 ]
 
 modules = {
