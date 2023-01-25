@@ -375,7 +375,7 @@ begin  -- architecture top
       g_simulation                => g_simulation,
       g_with_external_clock_input => TRUE,
       g_dpram_initf               => g_dpram_initf,
-      g_fabric_iface              => ETHERBONE)
+      g_fabric_iface              => LOOPBACK)
     port map (
       areset_n_i          => button1_i,
       areset_edge_n_i     => gn_rst_n,

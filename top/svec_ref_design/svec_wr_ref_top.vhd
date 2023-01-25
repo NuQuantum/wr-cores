@@ -56,7 +56,7 @@ use work.wishbone_pkg.all;
 use work.vme64x_pkg.all;
 use work.wr_board_pkg.all;
 use work.wr_svec_pkg.all;
-use work.synthesis_descriptor.all;
+-- use work.synthesis_descriptor.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -363,7 +363,7 @@ begin  -- architecture top
       g_simulation                => g_simulation,
       g_with_external_clock_input => TRUE,
       g_dpram_initf               => g_dpram_initf,
-      g_fabric_iface              => ETHERBONE)
+      g_fabric_iface              => LOOPBACK)
     port map (
       clk_20m_vcxo_i      => clk_20m_vcxo_i,
       clk_125m_pllref_p_i => clk_125m_pllref_p_i,
