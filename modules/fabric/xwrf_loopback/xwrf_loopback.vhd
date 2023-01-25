@@ -267,7 +267,7 @@ begin
               frame_wr <= '1';
               frame_in <= wrf_snk_i.dat;
             elsif(fsize>4 and fword_valid='1' and ffifo_full='1') then
-              fsize <= fsize-2; --last write was already unsuccesfull lbk_rxfsm   <= DROP; end if; 
+              fsize <= fsize-2; --last write was already unsuccesfull
               lbk_rxfsm <= DROP;
             end if;
 
