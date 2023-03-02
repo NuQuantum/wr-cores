@@ -92,10 +92,7 @@ architecture arch of wrc_urv_wrapper is
 
   signal ha_im_addr     : std_logic_vector(31 downto 0);
   signal ha_im_wdata    : std_logic_vector(31 downto 0);
-  signal ha_im_rdata    : std_logic_vector(31 downto 0);
   signal ha_im_write    : std_logic;
-  signal ha_im_access   : std_logic;
-  signal ha_im_access_d : std_logic;
 
   signal im_addr_muxed : std_logic_vector(31 downto 0);
 

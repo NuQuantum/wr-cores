@@ -323,29 +323,7 @@ end wr_core;
 
 architecture struct of wr_core is
 
-  function f_choose_lm32_firmware_file return string is
-  begin
-    if(g_dpram_initf = "default") then
-      if(g_simulation /= 0) then
-        if g_verbose then
-        report "[WR Core] Using simulation LM32 firmware." severity note;
-        end if;
-        return "wrc-simulation.ram";
-      else
-        if g_verbose then
-        report "[WR Core] Using release LM32 firmware." severity note;
-        end if;
-        return "wrc-release.ram";
-      end if;
-    else
-      if g_verbose then
-      report "[WR Core] Using user-provided LM32 firmware." severity note;
-      end if;
-      return g_dpram_initf;
-    end if;
-  end function;
-
-  function f_check_if_lm32_firmware_necessary return boolean is
+  function f_check_if_firmware_necessary return boolean is
   begin
     if(g_dpram_initf /= "" and g_dpram_initf /= "none") then
       return true;
@@ -363,21 +341,10 @@ architecture struct of wr_core is
     end if;
   end function;
 
-  function f_to_integer(x:boolean) return integer is
-  begin
-    if(x) then
-      return 1;
-    else
-      return 0;
-    end if;
-  end f_to_integer;
-    
-
   -----------------------------------------------------------------------------
   --Local resets for peripheral
   -----------------------------------------------------------------------------
   signal rst_wrc_n : std_logic;
-  signal rst_wrc : std_logic;
   signal rst_net_n : std_logic;
 
   -----------------------------------------------------------------------------
@@ -428,9 +395,6 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   --Mini-NIC
   -----------------------------------------------------------------------------
-  signal mnic_mem_data_o : std_logic_vector(31 downto 0);
-  signal mnic_mem_addr_o : std_logic_vector(c_mnic_memsize_log2-1 downto 0);
-  signal mnic_mem_wr_o   : std_logic;
   signal mnic_txtsu_ack  : std_logic;
   signal mnic_txtsu_stb  : std_logic;
 
@@ -439,8 +403,6 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   signal periph_slave_i : t_wishbone_slave_in_array(0 to 4);
   signal periph_slave_o : t_wishbone_slave_out_array(0 to 4);
-  signal sysc_in_regs   : t_sysc_in_registers;
-  signal sysc_out_regs  : t_sysc_out_registers;
 
   -----------------------------------------------------------------------------
   --WB Secondary Crossbar
@@ -483,14 +445,6 @@ architecture struct of wr_core is
   --===========================--
   --         For SPEC          --
   --===========================--
-
-  signal hpll_auxout  : std_logic_vector(2 downto 0);
-  signal dmpll_auxout : std_logic_vector(2 downto 0);
-
-  signal clk_ref_slv : std_logic_vector(0 downto 0);
-  signal clk_rx_slv  : std_logic_vector(0 downto 0);
-
-  signal s_dummy_addr : std_logic_vector(31 downto 0);
 
   signal softpll_irq : std_logic;
 
@@ -869,7 +823,7 @@ begin
       g_board_name      => g_board_name,
       g_flash_secsz_kb  => g_flash_secsz_kb,
       g_flash_sdbfs_baddr => g_flash_sdbfs_baddr,
-      g_has_preinitialized_firmware => f_check_if_lm32_firmware_necessary,
+      g_has_preinitialized_firmware => f_check_if_firmware_necessary,
       g_phys_uart       => g_phys_uart,
       g_virtual_uart    => g_virtual_uart,
       g_mem_words       => g_dpram_size,
