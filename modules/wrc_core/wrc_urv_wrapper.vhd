@@ -113,7 +113,6 @@ architecture arch of wrc_urv_wrapper is
   signal dbg_insn     : std_logic_vector(31 downto 0);
 
   signal dwb_out         : t_wishbone_master_out;
-  signal bus_timeout_cnt : unsigned(7 downto 0);
 
   signal regs_in : t_wrc_cpu_csr_out_registers;
   signal regs_out : t_wrc_cpu_csr_in_registers;
@@ -252,7 +251,6 @@ begin
               dm_load_done         <= '0';
               dm_store_done        <= '0';
               dm_cycle_in_progress <= '1';
-              bus_timeout_cnt      <= (others => '0');
             else
               dm_store_done        <= '0';
               dm_load_done         <= '0';
@@ -264,9 +262,7 @@ begin
             dwb_out.stb <= '0';
           end if;
 
-          bus_timeout_cnt <= bus_timeout_cnt + 1;
-
-          if dwb_i.ack = '1' or bus_timeout_cnt = 100 then
+          if dwb_i.ack = '1' then
             if dm_wb_write = '0' then
               dm_wb_rdata  <= f_x_to_zero(dwb_i.dat);
               dm_select_wb <= '1';
