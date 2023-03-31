@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2021-04-09
+-- Last update: 2023-03-29
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -85,7 +85,7 @@ entity ep_tx_pcs_16bit is
     pcs_dreq_o : out std_logic;
 
 -------------------------------------------------------------------------------
--- WB controller control signals
+-- WB controller control signals. clk_sys_i domain.
 -------------------------------------------------------------------------------
 
     mdio_mcr_reset_i      : in std_logic;
@@ -158,10 +158,6 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal prbs_tx_reg : std_logic_vector(15 downto 0);
   signal prbs_tx_is_k : std_logic_vector(1 downto 0);
 
-  signal mdio_mcr_reset_synced : std_logic;
-  signal mdio_mcr_pdown_synced : std_logic;
-
-  signal an_tx_en_synced : std_logic;
   signal wr_count       :  std_logic_vector(6 downto 0);
   signal rd_count       :  std_logic_vector(6 downto 0);
   
@@ -196,7 +192,24 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal rst_tx : std_logic;
   signal lfsr_enable : std_logic;
   signal lfsr_out : std_logic_vector(15 downto 0);
-  signal mdio_dbg_prbs_en_synced : std_logic;
+
+  -- various signals synchronized to the phy_tx_clk_i domain
+  signal mdio_mcr_reset_tx_clk : std_logic;
+  signal mdio_mcr_pdown_tx_clk : std_logic;
+  signal an_tx_en_tx_clk : std_logic;
+  signal mdio_dbg_prbs_en_tx_clk : std_logic;
+  signal mdio_wr_spec_tx_cal_tx_clk : std_logic;
+
+
+  attribute mark_debug : string;
+  attribute mark_debug of tx_state : signal is "true";
+  attribute mark_debug of mdio_wr_spec_tx_cal_tx_clk : signal is "true";
+  attribute mark_debug of mdio_wr_spec_tx_cal_i : signal is "true";
+  attribute mark_debug of tx_odata_reg : signal is "true";
+  attribute mark_debug of tx_is_k : signal is "true";
+  
+  
+   
 begin
 
   U_sync_pcs_busy_o : gc_sync_ffs
@@ -224,7 +237,7 @@ begin
       clk_i    => phy_tx_clk_i,
       rst_n_i  => rst_n_i,
       data_i   => an_tx_en_i,
-      synced_o => an_tx_en_synced);
+      synced_o => an_tx_en_tx_clk);
 
   U_sync_mcr_reset : gc_sync_ffs
     generic map (
@@ -233,7 +246,7 @@ begin
       clk_i    => phy_tx_clk_i,
       rst_n_i  => '1',
       data_i   => mdio_mcr_reset_i,
-      synced_o => mdio_mcr_reset_synced,
+      synced_o => mdio_mcr_reset_tx_clk,
       npulse_o => open,
       ppulse_o => open);
 
@@ -244,7 +257,7 @@ begin
       clk_i    => phy_tx_clk_i,
       rst_n_i  => '1',
       data_i   => mdio_dbg_prbs_en_i,
-      synced_o => mdio_dbg_prbs_en_synced,
+      synced_o => mdio_dbg_prbs_en_tx_clk,
       npulse_o => open,
       ppulse_o => open);
 
@@ -255,12 +268,21 @@ begin
       clk_i    => phy_tx_clk_i,
       rst_n_i  => '1',
       data_i   => mdio_mcr_pdown_i,
-      synced_o => mdio_mcr_pdown_synced);
+      synced_o => mdio_mcr_pdown_tx_clk);
 
-  phy_tx_data_o <= tx_odata_reg when mdio_dbg_prbs_en_synced = '0' else prbs_tx_reg;
-  phy_tx_k_o    <= tx_is_k when mdio_dbg_prbs_en_synced = '0' else prbs_tx_is_k;
+  U_sync_en_tx_cal : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_tx_clk_i,
+      rst_n_i  => '1',
+      data_i   => mdio_wr_spec_tx_cal_i,
+      synced_o => mdio_wr_spec_tx_cal_tx_clk);
 
-  rst_n_tx <= rst_txclk_n_i and not mdio_mcr_reset_synced;
+  phy_tx_data_o <= tx_odata_reg when mdio_dbg_prbs_en_tx_clk = '0' else prbs_tx_reg;
+  phy_tx_k_o    <= tx_is_k when mdio_dbg_prbs_en_tx_clk = '0' else prbs_tx_is_k;
+
+  rst_n_tx <= rst_txclk_n_i and not mdio_mcr_reset_tx_clk;
 
   rst_tx <= not rst_n_tx;
   
@@ -276,10 +298,10 @@ begin
   p_prbs_generator : process(phy_tx_clk_i)
   begin
     if rising_edge(phy_tx_clk_i) then
-      if(rst_n_tx = '0' or mdio_mcr_pdown_synced = '1') then
+      if(rst_n_tx = '0' or mdio_mcr_pdown_tx_clk = '1') then
         prbs_count <= (others => '0');
       else
-        if mdio_dbg_prbs_en_synced = '1' then
+        if mdio_dbg_prbs_en_tx_clk = '1' then
 
           prbs_count <= prbs_count + 1;
 
@@ -315,7 +337,7 @@ begin
  -- some hacks to make pdown (in particular killing the link) work with Xilix native FIFOs
  -- (the rst signal can be set (LOW) only after 4 cycles after rd_i is "unset" (LOW)
  -------------------------------------------------------------------------------------------
- fifo_clear_n_d0 <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_synced = '1') else '1';
+ fifo_clear_n_d0 <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_tx_clk = '1') else '1';
  p_fifo_clean : process(phy_tx_clk_i)
   begin
     if rising_edge(phy_tx_clk_i) then
@@ -405,7 +427,7 @@ begin
     if rising_edge(phy_tx_clk_i) then
 
 -- The PCS is reset or disabled
-      if(rst_n_tx = '0' or mdio_mcr_pdown_synced = '1') then
+      if(rst_n_tx = '0' or mdio_mcr_pdown_tx_clk = '1') then
         tx_state                <= TX_COMMA_IDLE;
         timestamp_trigger_p_a_o <= '0';
         fifo_rd                 <= '0';
@@ -439,7 +461,7 @@ begin
 
 
 -- endpoint wants to send Config_Reg
-            if(an_tx_en_synced = '1') then
+            if(an_tx_en_tx_clk = '1') then
               tx_state        <= TX_CR12;
               tx_cr_alternate <= '0';
               fifo_rd         <= '0';
@@ -451,7 +473,7 @@ begin
               tx_cntr  <= "0001";
 
 -- host requested a calibration pattern
-            elsif(mdio_wr_spec_tx_cal_i = '1') then
+            elsif(mdio_wr_spec_tx_cal_tx_clk = '1') then
               tx_state        <= TX_CAL;
               fifo_rd         <= '0';
               tx_cr_alternate <= '0';
@@ -479,7 +501,7 @@ begin
             tx_is_k         <= "11";
             tx_odata_reg    <= c_k28_7 & c_k28_7;
             tx_cr_alternate <= '1';
-            if(mdio_wr_spec_tx_cal_i = '0' and tx_cr_alternate = '1') then
+            if(mdio_wr_spec_tx_cal_tx_clk = '0' and tx_cr_alternate = '1') then
               tx_state <= TX_COMMA_IDLE;
             end if;
 
@@ -509,7 +531,7 @@ begin
             tx_odata_reg(15 downto 8) <= an_tx_val_i(7 downto 0);
             tx_odata_reg(7 downto 0)  <= an_tx_val_i(15 downto 8);
 
-            if(an_tx_en_synced = '1') then
+            if(an_tx_en_tx_clk = '1') then
               tx_state <= TX_CR12;
             else
               tx_state <= TX_COMMA_IDLE;
