@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2023-05-02
+-- Last update: 2023-05-05
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -166,9 +166,9 @@ entity xwr_core is
     phy_rx_enc_err_i     : in std_logic;
     phy_rx_bitslide_i    : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
 
-    phy_lpc_stat_i       : in std_logic_vector(15 downto 0);
-    phy_lpc_ctrl_o       : out std_logic_vector(15 downto 0);
-    
+    phy_mdio_master_o : out t_wishbone_master_out;
+    phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out; 
+
     phy_rst_o            : out std_logic;
     phy_rdy_i            : in  std_logic := '1';
     phy_loopen_o         : out std_logic;
@@ -360,12 +360,20 @@ begin
       phy_rdy_i            => phy_rdy_i,
       phy_loopen_o         => phy_loopen_o,
       phy_loopen_vec_o     => phy_loopen_vec_o,
-      phy_lpc_ctrl_o => phy_lpc_ctrl_o,
-      phy_lpc_stat_i => phy_lpc_stat_i,
       phy_tx_prbs_sel_o    => phy_tx_prbs_sel_o,
       phy_sfp_tx_fault_i   => phy_sfp_tx_fault_i,
       phy_sfp_los_i        => phy_sfp_los_i,
       phy_sfp_tx_disable_o => phy_sfp_tx_disable_o,
+
+      phy_mdio_master_cyc_o  => phy_mdio_master_o.cyc,
+      phy_mdio_master_stb_o  => phy_mdio_master_o.stb,
+      phy_mdio_master_we_o   => phy_mdio_master_o.we,
+      phy_mdio_master_sel_o  => phy_mdio_master_o.sel,
+      phy_mdio_master_adr_o  => phy_mdio_master_o.adr,
+      phy_mdio_master_dat_o    => phy_mdio_master_o.dat,
+      phy_mdio_master_dat_i    => phy_mdio_master_i.dat,
+      phy_mdio_master_stall_i  => phy_mdio_master_i.stall,
+      phy_mdio_master_ack_i    => phy_mdio_master_i.ack,
 
       phy8_o     => phy8_o,
       phy8_i     => phy8_i,

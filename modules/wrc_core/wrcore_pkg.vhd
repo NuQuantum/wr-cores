@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2023-05-02
+-- Last update: 2023-05-05
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -472,10 +472,9 @@ package wrcore_pkg is
       phy_sfp_los_i        : in std_logic := '0';
       phy_sfp_tx_disable_o : out std_logic;
       phy_rx_rbclk_sampled_i : in std_logic := '0';
-
-      phy_lpc_ctrl_o : out std_logic_vector(15 downto 0);
-      phy_lpc_stat_i : in std_logic_vector(15 downto 0) := x"0000";
-
+      phy_mdio_master_o : out t_wishbone_master_out;
+      phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out; 
+    
       -----------------------------------------
       -- PHY I/f - record-based
       -- selection done with g_records_for_phy
@@ -655,8 +654,17 @@ package wrcore_pkg is
       phy_sfp_tx_disable_o : out std_logic;
 
       phy_rx_rbclk_sampled_i : in std_logic := '0';
-      phy_lpc_ctrl_o : out std_logic_vector(15 downto 0);
-      phy_lpc_stat_i : in std_logic_vector(15 downto 0) := x"0000";
+
+      -- clk_sys_i domain!
+      phy_mdio_master_cyc_o : out std_logic;
+      phy_mdio_master_stb_o : out std_logic;
+      phy_mdio_master_we_o : out std_logic;
+      phy_mdio_master_dat_o : out std_logic_vector(31 downto 0);
+      phy_mdio_master_sel_o : out std_logic_vector(3 downto 0) := "0000";
+      phy_mdio_master_adr_o : out std_logic_vector(31 downto 0);
+      phy_mdio_master_ack_i : in std_logic := '0';
+      phy_mdio_master_stall_i : in std_logic := '0';
+      phy_mdio_master_dat_i : in std_logic_vector(31 downto 0) := x"00000000";
 
       -----------------------------------------
       -- PHY I/f - record-based
