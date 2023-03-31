@@ -69,7 +69,7 @@ use UNISIM.VCOMPONENTS.ALL;
 
 --***************************** Entity Declaration ****************************
 
-entity whiterabbit_gtxe2_channel_wrapper_GT is
+entity whiterabbit_gtxe2_channel_wrapper_kintex7_lp is
 generic
 (
     -- Simulation attributes
@@ -153,9 +153,9 @@ port
 );
 
 
-end whiterabbit_gtxe2_channel_wrapper_GT;
+end whiterabbit_gtxe2_channel_wrapper_kintex7_lp;
 
-architecture RTL of whiterabbit_gtxe2_channel_wrapper_GT is
+architecture RTL of whiterabbit_gtxe2_channel_wrapper_kintex7_lp is
     
 --**************************** Signal Declarations ****************************
 
