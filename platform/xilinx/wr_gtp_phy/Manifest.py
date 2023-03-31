@@ -121,11 +121,12 @@ elif (syn_device[0:4].upper()=="XC7K" or # Family 7 GTX (Kintex7 and Virtex7 585
         syn_device[0:7].upper()=="XC7Z045"):
     files.extend([
         "family7-gtx/wr_gtx_phy_family7.vhd",
-#        "family7-gtx/whiterabbit_gtxe2_channel_wrapper_gt.vhd",
-        "kintex7-lp/gtx_comma_detect_lp.vhd",
+        "family7-gtx/whiterabbit_gtxe2_channel_wrapper_gt.vhd",
+        "common/lpdc_mdio_regs.vhd",
+        "kintex7-lp/whiterabbit_gtxe2_channel_wrapper_kintex7_lp.vhd",
         "kintex7-lp/wr_gtx_phy_kintex7_lp.vhd",
         "kintex7-lp/wr_gtx_phy_kintex7_lp_qpll.vhd",
-        "kintex7-lp/gtxe2_lp.vhd",
+        "kintex7-lp/gtx_comma_detect_kintex7_lp.vhd",
         "family7-gtx-lp/whiterabbit_gtxe2_channel_wrapper_gt_lp.vhd",
         "family7-gtx-lp/gtx_comma_detect_lp.vhd",
         "family7-gtx-lp/wr_gtx_phy_family7_lp.vhd" ]);

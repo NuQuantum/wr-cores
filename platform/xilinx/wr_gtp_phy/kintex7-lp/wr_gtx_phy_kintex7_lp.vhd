@@ -1,20 +1,20 @@
 -------------------------------------------------------------------------------
--- Title      : Deterministic Xilinx GTX wrapper - kintex-7 top module
+-- Title      : Deterministic Xilinx GTX LPDC wrapper - kintex-7 top module
 -- Project    : White Rabbit Switch
 -------------------------------------------------------------------------------
 -- File       : wr_gtx_phy_family7.vhd
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
--- Last update: 2019-07-01
--- Platform   : FPGA-generic
+-- Last update: 2023-03-30
+-- Platform   : Kintex-7
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
--- Description: Dual channel wrapper for Xilinx Kintex-7 GTX adapted for
+-- Description: Wrapper for Xilinx Kintex-7 GTX adapted for
 -- deterministic delays at 1.25 Gbps.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2010 CERN
+-- Copyright (c) 2010-2023 CERN
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -33,13 +33,6 @@
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 -- 
 --
--------------------------------------------------------------------------------
--- Revisions  :
--- Date        Version  Author    Description
--- 2013-04-08  0.1      PeterJ    Initial release based on "wr_gtx_phy_virtex6.vhd"
--- 2013-08-19  0.2      PeterJ    Implemented a small delay before a rx_cdr_lock is propgated
--- 2014-02_19  0.3      Peterj    Added tx_locked_o to indicate that the cpll reached the lock status
--------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -51,6 +44,8 @@ use unisim.vcomponents.all;
 library work;
 use work.gencores_pkg.all;
 use work.disparity_gen_pkg.all;
+use work.wishbone_pkg.all;
+use work.lpdc_mdio_regs_pkg.all;
 
 entity wr_gtx_phy_kintex7_lp is
 
@@ -62,11 +57,18 @@ entity wr_gtx_phy_kintex7_lp is
 
   port (
 
+    -- systemc clock for MDIO registers
+    clk_sys_i : in std_logic;
+    rst_sys_n_i : in std_logic;
+    
     -- Dedicated reference 125 MHz clock for the GTX transceiver
     qpll_clk_i : in std_logic;
     qpll_ref_clk_i : in std_logic;
     qpll_locked_i : in std_logic;
     qpll_reset_o : out std_logic;
+
+    -- reset input, active hi
+    rst_i         : in std_logic;
 
     -- DMTD clock for phase measurements (done in the PHY module as we need to
     -- multiplex between several GTX clock outputs)
@@ -113,10 +115,9 @@ entity wr_gtx_phy_kintex7_lp is
     -- transceiver (in UIs). Must be valid when ch0_rx_data_o is valid.
     rx_bitslide_o : out std_logic_vector(4 downto 0);
 
-    -- reset input, active hi
-    rst_i         : in std_logic;
     loopen_i      : in std_logic;
-    tx_prbs_sel_i : in std_logic_vector(2 downto 0);
+    loopen_vec_i  : in std_logic_vector(2 downto 0);
+
     pad_txn_o : out std_logic;
     pad_txp_o : out std_logic;
 
@@ -125,14 +126,14 @@ entity wr_gtx_phy_kintex7_lp is
 
     rdy_o     : out std_logic;
 
-    debug_i : in  std_logic_vector(15 downto 0) := x"0000";
-    debug_o : out std_logic_vector(15 downto 0);
     rx_rbclk_sampled_o : out std_logic;
 
     fmon_clk_tx_o : out std_logic;
     fmon_clk_tx2_o : out std_logic;
-    fmon_clk_rx_o : out std_logic
+    fmon_clk_rx_o : out std_logic;
 
+    mdio_slave_i : in t_wishbone_slave_in;
+    mdio_slave_o : out t_wishbone_slave_out
     );
 end wr_gtx_phy_kintex7_lp;
 
@@ -167,7 +168,9 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   
   constant c_rxcdrlock_max            : integer := 1000;
   constant c_reset_cnt_max            : integer := 64;	-- Reset pulse width 64 * 8 = 512 ns
-  
+
+  signal tx_enable_txclk, rx_enable_rxclk : std_logic;
+
   signal rst_synced                   : std_logic;
   signal gtx_rst, gtx_rst_n                      : std_logic;
   signal rst_d0                     : std_logic;
@@ -194,32 +197,20 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   signal rx_k_int    : std_logic_vector(1 downto 0);
   signal rx_data_int : std_logic_vector(15 downto 0);
 
-  signal rx_data_wrap : std_logic_vector(15 downto 0);
-  signal rx_charisk_wrap : std_logic_vector(1 downto 0);
-  signal rx_disperr_wrap : std_logic_vector(1 downto 0);
-
-
   signal rx_data_raw : std_logic_vector(19 downto 0);
 
   signal rx_enc_err_o_int : std_logic;
   signal rx_disp_err, rx_code_err     : std_logic_vector(1 downto 0);
 
-  signal tx_is_k_swapped              : std_logic_vector(1 downto 0);
-  signal tx_data_swapped              : std_logic_vector(15 downto 0);
 
   signal cur_disp                     : t_8b10b_disparity;
 
 
 
   signal link_up, link_aligned : std_logic;
-  signal tx_enable, tx_enable_txclk : std_logic;
-
-  signal tx_sw_reset : std_logic;
-  signal rx_enable, rx_enable_rxclk : std_logic;
   signal gtx_rx_reset_a : std_logic;
   signal gtx_tx_reset_a : std_logic;
 
-  signal rx_sw_reset : std_logic;
   signal rx_rec_clk_sampled, tx_out_clk_sampled : std_logic;
   signal gtx_loopback               : std_logic_vector(2 downto 0);
 
@@ -236,6 +227,7 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   end function;
 
 
+  
   signal comma_target_pos : std_logic_vector(7 downto 0);
   signal comma_current_pos : std_logic_vector(7 downto 0);
 
@@ -246,11 +238,10 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   signal run_disparity_q0, run_disparity_q1 : std_logic;
   signal run_disparity_reg : std_logic;
 
-  signal pll_clkfbout_bufin,tx_out_clk_div2_bufin, pll_clkfbout : std_logic;
+  signal tx_out_clk_div2_bufin : std_logic;
   signal tx_out_clk_div1_bufin : std_logic;
   signal txusrpll_locked : std_logic;
 
-  signal qpll_sw_reset : std_logic;
   
   attribute mark_debug : string;
   attribute mark_debug of rx_data_raw : signal is "true";
@@ -259,52 +250,70 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   attribute mark_debug of rx_k_int : signal is "true";
   attribute mark_debug of rx_data_int : signal is "true";
   attribute mark_debug of link_up : signal is "true";
-  attribute mark_debug of link_aligned : signal is "true";
-  attribute mark_debug of tx_sw_reset : signal is "true";
-  attribute mark_debug of rx_sw_reset : signal is "true";
-  attribute mark_debug of tx_enable : signal is "true";
-  attribute mark_debug of rx_enable: signal is "true";
+  attribute mark_debug of tx_enable_txclk : signal is "true";
+  attribute mark_debug of rx_enable_rxclk : signal is "true";
+  
 
 
-  signal txusrpll_reset : std_logic;
+  signal lpdc_regs_out : t_lpdc_regs_master_out;
+  signal lpdc_regs_in : t_lpdc_regs_master_in;
+  signal drp_regs_in : t_wishbone_slave_out;
+  signal drp_regs_out : t_wishbone_slave_in;
+
+  attribute mark_debug of lpdc_regs_out : signal is "true";
+  attribute mark_debug of mdio_slave_o : signal is "true";
+  attribute mark_debug of mdio_slave_i : signal is "true";
+
+  signal gtx_rst_a, gtx_rst_a_n : std_logic;
+
+  signal drp_addr : std_logic_vector(8 downto 0);
+  signal drp_dout, drp_din : std_logic_vector(15 downto 0);
+  signal drp_we, drp_rdy, drp_en : std_logic;
+  signal drp_in_progress : std_logic;
   
 begin  -- rtl
 
-  tx_sw_reset <= debug_i(0);
-  tx_enable <= debug_i(1);
-  rx_enable <= debug_i(2);
-  rx_sw_reset <= debug_i(3);
-  qpll_sw_reset <= debug_i(4);
-  txusrpll_reset <= debug_i(5); -- not tx_rst_done;
+  U_LPDC_regs : entity work.lpdc_mdio_regs
+    port map (
+      rst_n_i     => rst_sys_n_i,
+      clk_i       => clk_sys_i,
+      wb_i        => mdio_slave_i,
+      wb_o        => mdio_slave_o,
+      lpdc_regs_i => lpdc_regs_in,
+      lpdc_regs_o => lpdc_regs_out,
+      drp_regs_i  => drp_regs_in,
+      drp_regs_o  => drp_regs_out);
+  
   
   -- Near-end PMA loopback if loopen_i active
-  gtx_loopback <= "010" when loopen_i = '1' else "000";
+  gtx_loopback <= "000"; --"010" when loopen_i = '1' else loopen_vec_i;
 
  U_SyncTxEnable : gc_sync_ffs
     port map
     (
       clk_i    => tx_out_clk_div2,
       rst_n_i  => '1',
-      data_i   => tx_enable,
+      data_i   => lpdc_regs_out.CTRL_tx_enable,
       synced_o => tx_enable_txclk
       );
 
+  gtx_rst_a <= rst_i;
   
-  U_SyncTxUsrcCLK2Reset : gc_sync_ffs
-    port map
-    (
-      clk_i    => tx_out_clk_div2,
-      rst_n_i  => gtx_rst_n,
-      data_i   => '1',
-      synced_o => gtx_rst_n_txdiv2
-      );
-
+  U_SyncTxUsrcCLK2Reset: gc_reset_multi_aasd
+    generic map (
+      g_CLOCKS  => 1,
+      g_RST_LEN => 16)
+    port map (
+      arst_i  => gtx_rst_a,
+      clks_i(0)  => tx_out_clk_div2,
+      rst_n_o(0) => gtx_rst_n_txdiv2);
+  
   U_SyncRxEnable : gc_sync_ffs
     port map
     (
       clk_i    => rx_rec_clk,
       rst_n_i  => '1',
-      data_i   => rx_enable,
+      data_i   => lpdc_regs_out.CTRL_rx_enable,
       synced_o => rx_enable_rxclk
       );
 
@@ -313,7 +322,7 @@ begin  -- rtl
     (
       clk_i    => clk_dmtd_i,
       rst_n_i  => '1',
-      data_i   => rx_sw_reset,
+      data_i   => lpdc_regs_out.CTRL_rx_sw_reset,
       synced_o => gtx_rx_reset_a
       );
 
@@ -322,7 +331,7 @@ begin  -- rtl
     (
       clk_i    => clk_dmtd_i,
       rst_n_i  => '1',
-      data_i   => qpll_sw_reset,
+      data_i   => lpdc_regs_out.CTRL_qpll_sw_reset,
       synced_o => qpll_reset_o
       );
 
@@ -332,10 +341,9 @@ begin  -- rtl
     (
       clk_i    => clk_dmtd_i,
       rst_n_i  => '1',
-      data_i   => tx_sw_reset,
+      data_i   => lpdc_regs_out.CTRL_tx_sw_reset,
       synced_o => gtx_tx_reset_a
       );
-
 
   U_Sampler_RX : dmtd_sampler
     generic map (
@@ -356,11 +364,10 @@ begin  -- rtl
       clk_sampled_o => tx_out_clk_sampled);
 
 
-  comma_target_pos <= debug_i(13 downto 13 - 7);
 
-  process(rx_rec_clk_sampled, tx_out_clk_sampled, debug_i)
+  process(rx_rec_clk_sampled, tx_out_clk_sampled, lpdc_regs_out)
   begin
-    case debug_i(15 downto 14) is
+    case lpdc_regs_out.CTRL_dmtd_clk_sel is
       when "00" =>
         rx_rbclk_sampled_o <= rx_rec_clk_sampled;
       when "01" =>
@@ -450,7 +457,7 @@ begin  -- rtl
     
   
   
-  U_GTX_INST : entity work.WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
+  U_GTX_INST : entity work.whiterabbit_gtxe2_channel_wrapper_kintex7_lp
     generic map
     (
        -- Simulation attributes
@@ -467,13 +474,13 @@ begin  -- rtl
 		-------------------------- Channel - Clocking Ports ------------------------
 		GTREFCLK0_IN               => '0',
 		---------------------------- Channel - DRP Ports  --------------------------
-		DRPADDR_IN                 => (Others => '0'),
-		DRPCLK_IN                  => '0',
-		DRPDI_IN                   => (Others => '0'),
-		DRPDO_OUT                  => open,
-		DRPEN_IN                   => '0',
-		DRPRDY_OUT                 => open,
-		DRPWE_IN                   => '0',
+		DRPADDR_IN                 => drp_addr,
+		DRPCLK_IN                  => clk_sys_i,
+		DRPDI_IN                   => drp_din,
+		DRPDO_OUT                  => drp_dout,
+		DRPEN_IN                   => drp_en,
+		DRPRDY_OUT                 => drp_rdy,
+		DRPWE_IN                   => drp_we,
 		------------------------------- Clocking Ports -----------------------------
 		QPLLCLK_IN                 => qpll_clk_i,
 		QPLLREFCLK_IN              => qpll_ref_clk_i,
@@ -527,7 +534,42 @@ begin  -- rtl
                 TXPRBSSEL_IN               => "000" --tx_prbs_sel_i
                 );
 
+  p_translate_wb_xdrp : process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if (rst_sys_n_i = '0') then
+        drp_en <= '0';
+        drp_we <= '0';
+        drp_regs_in.ack <= '0';
+        drp_regs_in.stall <= '0';
+        drp_regs_in.err <= '0';
+        drp_regs_in.rty <= '0';
+        drp_in_progress <= '0';
+      else
+        if drp_in_progress = '0' then
+          if(drp_regs_out.cyc = '1' and drp_regs_out.stb = '1') then
+            drp_en <= '1';
+            drp_we <= drp_regs_out.we;
+            drp_addr <= drp_regs_out.adr(10 downto 2);
+            drp_din <= drp_regs_out.dat(15 downto 0);
+            drp_in_progress <= '1';
+            drp_regs_in.stall <= '1';
+          else
+            drp_regs_in.ack <= '0';
+            drp_regs_in.stall <= '0';
+          end if;
+        else
+          drp_en <= '0';
 
+          if drp_rdy = '1' then
+            drp_in_progress <= '0';
+            drp_regs_in.dat(15 downto 0) <= drp_dout;
+            drp_regs_in.ack <= '1';
+          end if;
+        end if;
+      end if;
+    end if;
+  end process;
   
 
   txusrpll_locked <= '1';
@@ -540,10 +582,6 @@ begin  -- rtl
       O => tx_out_clk);
 
 
-  U_BUF_TxOutClkFB : BUFG
-    port map (
-      I => pll_clkfbout_bufin,
-      O => pll_clkfbout);
 
 
   txpll_lockdet    <= qpll_locked_i;
@@ -618,14 +656,72 @@ begin  -- rtl
 
   rx_disp_err <= (others => '0');
 
-  debug_o(0) <= qpll_locked_i; 
-  debug_o(1) <= link_up;
-  debug_o(2) <= link_aligned;
-  debug_o(3) <= tx_rst_done;
-  debug_o(4) <= txusrpll_locked;
-  debug_o(5) <= rx_rst_done;
-  
-  debug_o(14 downto 7) <= comma_current_pos;
+ U_SyncQPLLLocked : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_sys_n_i,
+      data_i   => qpll_locked_i,
+      synced_o => lpdc_regs_in.STAT_qpll_locked
+      );
+
+  U_SyncLinkUp : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_sys_n_i,
+      data_i   => link_up,
+      synced_o => lpdc_regs_in.STAT_link_up
+      );
+
+  U_SyncLinkAligned : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_sys_n_i,
+      data_i   => link_aligned,
+      synced_o => lpdc_regs_in.STAT_link_aligned
+      );
+
+  U_SyncTxResetDone : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_sys_n_i,
+      data_i   => tx_rst_done,
+      synced_o => lpdc_regs_in.STAT_tx_rst_done
+      );
+
+    U_SyncRxResetDone : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_sys_n_i,
+      data_i   => rx_rst_done,
+      synced_o => lpdc_regs_in.STAT_rx_rst_done
+      );
+
+  U_SyncTxUsrPLLLocked : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_sys_n_i,
+      data_i   => txusrpll_locked,
+      synced_o => lpdc_regs_in.STAT_txusrpll_locked
+      );
+
+  U_SyncCommaCurrentPos : gc_sync_register
+    generic map
+    (
+      g_width => 8 )
+    port map
+    (
+      clk_i    => clk_sys_i,
+      rst_n_a_i  => rst_sys_n_i,
+      d_i   => comma_current_pos,
+      q_o => lpdc_regs_in.STAT_comma_current_pos
+      );
+
   
   p_gen_rx_outputs : process(rx_rec_clk, gtx_rst)
   begin
