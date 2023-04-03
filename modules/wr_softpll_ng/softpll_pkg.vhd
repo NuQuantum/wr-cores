@@ -7,11 +7,18 @@ package softpll_pkg is
 
   constant c_softpll_max_aux_clocks : integer := 8;
 
-  type t_softpll_phase_detector_type is (CH_DDMTD, CH_BANGBANG);
+  type t_softpll_channel_config is record
+    oversample : boolean;
+    divider : integer;
+  end record;
 
-  type t_softpll_channel_config_array is array(0 to c_softpll_max_aux_clocks-1) of t_softpll_phase_detector_type;
+  constant c_softpll_default_channel_config : t_softpll_channel_config :=
+    ( oversample => false,
+      divider => 1 );
 
-  constant c_softpll_default_channel_config : t_softpll_channel_config_array := (others => CH_DDMTD);
+  type t_softpll_channels_config_array is array(0 to c_softpll_max_aux_clocks-1) of t_softpll_channel_config;
+
+  constant c_softpll_default_channels_config : t_softpll_channels_config_array := (others => c_softpll_default_channel_config);
 
   -- External 10 MHz input divider parameters. 
   constant c_softpll_ext_div_ref     : integer := 8;

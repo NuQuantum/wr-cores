@@ -79,6 +79,8 @@ entity xwr_softpll_ng is
 
     g_use_sampled_ref_clocks : boolean := false;
 
+    g_aux_config : t_softpll_channels_config_array := c_softpll_default_channels_config;
+
     g_interface_mode      : t_wishbone_interface_mode      := PIPELINED;
     g_address_granularity : t_wishbone_address_granularity := BYTE
     );
@@ -100,7 +102,7 @@ entity xwr_softpll_ng is
     clk_fb_i   : in std_logic_vector(g_num_outputs-1 downto 0);
 -- DMTD Offset clock
     clk_dmtd_i : in std_logic;
-
+    clk_dmtd_over_i : in std_logic := '0';
 -- External reference clock (e.g. 10 MHz from Cesium/GPSDO). Used only if
 -- g_num_exts > 0
     clk_ext_i : in std_logic;
@@ -142,63 +144,10 @@ entity xwr_softpll_ng is
 end xwr_softpll_ng;
 
 architecture wrapper of xwr_softpll_ng is
-  component wr_softpll_ng
-    generic (
-      g_tag_bits             : integer;
-      g_dac_bits             : integer;
-      g_num_ref_inputs       : integer;
-      g_num_outputs          : integer;
-      g_num_exts             : integer;
-      g_with_debug_fifo      : boolean;
-      g_reverse_dmtds        : boolean;
-      g_divide_input_by_2    : boolean;
-      g_ref_clock_rate       : integer;
-      g_ext_clock_rate       : integer;
-      g_use_sampled_ref_clocks : boolean;
-      g_interface_mode       : t_wishbone_interface_mode;
-      g_address_granularity  : t_wishbone_address_granularity);
-    port (
-      clk_sys_i       : in  std_logic;
-      rst_sys_n_i     : in std_logic;
-      rst_ref_n_i     : in std_logic;
-      rst_ext_n_i     : in std_logic;
-      rst_dmtd_n_i    : in std_logic;
-      clk_ref_i       : in  std_logic_vector(g_num_ref_inputs-1 downto 0);
-      clk_ref_sampled_i : in std_logic_vector(g_num_ref_inputs-1 downto 0);
-      clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
-      clk_dmtd_i      : in  std_logic;
-      clk_ext_i       : in  std_logic;
-      clk_ext_mul_i   : in  std_logic_vector(f_nonzero_vector(g_num_exts)-1 downto 0);
-      clk_ext_mul_locked_i : in  std_logic;
-      clk_ext_stopped_i    : in  std_logic;
-      clk_ext_rst_o        : out std_logic;
-      pps_csync_p1_i  : in  std_logic;
-      pps_ext_a_i     : in  std_logic;
-      dac_dmtd_data_o : out std_logic_vector(g_dac_bits-1 downto 0);
-      dac_dmtd_load_o : out std_logic;
-      dac_out_data_o  : out std_logic_vector(g_dac_bits-1 downto 0);
-      dac_out_sel_o   : out std_logic_vector(3 downto 0);
-      dac_out_load_o  : out std_logic;
-      out_enable_i    : in  std_logic_vector(g_num_outputs-1 downto 0);
-      out_locked_o    : out std_logic_vector(g_num_outputs-1 downto 0);
-
-      wb_adr_i   : in  std_logic_vector(c_wishbone_address_width-1 downto 0);
-      wb_dat_i   : in  std_logic_vector(c_wishbone_data_width-1 downto 0);
-      wb_dat_o   : out std_logic_vector(c_wishbone_data_width-1 downto 0);
-      wb_cyc_i   : in  std_logic;
-      wb_sel_i   : in  std_logic_vector(c_wishbone_data_width/8-1 downto 0);
-      wb_stb_i        : in  std_logic;
-      wb_we_i         : in  std_logic;
-      wb_ack_o        : out std_logic;
-      wb_stall_o      : out std_logic;
-      irq_o           : out std_logic;
-      debug_o         : out std_logic_vector(5 downto 0);
-      dbg_fifo_irq_o  : out std_logic);
-  end component;
   
 begin  -- behavioral
 
-  U_Wrapped_Softpll : wr_softpll_ng
+  U_Wrapped_Softpll : entity work.wr_softpll_ng
     generic map (
       g_tag_bits             => g_tag_bits,
       g_dac_bits             => g_dac_bits,
@@ -211,6 +160,7 @@ begin  -- behavioral
       g_reverse_dmtds        => g_reverse_dmtds,
       g_divide_input_by_2    => g_divide_input_by_2,
       g_use_sampled_ref_clocks => g_use_sampled_ref_clocks,
+      g_aux_config => g_aux_config,
       g_ref_clock_rate  => g_ref_clock_rate,
       g_ext_clock_rate  => g_ext_clock_rate
       )
@@ -224,6 +174,7 @@ begin  -- behavioral
       clk_ref_sampled_i => clk_ref_sampled_i,
       clk_fb_i        => clk_fb_i,
       clk_dmtd_i      => clk_dmtd_i,
+      clk_dmtd_over_i => clk_dmtd_over_i,
       clk_ext_i       => clk_ext_i,
       clk_ext_mul_i   => clk_ext_mul_i,
       clk_ext_mul_locked_i => clk_ext_mul_locked_i,

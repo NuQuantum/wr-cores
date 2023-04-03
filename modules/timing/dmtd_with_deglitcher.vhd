@@ -63,6 +63,9 @@ entity dmtd_with_deglitcher is
     -- (at the cost of detector bandwidth)
     g_divide_input_by_2 : boolean := false;
 
+
+    g_oversample : boolean := false;
+    g_oversample_factor : integer := 1;
     -- reversed mode: samples clk_dmtd with clk_in.
     g_reverse : boolean := false;
 
@@ -78,6 +81,7 @@ entity dmtd_with_deglitcher is
 
     -- DMTD sampling clock
     clk_dmtd_i : in std_logic;
+    clk_dmtd_over_i : in std_logic := '0';
 
     -- system clock
     clk_sys_i : in std_logic;
@@ -131,15 +135,6 @@ end dmtd_with_deglitcher;
 
 architecture rtl of dmtd_with_deglitcher is
 
-  component dmtd_sampler is
-    generic (
-      g_divide_input_by_2 : boolean;
-      g_reverse           : boolean);
-    port (
-      clk_in_i      : in  std_logic;
-      clk_dmtd_i    : in  std_logic;
-      clk_sampled_o : out std_logic);
-  end component dmtd_sampler;
   
   type t_state is (WAIT_STABLE_0, WAIT_EDGE, GOT_EDGE);
 
@@ -192,14 +187,18 @@ begin  -- rtl
 
   gen_builtin : if(g_use_sampled_clock = false )generate
 
-   U_Sampler: dmtd_sampler
+   U_Sampler: entity work.dmtd_sampler
       generic map (
         g_divide_input_by_2 => g_divide_input_by_2,
-        g_reverse           => g_reverse)
+        g_reverse           => g_reverse,
+        g_oversample_factor => g_oversample_factor,
+        g_oversample => g_oversample)
       port map (
-        clk_in_i      => clk_in_i,
-        clk_dmtd_i    => clk_dmtd_i,
-        clk_sampled_o => clk_sampled);
+        clk_in_i        => clk_in_i,
+        sync_p1_i       => '0',
+        clk_dmtd_over_i => clk_dmtd_over_i,
+        clk_dmtd_i      => clk_dmtd_i,
+        clk_sampled_o   => clk_sampled);
     
   end generate gen_builtin;
 

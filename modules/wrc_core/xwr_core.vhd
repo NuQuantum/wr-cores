@@ -105,7 +105,8 @@ entity xwr_core is
     g_diag_ver                  : integer                        := 0;
     g_diag_ro_size              : integer                        := 0;
     g_diag_rw_size              : integer                        := 0;
-    g_dac_bits                  : integer                        := 16);
+    g_dac_bits                  : integer                        := 16;
+    g_softpll_aux_channel_config : t_softpll_channels_config_array := c_softpll_default_channels_config);
   port(
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -116,6 +117,7 @@ entity xwr_core is
 
     -- DDMTD offset clock (125.x MHz)
     clk_dmtd_i : in std_logic;
+    clk_dmtd_over_i : in std_logic := '0';
 
     -- Timing reference (125 MHz)
     clk_ref_i : in std_logic;
@@ -157,7 +159,7 @@ entity xwr_core is
 
     phy_rx_data_i        : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
     phy_rx_rbclk_i       : in std_logic;
-    phy_rx_rbclk_sampled_i : in std_logic;
+    phy_rx_rbclk_sampled_i : in std_logic := '0';
     phy_rx_k_i           : in std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
     phy_rx_enc_err_i     : in std_logic;
     phy_rx_bitslide_i    : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
@@ -286,7 +288,7 @@ end xwr_core;
 architecture struct of xwr_core is
 begin
 
-  WRPC : wr_core
+  WRPC : entity work.wr_core
     generic map(
       g_simulation                => g_simulation,
       g_verbose                   => g_verbose,
@@ -318,11 +320,13 @@ begin
       g_diag_ro_size              => g_diag_ro_size,
       g_diag_rw_size              => g_diag_rw_size,
       g_dac_bits                  => g_dac_bits,
-      g_use_platform_specific_dpram => g_use_platform_specific_dpram
+      g_use_platform_specific_dpram => g_use_platform_specific_dpram,
+      g_softpll_aux_channel_config => g_softpll_aux_channel_config
       )
     port map(
       clk_sys_i     => clk_sys_i,
       clk_dmtd_i    => clk_dmtd_i,
+      clk_dmtd_over_i => clk_dmtd_over_i,
       clk_ref_i     => clk_ref_i,
       clk_aux_i     => clk_aux_i,
       clk_ext_i     => clk_ext_i,
