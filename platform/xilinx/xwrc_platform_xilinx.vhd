@@ -159,6 +159,7 @@ entity xwrc_platform_xilinx is
     clk_20m_o             : out std_logic;
     clk_ref_locked_o      : out std_logic;
     clk_62m5_dmtd_o       : out std_logic;
+    clk_250m_dmtd_over_o       : out std_logic;
     pll_locked_o          : out std_logic;
     clk_10m_ext_o         : out std_logic;
     -- PHY - CH0
@@ -251,6 +252,7 @@ begin  -- architecture rtl
       signal clk_sys_fb       : std_logic;
       signal pll_sys_locked   : std_logic;
       signal clk_dmtd         : std_logic;
+      signal clk_dmtd_over         : std_logic;
       signal clk_dmtd_fb      : std_logic;
       signal pll_dmtd_locked  : std_logic;
       signal clk_20m_vcxo_buf : std_logic;
@@ -364,11 +366,15 @@ begin  -- architecture rtl
           CLKOUT0_DIVIDE     => 16,
           CLKOUT0_PHASE      => 0.000,
           CLKOUT0_DUTY_CYCLE => 0.500,
+          CLKOUT1_DIVIDE => 4,
+          CLKOUT1_PHASE => 0.000,
+          CLKOUT1_DUTY_CYCLE => 0.500,
           CLKIN_PERIOD       => 50.0,
           REF_JITTER         => 0.016)
         port map (
           CLKFBOUT => clk_dmtd_fb,
           CLKOUT0  => clk_dmtd,
+          CLKOUT1  => clk_dmtd_over,
           LOCKED   => pll_dmtd_locked,
           RST      => pll_arst,
           CLKFBIN  => clk_dmtd_fb,
@@ -385,6 +391,12 @@ begin  -- architecture rtl
         port map (
           O => clk_62m5_dmtd_o,
           I => clk_dmtd);
+
+-- DMTD PLL output clock buffer
+      cmp_clk_dmtd_buf_over_o : BUFG
+        port map (
+          O => clk_250m_dmtd_over_o,
+          I => clk_dmtd_over);
 
 
       gen_spartan6_ext_ref_pll : if (g_with_external_clock_input = TRUE) generate

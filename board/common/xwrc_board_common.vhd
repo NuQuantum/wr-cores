@@ -45,6 +45,7 @@ use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.streamers_pkg.all;
 use work.wr_board_pkg.all;
+use work.softpll_pkg.all;
 
 entity xwrc_board_common is
   generic(
@@ -80,6 +81,7 @@ entity xwrc_board_common is
     -- if WRPC supports only one SFP but we have two connected that are muxed, 
     -- mux also the I2C acess to their memory
     g_sfp_i2c_mux_enable        : boolean                        := FALSE;
+    g_softpll_aux_channel_config : t_softpll_channels_config_array := c_softpll_default_channels_config;
     g_fabric_iface              : t_board_fabric_iface           := PLAIN);
   port(
     ---------------------------------------------------------------------------
@@ -90,7 +92,7 @@ entity xwrc_board_common is
 
     -- DDMTD offset clock (125.x MHz)
     clk_dmtd_i : in std_logic;
-
+    clk_dmtd_over_i : in std_logic := '0';
     -- Timing reference (125 MHz)
     clk_ref_i : in std_logic;
 
@@ -370,7 +372,7 @@ begin  -- architecture struct
   -- The WR PTP core itself
   -----------------------------------------------------------------------------
 
-  cmp_xwr_core : xwr_core
+  cmp_xwr_core : entity work.xwr_core
     generic map (
       g_simulation                => g_simulation,
       g_verbose                   => g_verbose,
@@ -398,10 +400,12 @@ begin  -- architecture struct
       g_diag_ver                  => c_diag_ver,
       g_diag_ro_size              => c_diag_ro_size,
       g_diag_rw_size              => c_diag_rw_size,
-      g_dac_bits                  => g_dac_bits)
+      g_dac_bits                  => g_dac_bits,
+      g_softpll_aux_channel_config => g_softpll_aux_channel_config)
     port map (
       clk_sys_i            => clk_sys_i,
       clk_dmtd_i           => clk_dmtd_i,
+      clk_dmtd_over_i      => clk_dmtd_over_i,
       clk_ref_i            => clk_ref_i,
       clk_aux_i            => clk_aux_i,
       clk_ext_i            => clk_10m_ext_i,

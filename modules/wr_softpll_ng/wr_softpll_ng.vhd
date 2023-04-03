@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2022-01-28
+-- Last update: 2023-04-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -113,14 +113,14 @@ entity wr_softpll_ng is
 
 -- DMTD Offset clock
     clk_dmtd_i : in std_logic;
-    clk_dmtd_over_i : in std_logic;
+    clk_dmtd_over_i : in std_logic := '0';
 
 -- External reference clock (e.g. 10 MHz from Cesium/GPSDO). Used only if
 -- g_num_exts > 0
-    clk_ext_i : in std_logic;
+    clk_ext_i : in std_logic := '0';
 
 -- External clock, multiplied to 125 MHz using the FPGA's PLL
-    clk_ext_mul_i        : in std_logic_vector(f_nonzero_vector(g_num_exts)-1 downto 0);
+    clk_ext_mul_i        : in std_logic_vector(f_nonzero_vector(g_num_exts)-1 downto 0) := (others => '0');
     clk_ext_mul_locked_i : in std_logic := '1';
     clk_ext_stopped_i : in std_logic := '0';
     clk_ext_rst_o : out std_logic;
@@ -451,7 +451,7 @@ begin  -- rtl
   end generate gen_feedback_dmtds;
 
   -- drive unused debug output
-  debug_o(4) <= '0';
+--  debug_o(4) <= '0';
 
   gen_ext_dmtds: for I in 0 to g_num_exts-1 generate
 

@@ -49,6 +49,7 @@ use work.streamers_pkg.all;
 use work.wr_xilinx_pkg.all;
 use work.wr_board_pkg.all;
 use work.wr_spec_pkg.all;
+use work.softpll_pkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -81,8 +82,8 @@ entity xwrc_board_spec is
     g_diag_rw_size              : integer              := 0;
     -- User-defined PLL_BASE outputs config
     g_aux_pll_cfg               : t_auxpll_cfg_array   := c_AUXPLL_CFG_ARRAY_DEFAULT;
-    g_aux_sdb                   : t_sdb_device         := c_wrc_periph3_sdb
-    );
+    g_aux_sdb                   : t_sdb_device         := c_wrc_periph3_sdb;
+    g_softpll_aux_channel_config : t_softpll_channels_config_array := c_softpll_default_channels_config);
   port (
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -282,6 +283,7 @@ architecture struct of xwrc_board_spec is
   signal clk_pll_62m5 : std_logic;
   signal clk_pll_125m : std_logic;
   signal clk_pll_dmtd : std_logic;
+  signal clk_pll_dmtd_over : std_logic;
   signal pll_locked   : std_logic;
   signal clk_10m_ext  : std_logic;
   signal clk_pll_aux  : std_logic_vector(3 downto 0);
@@ -329,7 +331,7 @@ begin  -- architecture struct
       I  => clk_125m_pllref_p_i,
       IB => clk_125m_pllref_n_i);
 
-  cmp_xwrc_platform : xwrc_platform_xilinx
+  cmp_xwrc_platform : entity work.xwrc_platform_xilinx
     generic map (
       g_fpga_family               => "spartan6",
       g_with_external_clock_input => g_with_external_clock_input,
@@ -355,6 +357,7 @@ begin  -- architecture struct
       clk_62m5_sys_o        => clk_pll_62m5,
       clk_125m_ref_o        => clk_pll_125m,
       clk_62m5_dmtd_o       => clk_pll_dmtd,
+      clk_250m_dmtd_over_o  => clk_pll_dmtd_over,
       pll_locked_o          => pll_locked,
       clk_10m_ext_o         => clk_10m_ext,
       phy8_o                => phy8_to_wrc,
@@ -432,7 +435,7 @@ begin  -- architecture struct
   -- The WR PTP core with optional fabric interface attached
   -----------------------------------------------------------------------------
 
-  cmp_board_common : xwrc_board_common
+  cmp_board_common : entity work.xwrc_board_common
     generic map (
       g_simulation                => g_simulation,
       g_verbose                   => g_verbose,
@@ -451,7 +454,7 @@ begin  -- architecture struct
       g_interface_mode            => PIPELINED,
       g_address_granularity       => BYTE,
       g_aux_sdb                   => g_aux_sdb,
-      g_softpll_enable_debugger   => FALSE,
+      g_softpll_enable_debugger   => TRUE,
       g_vuart_fifo_size           => 1024,
       g_pcs_16bit                 => FALSE,
       g_diag_id                   => g_diag_id,
@@ -461,11 +464,13 @@ begin  -- architecture struct
       g_streamers_op_mode         => g_streamers_op_mode,
       g_tx_streamer_params        => g_tx_streamer_params,
       g_rx_streamer_params        => g_rx_streamer_params,
-      g_fabric_iface              => g_fabric_iface
+      g_fabric_iface              => g_fabric_iface,
+      g_softpll_aux_channel_config => g_softpll_aux_channel_config
       )
     port map (
       clk_sys_i            => clk_pll_62m5,
       clk_dmtd_i           => clk_pll_dmtd,
+      clk_dmtd_over_i      => clk_pll_dmtd_over,
       clk_ref_i            => clk_pll_125m,
       clk_aux_i            => clk_aux_i,
       clk_10m_ext_i        => clk_10m_ext,
