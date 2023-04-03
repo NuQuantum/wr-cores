@@ -6,7 +6,6 @@ use work.wishbone_pkg.all;
 use work.genram_pkg.all;
 use work.lbk_wbgen2_pkg.all;
 use work.endpoint_pkg.all;
-use work.endpoint_private_pkg.all;
 
 entity xwrf_loopback is
   generic(
@@ -300,7 +299,7 @@ begin
   -------------------------------------------
   -- TX FSM
   -------------------------------------------
-  WRF_SRC: ep_rx_wb_master
+  WRF_SRC: entity work.ep_rx_wb_master
     generic map(
       g_ignore_ack => false,
       g_cyc_on_stall => true)
