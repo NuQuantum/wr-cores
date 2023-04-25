@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2023-04-03
+-- Last update: 2023-04-24
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -80,9 +80,9 @@ entity wr_softpll_ng is
 -- use with care.
     g_divide_input_by_2 : boolean := false;
 
-    g_ref_clock_rate : integer := 125000000;
-    g_ext_clock_rate : integer := 10000000;
-    g_sys_clock_rate: integer := 62500000;
+    g_ref_clock_rate : integer := 125_000_000;
+    g_ext_clock_rate : integer :=  10_000_000;
+    g_sys_clock_rate: integer :=   62_500_000;
 
     g_use_sampled_ref_clocks : boolean := false;
 
@@ -341,41 +341,44 @@ begin  -- rtl
   U_Meas_DMTD_Freq: gc_frequency_meter
     generic map (
       g_with_internal_timebase => true,
-      g_clk_sys_freq           => g_sys_clock_rate,
+      g_clk_sys_freq           => g_ref_clock_rate,
+      g_SYNC_OUT               => TRUE,
       g_counter_bits           => 28)
     port map (
-      clk_sys_i    => clk_sys_i,
+      clk_sys_i    => clk_ref_i(0),
       clk_in_i     => clk_dmtd_i,
       rst_n_i      => rst_n_i,
       pps_p1_i     => '0',
       freq_o       => regs_out.f_dmtd_freq_i,
-      freq_valid_o => open);            -- fixme
+      freq_valid_o => regs_out.f_dmtd_valid_i);
 
   U_Meas_REF_Freq: gc_frequency_meter
     generic map (
       g_with_internal_timebase => true,
-      g_clk_sys_freq           => g_sys_clock_rate,
+      g_clk_sys_freq           => g_ref_clock_rate,
+      g_SYNC_OUT               => TRUE,
       g_counter_bits           => 28)
     port map (
-      clk_sys_i    => clk_sys_i,
+      clk_sys_i    => clk_ref_i(0),
       clk_in_i     => clk_fb_i(0),
       rst_n_i      => rst_n_i,
       pps_p1_i     => '0',
       freq_o       => regs_out.f_ref_freq_i,
-      freq_valid_o => open);            -- fixme
+      freq_valid_o => regs_out.f_ref_valid_i);
 
   U_Meas_EXT_Freq: gc_frequency_meter
     generic map (
       g_with_internal_timebase => true,
-      g_clk_sys_freq           => g_sys_clock_rate,
+      g_clk_sys_freq           => g_ref_clock_rate,
+      g_SYNC_OUT               => TRUE,
       g_counter_bits           => 28)
     port map (
-      clk_sys_i    => clk_sys_i,
+      clk_sys_i    => clk_ref_i(0),
       clk_in_i     => clk_ext_i,
       rst_n_i      => rst_n_i,
       pps_p1_i     => '0',
       freq_o       => regs_out.f_ext_freq_i,
-      freq_valid_o => open);            -- fixme
+      freq_valid_o => regs_out.f_ext_valid_i);
   
 
   gen_ref_dmtds : for i in 0 to g_num_ref_inputs-1 generate
@@ -799,9 +802,6 @@ begin  -- rtl
 
   regs_out.al_cr_required_i    <= (others => '0');
   regs_out.csr_dbg_supported_i <= '1' when g_with_debug_fifo else '0';
-  regs_out.f_dmtd_valid_i      <= '0';
-  regs_out.f_ref_valid_i       <= '0';
-  regs_out.f_ext_valid_i       <= '0';
   regs_out.trr_disc_i          <= '0';
 
 end rtl;
