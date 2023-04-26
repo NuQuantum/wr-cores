@@ -118,6 +118,10 @@ memory-map:
           name: comma_current_pos
           description: Current RX comma position
           range: 14-7
+      - field:
+          name: comma_pos_valid
+          description: 1 if comma_current_pos contains a valid comma offset
+          range: 15
   - submap:
       name: drp_regs
       size: 0x1000
