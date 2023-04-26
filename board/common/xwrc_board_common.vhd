@@ -441,6 +441,8 @@ begin  -- architecture struct
       phy8_i               => phy8_i,
       phy16_o              => phy16_o,
       phy16_i              => phy16_i,
+      phy_lpc_ctrl_o       => open,             -- no support for lpc phy
+      phy_lpc_stat_i       => (others => '0'),
       led_act_o            => led_act_o,
       led_link_o           => led_link_o,
       scl_o                => scl_o,
