@@ -62,8 +62,7 @@ entity wrc_periph is
     g_diag_ver        : integer := 0;
     g_diag_ro_size    : integer := 0;
     g_diag_rw_size    : integer := 0;
-    g_wdiags_num_words : integer := 64
-    );
+    g_wdiags_num_words : integer := 64);
   port(
     clk_sys_i : in std_logic;
     rst_n_i   : in std_logic;
@@ -513,6 +512,5 @@ begin
       slave_wrc_i    => SLAVE_I(4),
       slave_wrc_o    => SLAVE_O(4)
     );
-
 
 end struct;

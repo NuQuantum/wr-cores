@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2022-04-19
+-- Last update: 2023-05-02
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -44,6 +44,8 @@ use work.softpll_pkg.all;
 
 package wrcore_pkg is
 
+  constant c_WR_CORE_SYSTEM_CLOCK_FREQ_HZ : integer := 62500000;
+  
   function f_refclk_rate(pcs_16 : boolean) return integer;
 
   type t_generic_word_array is array (natural range <>) of std_logic_vector(31 downto 0);
@@ -255,6 +257,22 @@ package wrcore_pkg is
         date      => x"20210620",
         name      => "WR-Periph-DIAG-PRIV")));
 
+  constant c_wrc_periph6_sdb : t_sdb_device := (
+    abi_class     => x"0000",              -- undocumented device
+    abi_ver_major => x"01",
+    abi_ver_minor => x"01",
+    wbd_endian    => c_sdb_endian_big,
+    wbd_width     => x"7",                 -- 8/16/32-bit port granularity
+    sdb_component => (
+      addr_first  => x"0000000000000000",
+      addr_last   => x"00000000000000ff",
+      product     => (
+        vendor_id => x"000000000000CE42",  -- CERN
+        device_id => x"779c544b",
+        version   => x"00000001",
+        date      => x"20230426",
+        name      => "WR-Periph-CLOCK-MON")));
+
   component wrc_periph is
     generic(
       g_board_name      : string  := "NA  ";
@@ -413,7 +431,8 @@ package wrcore_pkg is
       g_diag_ver                  : integer                        := 0;
       g_diag_ro_size              : integer                        := 0;
       g_diag_rw_size              : integer                        := 0;
-      g_dac_bits                  : integer                        := 16);
+      g_dac_bits                  : integer                        := 16;
+      g_with_clock_freq_monitor   : boolean                        := true);
     port(
       clk_sys_i            : in std_logic;
       clk_dmtd_i           : in std_logic := '0';
@@ -569,7 +588,8 @@ package wrcore_pkg is
       g_diag_ver                  : integer                        := 0;
       g_diag_ro_size              : integer                        := 0;
       g_diag_rw_size              : integer                        := 0;
-      g_dac_bits                  : integer                        := 16);
+      g_dac_bits                  : integer                        := 16;
+      g_with_clock_freq_monitor   : boolean                        := true);
     port(
       ---------------------------------------------------------------------------
       -- Clocks/resets
