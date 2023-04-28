@@ -2,7 +2,7 @@
 -- Title      : Deterministic Xilinx GTX LPDC wrapper - kintex-7 top module
 -- Project    : White Rabbit Switch
 -------------------------------------------------------------------------------
--- File       : wr_gtx_phy_family7.vhd
+-- File       : wr_gtx_phy_kindex7_lp.vhd
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
@@ -113,6 +113,9 @@ entity wr_gtx_phy_kintex7_lp is
 
     -- RX bitslide indication, indicating the delay of the RX path of the
     -- transceiver (in UIs). Must be valid when ch0_rx_data_o is valid.
+    -- In this "low-phase-drift" implementaion rx alignment is fixed by
+    -- throwing the dice until it is on "comma_target_pos".
+    -- rx_bitslide is not used and set to zero.
     rx_bitslide_o : out std_logic_vector(4 downto 0);
 
     loopen_i      : in std_logic;
@@ -227,9 +230,9 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   end function;
 
 
-  
-  signal comma_target_pos : std_logic_vector(7 downto 0);
-  signal comma_current_pos : std_logic_vector(7 downto 0);
+  signal comma_target_pos : std_logic_vector(4 downto 0);
+  signal comma_current_pos : std_logic_vector(4 downto 0);
+  signal comma_pos_valid : std_logic;
 
   signal tx_out_clk_div2 : std_logic;
   signal tx_out_clk_div1 : std_logic;
@@ -627,6 +630,7 @@ begin  -- rtl
       rx_data_raw_i => rx_data_raw,
       comma_target_pos_i => comma_target_pos,
       comma_current_pos_o => comma_current_pos,
+      comma_pos_valid_o => comma_pos_valid,
       link_up_o => link_up,
       aligned_o => link_aligned);
 
@@ -710,19 +714,31 @@ begin  -- rtl
       synced_o => lpdc_regs_in.STAT_txusrpll_locked
       );
 
+  U_SyncCurrentCommaPosValid : gc_sync_ffs
+    port map
+    (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_sys_n_i,
+      data_i   => comma_pos_valid,
+      synced_o => lpdc_regs_in.STAT_comma_pos_valid
+      );
+
   U_SyncCommaCurrentPos : gc_sync_register
     generic map
     (
-      g_width => 8 )
+      g_width => 5 )
     port map
     (
       clk_i    => clk_sys_i,
       rst_n_a_i  => rst_sys_n_i,
       d_i   => comma_current_pos,
-      q_o => lpdc_regs_in.STAT_comma_current_pos
+      q_o => lpdc_regs_in.STAT_comma_current_pos(4 downto 0)
       );
 
-  
+  lpdc_regs_in.STAT_comma_current_pos(6 downto 5) <= (others => '0');
+-- for backwards compatibility...
+  lpdc_regs_in.STAT_comma_current_pos(7) <= lpdc_regs_in.STAT_comma_pos_valid;
+
   p_gen_rx_outputs : process(rx_rec_clk, gtx_rst)
   begin
     if(gtx_rst = '1') then

@@ -1,3 +1,46 @@
+-------------------------------------------------------------------------------
+-- Title      : Comma detection for Low Phase noise GTX implermentation
+-- Project    : White Rabbit
+-------------------------------------------------------------------------------
+-- File       : gtx_comma_detect_lp.vhd
+-- Author     : Tomasz Wlostowski
+-- Company    : CERN BE-CO-HT
+-- Created    : 2019-03-29
+-- Last update: 2020-08-04
+-- Platform   : FPGA-generic
+-- Standard   : VHDL'93
+-------------------------------------------------------------------------------
+-- Description: Low Phase noise GTX implementation does not use the serializer
+-- 8B/10B decoder. gtx_comma_detect_lp scans for a valid comma in the
+-- 20 bit received raw data.
+-------------------------------------------------------------------------------
+--
+-- Copyright (c) 2010 CERN
+--
+-- This source file is free software; you can redistribute it   
+-- and/or modify it under the terms of the GNU Lesser General   
+-- Public License as published by the Free Software Foundation; 
+-- either version 2.1 of the License, or (at your option) any   
+-- later version.                                               
+--
+-- This source is distributed in the hope that it will be       
+-- useful, but WITHOUT ANY WARRANTY; without even the implied   
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
+-- PURPOSE.  See the GNU Lesser General Public License for more 
+-- details.                                                     
+--
+-- You should have received a copy of the GNU Lesser General    
+-- Public License along with this source; if not, download it   
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+-- 
+--
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author    Description
+-- 2019-03-29  0.1      tomasz    Initial release
+-- 2020-08-04  0.2      peterj    Cleaned up and added this header
+-------------------------------------------------------------------------------
+
 library ieee;
 
 use ieee.std_logic_1164.all;
@@ -12,9 +55,11 @@ entity gtx_comma_detect_kintex7_lp is
     rst_i    : in std_logic;
 
     rx_data_raw_i : in std_logic_vector(19 downto 0);
+    rx_data_raw_o : out std_logic_vector(19 downto 0);
 
-    comma_target_pos_i : in std_logic_vector(7 downto 0);
-    comma_current_pos_o : out std_logic_vector(7 downto 0);
+    comma_target_pos_i : in std_logic_vector(4 downto 0);
+    comma_current_pos_o : out std_logic_vector(4 downto 0);
+    comma_pos_valid_o : out std_logic;
     
     link_up_o : out std_logic;
     aligned_o : out std_logic
@@ -29,12 +74,10 @@ architecture rtl of gtx_comma_detect_kintex7_lp is
   constant c_IDLE_LENGTH_UP   : integer := 500;
   constant c_IDLE_LENGTH_LOSS : integer := 1000;
 
--- fixme
-
   signal rx_data_d0     : std_logic_vector(19 downto 0);
   signal rx_data_merged : std_logic_vector(39 downto 0);
 
-  signal first_comma : std_logic_vector(7 downto 0);
+  signal first_comma : std_logic_vector(4 downto 0);
   signal cnt         : unsigned(15 downto 0);
   signal state       : t_state;
   signal comma_found : std_logic_vector(19 downto 0);
@@ -69,41 +112,15 @@ architecture rtl of gtx_comma_detect_kintex7_lp is
 
   constant c_K28_5_PLUS : std_logic_vector(9 downto 0) := "1010000011";
 
-  signal comma_pos            : std_logic_vector(7 downto 0);
-  signal prev_comma_pos       : std_logic_vector(7 downto 0);
-  signal prev_comma_pos_valid : std_logic;
+  signal comma_pos            : std_logic_vector(4 downto 0);
   signal comma_pos_valid      : std_logic;
   signal link_up : std_logic;
   signal link_aligned : std_logic;
-
   
 begin
-
-
---  gen1 : if g_id = 0 generate
---     chipscope_icon_1 : chipscope_icon_v6
---      port map (
---        CONTROL0 => CONTROL);
-
---     chipscope_ila_1 : chipscope_ila_v6
---      port map (
---        CONTROL => CONTROL,
---        CLK     => clk_rx_i,
---        TRIG0   => TRIG0);
-     
---    trig0 (19 downto 0) <= rx_data_raw_i;
---    trig0 (39 downto 20) <= comma_found;
---    trig0 (40) <= comma_pos_valid;
---    trig0 (41) <= link_up;
---    trig0 (42) <= link_aligned;
---    trig0 (43+15 downto 43) <= std_logic_vector(cnt);
---  end generate gen1;
-
-
   
   process(clk_rx_i)
-    variable lookup : std_logic_vector( 9 downto 0);
-    variable comma_pos_comb : std_logic_vector(7 downto 0);
+    variable comma_pos_comb : std_logic_vector(4 downto 0);
   begin
     if rising_edge(clk_rx_i) then
       if rst_i = '1' then
@@ -124,12 +141,12 @@ begin
 
         if unsigned(comma_found) /= 0 then
           comma_pos_valid <= '1';
+          comma_pos_valid_o <= '1';
           comma_pos <= comma_pos_comb;
-          comma_current_pos_o(7) <= '1';
-          comma_current_pos_o(6 downto 0) <= comma_pos_comb(6 downto 0);
+          comma_current_pos_o <= comma_pos_comb;
         else
-          comma_current_pos_o(7) <= '0';
           comma_pos_valid <= '0';
+          comma_pos_valid_o <= '0';
         end if;
       end if;
     end if;
@@ -139,11 +156,8 @@ begin
   begin
     if rising_edge(clk_rx_i) then
       if rst_i = '1' then
-        
         state <= SYNC_LOST;
       else
-
-
         case state is
           when SYNC_LOST =>
             link_up <= '0';
@@ -189,6 +203,14 @@ begin
         end case;
       end if;
     end if;
+  end process;
+
+  -- generate mux shifted output depending on comma_target_pos_i
+  process(rx_data_merged, comma_target_pos_i)
+    variable comma_pos_int : integer range 0 to 19;
+  begin
+    comma_pos_int := to_integer(unsigned(comma_target_pos_i));
+	rx_data_raw_o(19 downto 0) <= rx_data_merged(comma_pos_int + 19 downto comma_pos_int);
   end process;
 
   aligned_o <= link_aligned;
