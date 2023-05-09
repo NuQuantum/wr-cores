@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2023-03-29
+-- Last update: 2023-05-09
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -505,6 +505,7 @@ begin  -- rtl
 
   lstat_read_notify <= mdio_regs_out.MSR_rd;
   mdio_regs_in.msr_rfault <= '0';
+  serdes_sfp_tx_disable_o <= mdio_regs_out.ECTRL_sfp_tx_disable;
 
   U_AUTONEGOTIATION : entity work.ep_autonegotiation
     generic map (
