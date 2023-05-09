@@ -65,7 +65,7 @@ entity dmtd_sampler is
     clk_dmtd_i : in std_logic;
     clk_dmtd_over_i : in std_logic := '0';
 
-    sync_p1_i : in std_logic;
+    sync_p1_i : in std_logic := '0';
 
     clk_sampled_o : out std_logic
     );
