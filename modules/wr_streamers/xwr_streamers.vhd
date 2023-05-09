@@ -137,9 +137,9 @@ entity xwr_streamers is
     -- User tx interface (clk_data clock domain)
     ---------------------------------------------------------------------------
     -- Data word to be sent.
-    tx_data_i                  : in std_logic_vector(g_tx_streamer_params.data_width-1 downto 0);
+    tx_data_i                  : in std_logic_vector(g_tx_streamer_params.data_width-1 downto 0) := ( others => '0');
     -- 1 indicates that the tx_data_i contains a valid data word.
-    tx_valid_i                 : in std_logic;
+    tx_valid_i                 : in std_logic := '0';
     -- Synchronous data request: if active, the user may send a data word in
     -- the following clock cycle.
     tx_dreq_o                  : out std_logic;
@@ -163,7 +163,7 @@ entity xwr_streamers is
     rx_valid_o                 : out std_logic;
     -- Synchronous data request input: when 1, the streamer may output another
     -- data word in the subsequent clock cycle.
-    rx_dreq_i                  : in  std_logic;
+    rx_dreq_i                  : in  std_logic := '1';
 
     rx_late_o : out std_logic;
     rx_timeout_o : out std_logic;

@@ -348,8 +348,8 @@ package streamers_pkg is
     snk_i                      : in  t_wrf_sink_in;
     snk_o                      : out t_wrf_sink_out;
     -- User tx interface
-    tx_data_i                  : in std_logic_vector(g_tx_streamer_params.data_width-1 downto 0);
-    tx_valid_i                 : in std_logic;
+    tx_data_i                  : in std_logic_vector(g_tx_streamer_params.data_width-1 downto 0) := (others => '0');
+    tx_valid_i                 : in std_logic := '0';
     tx_dreq_o                  : out std_logic;
     tx_last_p1_i               : in std_logic := '1';
     tx_flush_p1_i              : in std_logic := '0';
@@ -358,7 +358,7 @@ package streamers_pkg is
     rx_last_p1_o               : out std_logic;
     rx_data_o                  : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
     rx_valid_o                 : out std_logic;
-    rx_dreq_i                  : in  std_logic;
+    rx_dreq_i                  : in  std_logic := '1';
     -- WRC Timing interface, used for latency measurement
     clk_ref_i                  : in std_logic := '0';
     tm_time_valid_i            : in std_logic := '0';
