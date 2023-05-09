@@ -568,11 +568,15 @@ memory-map:
           description: SFP TX Fault Status
           comment: 1 = Some kind of laser failure; 0 = SFP Laser okay
           range: 3
+          x-hdl:
+            type: wire
       - field:
           name: sfp_loss
           description: SFP LOS
           comment: 1 = Loss of signal; 0 = SFP Receiver signal strength okay
           range: 4
+          x-hdl:
+            type: wire
       - field:
           name: sfp_tx_disable
           description: SFP TX Disable

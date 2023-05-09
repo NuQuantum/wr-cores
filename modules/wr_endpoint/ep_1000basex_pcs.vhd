@@ -505,8 +505,32 @@ begin  -- rtl
 
   lstat_read_notify <= mdio_regs_out.MSR_rd;
   mdio_regs_in.msr_rfault <= '0';
-  serdes_sfp_tx_disable_o <= mdio_regs_out.ECTRL_sfp_tx_disable;
 
+  serdes_loopen_vec_o <= mdio_regs_out.ECTRL_lpbck_vec;
+  serdes_sfp_tx_disable_o <= mdio_regs_out.ECTRL_sfp_tx_disable;
+  serdes_tx_prbs_sel_o <= mdio_regs_out.ECTRL_tx_prbs_sel;
+  
+  U_sync_SFP_LOS: gc_sync_ffs
+  generic map (
+    g_sync_edge => "positive")
+  port map (
+    clk_i    => clk_sys_i,
+    rst_n_i  => rst_n_i,
+    data_i   => serdes_sfp_los_i,
+    synced_o => mdio_regs_in.ECTRL_sfp_loss);
+
+  U_sync_SFP_TX_FAULT: gc_sync_ffs
+  generic map (
+    g_sync_edge => "positive")
+  port map (
+    clk_i    => clk_sys_i,
+    rst_n_i  => rst_n_i,
+    data_i   => serdes_sfp_tx_fault_i,
+    synced_o => mdio_regs_in.ECTRL_sfp_tx_fault);
+  
+
+
+  
   U_AUTONEGOTIATION : entity work.ep_autonegotiation
     generic map (
       g_simulation => g_simulation)
