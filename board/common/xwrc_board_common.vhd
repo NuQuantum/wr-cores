@@ -358,6 +358,8 @@ architecture struct of xwrc_board_common is
   signal pps_valid     : std_logic;
   signal pps_csync     : std_logic;
 
+  signal phy_mdio_master_in  : t_wishbone_master_in;
+
 begin  -- architecture struct
 
   -- Check for unsupported fabric interface type
@@ -426,6 +428,7 @@ begin  -- architecture struct
       phy_tx_enc_err_i     => '0',
       phy_rx_data_i        => (others => '0'),
       phy_rx_rbclk_i       => '0',
+      phy_rx_rbclk_sampled_i => open,
       phy_rx_k_i           => (others => '0'),
       phy_rx_enc_err_i     => '0',
       phy_rx_bitslide_i    => (others => '0'),
@@ -441,8 +444,8 @@ begin  -- architecture struct
       phy8_i               => phy8_i,
       phy16_o              => phy16_o,
       phy16_i              => phy16_i,
-      phy_lpc_ctrl_o       => open,             -- no support for lpc phy
-      phy_lpc_stat_i       => (others => '0'),
+      phy_mdio_master_i    => phy_mdio_master_in,
+      phy_mdio_master_o    => open,
       led_act_o            => led_act_o,
       led_link_o           => led_link_o,
       scl_o                => scl_o,
@@ -503,6 +506,9 @@ begin  -- architecture struct
   tm_time_valid_o <= tm_time_valid;
   tm_tai_o        <= tm_tai;
   tm_cycles_o     <= tm_cycles;
+
+  --  Avoid freeze
+  phy_mdio_master_in <= (ack => '1', err => '0', rty => '0', stall => '0', dat => (others => '1'));
 
   gen_wr_streamers : if (g_fabric_iface = STREAMERS) generate
 
