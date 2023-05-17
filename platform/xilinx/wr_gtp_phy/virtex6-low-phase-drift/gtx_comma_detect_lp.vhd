@@ -28,7 +28,7 @@ architecture rtl of gtx_comma_detect_lp is
   type t_state is (SYNC_LOST, SYNC_CHECK, SYNC_ACQUIRED);
 
   constant c_IDLE_LENGTH_UP   : integer := 500;
-  constant c_IDLE_LENGTH_LOSS : integer := 1000;
+  constant c_IDLE_LENGTH_LOSS : integer := 10000;
 
   constant c_COMMA_SHIFT_WE_WANT : std_logic_vector(6 downto 0) := "0110000";
 -- fixme
