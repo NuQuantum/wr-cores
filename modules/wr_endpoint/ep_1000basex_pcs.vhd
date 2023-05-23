@@ -253,9 +253,6 @@ architecture rtl of ep_1000basex_pcs is
   signal rmon_rx_inv_code : std_logic;
   signal rmon_rx_sync_lost: std_logic;
 
-  signal dbg_prbs_control : std_logic_vector(15 downto 0);
-  signal dbg_prbs_status : std_logic_vector(15 downto 0);
-
   signal serdes_rx_bitslide_rx_clk : std_logic_vector(4 downto 0);
 
   attribute mark_debug : string;
@@ -296,7 +293,6 @@ begin  -- rtl
         mdio_mcr_reset_i      => mdio_regs_out.mcr_reset,
         mdio_mcr_pdown_i      => mdio_mcr_pdown,
         mdio_wr_spec_tx_cal_i => mdio_regs_out.wr_spec_tx_cal,
-        mdio_dbg_prbs_en_i => '0', -- fixme bring back prbs dbg_prbs_control(0),
 
         an_tx_en_i              => an_tx_en,
         an_tx_val_i             => an_tx_val,
@@ -335,10 +331,6 @@ begin  -- rtl
         mdio_mcr_pdown_i           => mdio_mcr_pdown,
         mdio_wr_spec_cal_crst_i    => mdio_regs_out.wr_spec_cal_crst,
         mdio_wr_spec_rx_cal_stat_o => mdio_regs_in.wr_spec_rx_cal_stat,
-        mdio_dbg_prbs_check_i =>  '0', --dbg_prbs_control(1),
-        mdio_dbg_prbs_word_sel_i =>  '0', --dbg_prbs_control(2),
-        mdio_dbg_prbs_latch_count_i =>  '0', --dbg_prbs_control(3),
-        mdio_dbg_prbs_errors_o => open, --dbg_prbs_status,
 
         synced_o        => synced,
         sync_lost_o     => sync_lost,

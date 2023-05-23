@@ -6,7 +6,6 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2023-03-29
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -94,9 +93,6 @@ entity ep_tx_pcs_16bit is
 -- Transmit Control Register, TX_CAL field
     mdio_wr_spec_tx_cal_i : in std_logic;
 
-    mdio_dbg_prbs_en_i : in std_logic;
-    
-
 -- autonegotiation control
     an_tx_en_i  : in std_logic;
     an_tx_val_i : in std_logic_vector(15 downto 0);
@@ -155,11 +151,15 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal tx_error : std_logic;
   signal rst_n_tx : std_logic;
 
-  signal prbs_tx_reg : std_logic_vector(15 downto 0);
-  signal prbs_tx_is_k : std_logic_vector(1 downto 0);
-
   signal wr_count       :  std_logic_vector(6 downto 0);
   signal rd_count       :  std_logic_vector(6 downto 0);
+
+  attribute keep : string;
+  attribute keep of fifo_clear_n : signal is "TRUE";
+  attribute keep of fifo_clear_n_d0 : signal is "TRUE";
+  attribute keep of fifo_clear_n_d1 : signal is "TRUE";
+  attribute keep of fifo_clear_n_d2 : signal is "TRUE";
+  attribute keep of fifo_clear_n_d3 : signal is "TRUE";
   
   constant tx_interframe_gap: unsigned(3 downto 0) := x"2"; --ML changed from "1000" to 0010
   -- effectively it is 6 cycles for IFG:
@@ -174,30 +174,12 @@ architecture behavioral of ep_tx_pcs_16bit is
   -- 
 
 
-  component lfsr_prbs_gen is
-
-    generic (
-      DATA_WIDTH : integer := 16
-      );
-    port (
-
-      clk      : in  std_logic;
-      rst      : in  std_logic;
-      enable   : in  std_logic;
-      data_out : out std_logic_vector(DATA_WIDTH-1 downto 0)
-      );
-  end component;
-
-  signal prbs_count : unsigned(10 downto 0);
   signal rst_tx : std_logic;
-  signal lfsr_enable : std_logic;
-  signal lfsr_out : std_logic_vector(15 downto 0);
 
   -- various signals synchronized to the phy_tx_clk_i domain
   signal mdio_mcr_reset_tx_clk : std_logic;
   signal mdio_mcr_pdown_tx_clk : std_logic;
   signal an_tx_en_tx_clk : std_logic;
-  signal mdio_dbg_prbs_en_tx_clk : std_logic;
   signal mdio_wr_spec_tx_cal_tx_clk : std_logic;
 
 
@@ -250,17 +232,6 @@ begin
       npulse_o => open,
       ppulse_o => open);
 
-   U_sync_mdio_prbs_en : gc_sync_ffs
-    generic map (
-      g_sync_edge => "positive")
-    port map (
-      clk_i    => phy_tx_clk_i,
-      rst_n_i  => '1',
-      data_i   => mdio_dbg_prbs_en_i,
-      synced_o => mdio_dbg_prbs_en_tx_clk,
-      npulse_o => open,
-      ppulse_o => open);
-
   U_sync_power_down : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
@@ -279,55 +250,12 @@ begin
       data_i   => mdio_wr_spec_tx_cal_i,
       synced_o => mdio_wr_spec_tx_cal_tx_clk);
 
-  phy_tx_data_o <= tx_odata_reg when mdio_dbg_prbs_en_tx_clk = '0' else prbs_tx_reg;
-  phy_tx_k_o    <= tx_is_k when mdio_dbg_prbs_en_tx_clk = '0' else prbs_tx_is_k;
+  phy_tx_data_o <= tx_odata_reg;
+  phy_tx_k_o    <= tx_is_k;
 
   rst_n_tx <= rst_txclk_n_i and not mdio_mcr_reset_tx_clk;
-
   rst_tx <= not rst_n_tx;
-  
-  U_lfsr_prbs_gen : lfsr_prbs_gen
-    generic map (
-      DATA_WIDTH => 16)
-    port map (
-      clk      => phy_tx_clk_i,
-      rst      => rst_tx,
-      enable   => lfsr_enable,
-      data_out => lfsr_out);
-  
-  p_prbs_generator : process(phy_tx_clk_i)
-  begin
-    if rising_edge(phy_tx_clk_i) then
-      if(rst_n_tx = '0' or mdio_mcr_pdown_tx_clk = '1') then
-        prbs_count <= (others => '0');
-      else
-        if mdio_dbg_prbs_en_tx_clk = '1' then
 
-          prbs_count <= prbs_count + 1;
-
-          if prbs_count = 0 then
-            lfsr_enable <= '0';
-          else
-            lfsr_enable <= '1';
-          end if;
-          
-          if prbs_count = 2 then
-            prbs_tx_is_k                   <= "10";
-            prbs_tx_reg(15 downto 8) <= c_K28_5;
-            prbs_tx_reg(7 downto 0) <= c_d16_2;
-          else
-            prbs_tx_is_k <= "00";
-            prbs_tx_reg <= lfsr_out;
-          end if;
-
-        else
-          lfsr_enable <= '0';
-        end if;
-      end if;
-    end if;
-  end process;
-  
-  
 -------------------------------------------------------------------------------
 -- Clock alignment FIFO
 -------------------------------------------------------------------------------  

@@ -61,6 +61,8 @@ entity dmtd_sampler is
     -- input clock
     clk_in_i : in std_logic;
 
+    en_i : in std_logic := '1';
+
     -- DMTD sampling clock
     clk_dmtd_i : in std_logic;
     clk_dmtd_over_i : in std_logic := '0';
@@ -162,7 +164,7 @@ begin  -- rtl
     p_the_dmtd_itself : process(clk_dmtd_i)
     begin
       if rising_edge(clk_dmtd_i) then
-        clk_i_d0 <= clk_in;
+        clk_i_d0 <= clk_in and en_i;
         clk_i_d1 <= clk_i_d0;
         clk_i_d2 <= clk_i_d1;
         clk_i_d3 <= clk_i_d2;
