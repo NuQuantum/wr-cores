@@ -338,48 +338,9 @@ begin  -- rtl
       sl_ack_o   => wb_ack_o,
       sl_stall_o => wb_stall_o);
 
-  U_Meas_DMTD_Freq: gc_frequency_meter
-    generic map (
-      g_with_internal_timebase => true,
-      g_clk_sys_freq           => g_ref_clock_rate,
-      g_SYNC_OUT               => TRUE,
-      g_counter_bits           => 28)
-    port map (
-      clk_sys_i    => clk_ref_i(0),
-      clk_in_i     => clk_dmtd_i,
-      rst_n_i      => rst_n_i,
-      pps_p1_i     => '0',
-      freq_o       => regs_out.f_dmtd_freq_i,
-      freq_valid_o => regs_out.f_dmtd_valid_i);
-
-  U_Meas_REF_Freq: gc_frequency_meter
-    generic map (
-      g_with_internal_timebase => true,
-      g_clk_sys_freq           => g_ref_clock_rate,
-      g_SYNC_OUT               => TRUE,
-      g_counter_bits           => 28)
-    port map (
-      clk_sys_i    => clk_ref_i(0),
-      clk_in_i     => clk_fb_i(0),
-      rst_n_i      => rst_n_i,
-      pps_p1_i     => '0',
-      freq_o       => regs_out.f_ref_freq_i,
-      freq_valid_o => regs_out.f_ref_valid_i);
-
-  U_Meas_EXT_Freq: gc_frequency_meter
-    generic map (
-      g_with_internal_timebase => true,
-      g_clk_sys_freq           => g_ref_clock_rate,
-      g_SYNC_OUT               => TRUE,
-      g_counter_bits           => 28)
-    port map (
-      clk_sys_i    => clk_ref_i(0),
-      clk_in_i     => clk_ext_i,
-      rst_n_i      => rst_n_i,
-      pps_p1_i     => '0',
-      freq_o       => regs_out.f_ext_freq_i,
-      freq_valid_o => regs_out.f_ext_valid_i);
-  
+  regs_out.f_dmtd_valid_i <= '0';
+  regs_out.f_ref_valid_i <= '0';
+  regs_out.f_ext_valid_i <= '0';
 
   gen_ref_dmtds : for i in 0 to g_num_ref_inputs-1 generate
 
