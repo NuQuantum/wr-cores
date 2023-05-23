@@ -122,6 +122,48 @@ memory-map:
           name: comma_pos_valid
           description: 1 if comma_current_pos contains a valid comma offset
           range: 15
+  - reg:
+      name: CTRL2
+      description: Low Phase Drift Calibration Control Register 2
+      width: 32
+      access: rw
+      address: 0x8
+      children:
+      - field:
+          name: rx_rate
+          description: RX clock divider
+          range: 2-0
+      - field:
+          name: rx_latch_pattern
+          description: RX idle pattern latch
+          range: 3
+          x-hdl:
+            type: autoclear
+      - field:
+          name: rx_gearbox_pll_reset
+          description: RX gearbox PLL reset
+          range: 4
+      - field:
+          name: rx_gearbox_pll_locked
+          description: RX gearbox PLL locked
+          range: 5
+          x-hdl:
+            type: wire
+      - field:
+          name: rx_cdr_locked
+          description: RX CDR (PMA clock domain) locked
+          range: 6
+          x-hdl:
+            type: wire
+  - repeat:
+      name: idle_pat
+      count: 12
+      children:
+        - reg:
+            name: data
+            access: ro
+            width: 32
+
   - submap:
       name: drp_regs
       size: 0x1000
