@@ -127,6 +127,7 @@ elif (syn_device[0:4].upper()=="XC7K" or # Family 7 GTX (Kintex7 and Virtex7 585
         "kintex7-lp/wr_gtx_phy_kintex7_lp.vhd",
         "kintex7-lp/wr_gtx_phy_kintex7_lp_qpll.vhd",
         "kintex7-lp/gtx_comma_detect_kintex7_lp.vhd",
+        "kintex7-lp/gtx_idle_detect_kintex7_lp.vhd",
         "family7-gtx-lp/whiterabbit_gtxe2_channel_wrapper_gt_lp.vhd",
         "family7-gtx-lp/gtx_comma_detect_lp.vhd",
         "family7-gtx-lp/wr_gtx_phy_family7_lp.vhd" ]);
