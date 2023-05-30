@@ -6,7 +6,6 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2010-09-02
--- Last update: 2018-03-08
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -15,20 +14,20 @@
 --
 -- Copyright (c) 2010-2017 CERN
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
@@ -206,7 +205,7 @@ architecture behavioral of wr_pps_gen is
   signal pps_out_int   : std_logic;
   signal pps_in_refclk : std_logic;
 
-
+  signal link_ok_clk_ref : std_logic;
 
 begin  -- behavioral
 
@@ -247,6 +246,13 @@ begin  -- behavioral
       data_i   => pps_in_i,
       ppulse_o => pps_in_refclk);
 
+
+  U_Sync_Link_OK: gc_sync
+    port map (
+      clk_i     => clk_ref_i,
+      rst_n_a_i => rst_ref_n_i,
+      d_i       => link_ok_i,
+      q_o       => link_ok_clk_ref);
 
   ppsg_cntr_nsec  <= std_logic_vector(cntr_nsec);
   ppsg_cntr_utclo <= std_logic_vector(cntr_utc(31 downto 0));
@@ -433,7 +439,7 @@ begin  -- behavioral
 
         if(ns_overflow_adv = '1') then
           pps_out_int <= ppsg_escr_pps_valid and
-                         (link_ok_i or ppsg_escr_pps_unmask);
+                         (link_ok_clk_ref or ppsg_escr_pps_unmask);
           width_cntr  <= unsigned(ppsg_cr_pwidth);
         elsif(ns_overflow = '1') then
           pps_led_o <= ppsg_escr_pps_valid;
