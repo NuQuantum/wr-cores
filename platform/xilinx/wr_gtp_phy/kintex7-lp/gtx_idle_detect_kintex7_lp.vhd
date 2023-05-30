@@ -131,7 +131,7 @@ begin
   process(clk_rx_62m5_i)
   begin
     if rising_edge(clk_rx_62m5_i) then
-      if rst_rx_n_i = '1' then
+      if rst_rx_n_i = '0' then
         state <= SYNC_LOST;
       else
         case state is

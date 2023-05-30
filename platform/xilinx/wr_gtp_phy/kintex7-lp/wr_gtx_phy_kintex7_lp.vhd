@@ -165,12 +165,9 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   signal tx_enable_txclk, rx_enable_rxclk : std_logic;
 
   signal rst_rx_62m5_n : std_logic;
-  signal rx_gearbox_pll_locked : std_logic;
+  signal rst_ref_n                     : std_logic;
 
-  signal rst_synced                   : std_logic;
-  signal gtx_rst, gtx_rst_n                      : std_logic;
-  signal rst_d0                     : std_logic;
-  signal reset_counter              : unsigned(9 downto 0);
+  signal rx_gearbox_pll_locked : std_logic;
 
   signal clk_rx_250m_bufin             : std_logic;
   signal clk_rx_62m5_bufin, clk_rx_62m5, clk_rx_250m : std_logic;
@@ -208,6 +205,7 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   signal link_up, link_aligned : std_logic;
   signal gtx_rx_reset_a : std_logic;
   signal gtx_tx_reset_a : std_logic;
+  signal gtx_rst_tx_a : std_logic;
 
   signal rx_rec_clk_sampled, tx_out_clk_sampled : std_logic;
   signal gtx_loopback               : std_logic_vector(2 downto 0);
@@ -262,7 +260,7 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   attribute mark_debug of mdio_slave_o : signal is "true";
   attribute mark_debug of mdio_slave_i : signal is "true";
 
-  signal gtx_rst_a, gtx_rst_a_n : std_logic;
+  signal gtx_rst_a : std_logic;
 
   signal drp_addr : std_logic_vector(8 downto 0);
   signal drp_dout, drp_din : std_logic_vector(15 downto 0);
@@ -270,11 +268,12 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
   signal drp_in_progress : std_logic;
   signal rx_rate : std_logic_vector(2 downto 0);
 
+  signal rst_rx_path_a : std_logic;
+
   signal clk_rx_fb_pll, clk_rx_fb_pll_bufg : std_logic;
 
   signal rx_pat_latch_p1_rx_62m5 : std_logic;
   signal rx_pat_value : std_logic_vector(239 downto 0);
-  signal rst_rx_path_n : std_logic;
 
   signal ddmtd_mask_cnt_sreg_fedge : std_logic_vector(3 downto 0);
   signal ddmtd_mask_sync_62m5 : std_logic;
@@ -283,41 +282,6 @@ architecture rtl of wr_gtx_phy_kintex7_lp is
 
 signal cpll_reset, cpll_locked : std_logic;
 begin  -- rtl
-
-  process(clk_rx_62m5, rx_gearbox_pll_locked)
-  begin
-    if rx_gearbox_pll_locked = '0' then
-      ddmtd_mask_sync_62m5 <= '0';
-      elsif rising_edge(clk_rx_62m5) then
-      ddmtd_mask_sync_62m5 <= not ddmtd_mask_sync_62m5;
-      end if;
-  end process;
-
-  process(clk_rx_250m, rx_gearbox_pll_locked)
-  begin
-    if rx_gearbox_pll_locked = '0' then
-      ddmtd_mask_sync_250m <= '0';
-      ddmtd_mask_sync_250m_d <= '0';
-      ddmtd_mask_sync_250m_p <= '0';
-      elsif rising_edge(clk_rx_250m) then
-      ddmtd_mask_sync_250m <= ddmtd_mask_sync_62m5; -- need stringent setup constraint for this one
-      ddmtd_mask_sync_250m_d <= ddmtd_mask_sync_250m;
-      ddmtd_mask_sync_250m_p <= ddmtd_mask_sync_250m and not ddmtd_mask_sync_250m_d;
-    end if;
-    end process;
-
-  process(clk_rx_250m)
-  begin
-    if falling_edge(clk_rx_250m) then
-    if ddmtd_mask_sync_250m_p = '1' then
-      ddmtd_mask_cnt_sreg_fedge <= "1000";
-      else
-      ddmtd_mask_cnt_sreg_fedge <= ddmtd_mask_cnt_sreg_fedge(0) & ddmtd_mask_cnt_sreg_fedge(3 downto 1);
-    end if;
-  end if;
-  end process;
-
-
 
   U_LPDC_regs : entity work.lpdc_mdio_regs
     port map (
@@ -334,9 +298,9 @@ begin  -- rtl
   rx_rate <= lpdc_regs_out.ctrl2_rx_rate;
 
   -- Near-end PMA loopback if loopen_i active
-  gtx_loopback <= "000"; --"010" when loopen_i = '1' else loopen_vec_i;
+  gtx_loopback <= "010" when loopen_i = '1' else loopen_vec_i;
 
- U_SyncTxEnable : gc_sync_ffs
+  U_SyncTxEnable : gc_sync_ffs
     port map
     (
       clk_i    => tx_out_clk_div2,
@@ -345,22 +309,11 @@ begin  -- rtl
       synced_o => tx_enable_txclk
       );
 
-  gtx_rst_a <= rst_i;
-
-  U_SyncTxUsrcCLK2Reset: gc_reset_multi_aasd
-    generic map (
-      g_CLOCKS  => 1,
-      g_RST_LEN => 16)
-    port map (
-      arst_i  => gtx_rst_a,
-      clks_i(0)  => tx_out_clk_div2,
-      rst_n_o(0) => gtx_rst_n_txdiv2);
-
   U_SyncRxEnable : gc_sync_ffs
     port map
     (
       clk_i    => clk_rx_62m5,
-      rst_n_i  => rst_rx_62m5_n,
+      rst_n_i  => rx_gearbox_pll_locked,
       data_i   => lpdc_regs_out.CTRL_rx_enable,
       synced_o => rx_enable_rxclk
       );
@@ -421,7 +374,38 @@ begin  -- rtl
       clk_dmtd_i    => clk_dmtd_i,
       clk_sampled_o => clk_ref_sampled_o);
 
+  process(clk_rx_62m5, rx_gearbox_pll_locked)
+  begin
+    if rx_gearbox_pll_locked = '0' then
+      ddmtd_mask_sync_62m5 <= '0';
+    elsif rising_edge(clk_rx_62m5) then
+      ddmtd_mask_sync_62m5 <= not ddmtd_mask_sync_62m5;
+    end if;
+  end process;
 
+  process(clk_rx_250m, rx_gearbox_pll_locked)
+  begin
+    if rx_gearbox_pll_locked = '0' then
+      ddmtd_mask_sync_250m <= '0';
+      ddmtd_mask_sync_250m_d <= '0';
+      ddmtd_mask_sync_250m_p <= '0';
+    elsif rising_edge(clk_rx_250m) then
+      ddmtd_mask_sync_250m <= ddmtd_mask_sync_62m5; -- need stringent setup constraint for this one
+      ddmtd_mask_sync_250m_d <= ddmtd_mask_sync_250m;
+      ddmtd_mask_sync_250m_p <= ddmtd_mask_sync_250m and not ddmtd_mask_sync_250m_d;
+    end if;
+  end process;
+
+  process(clk_rx_250m)
+  begin
+    if falling_edge(clk_rx_250m) then
+      if ddmtd_mask_sync_250m_p = '1' then
+        ddmtd_mask_cnt_sreg_fedge <= "1000";
+      else
+        ddmtd_mask_cnt_sreg_fedge <= ddmtd_mask_cnt_sreg_fedge(0) & ddmtd_mask_cnt_sreg_fedge(3 downto 1);
+      end if;
+    end if;
+  end process;
 
   process(rx_rec_clk_sampled, tx_out_clk_sampled, lpdc_regs_out)
   begin
@@ -435,30 +419,38 @@ begin  -- rtl
     end case;
   end process;
 
-
   tx_enc_err_o <= '0';
 
-  p_gen_reset : process(clk_ref_i)
-  begin
-    if rising_edge(clk_ref_i) then
+  inst_ref_reset_generator : entity work.gc_reset_multi_aasd
+    generic map (
+      g_CLOCKS  => 1,
+      g_RST_LEN => 16)
+    port map (
+      arst_i  => rst_i,
+      clks_i(0)  => clk_ref_i,
+      rst_n_o(0) => rst_ref_n);
 
-      rst_d0     <= rst_i;
-      rst_synced <= rst_d0;
+  gtx_rst_tx_a <= rst_i or not tx_rst_done;
 
-      if(rst_synced = '1') then
-        reset_counter <= (others => '0');
-      else
-        if(reset_counter(reset_counter'left) = '0') then
-          reset_counter <= reset_counter + 1;
-        end if;
-      end if;
-    end if;
-  end process;
+  inst_tx_reset_generator : entity work.gc_reset_multi_aasd
+    generic map (
+      g_CLOCKS  => 1,
+      g_RST_LEN => 16)
+    port map (
+      arst_i  => gtx_rst_tx_a,
+      clks_i(0)  => tx_out_clk_div2,
+      rst_n_o(0) => gtx_rst_n_txdiv2);
 
-  gtx_rst <= rst_synced or std_logic(not reset_counter(reset_counter'left));
+    rst_rx_path_a <= gtx_rx_reset_a or rst_i or (not rx_gearbox_pll_locked);
 
-
-  tx_enc_err_o <= '0';
+  inst_rx_path_reset : entity work.gc_reset_multi_aasd
+    generic map (
+      g_CLOCKS  => 1,
+      g_RST_LEN => 16)
+    port map (
+      arst_i  => rst_rx_path_a,
+      clks_i(0)  => clk_rx_62m5,
+      rst_n_o(0) => rst_rx_62m5_n);
 
 
   tx_clk_o <= tx_out_clk_div2;
@@ -477,10 +469,10 @@ begin  -- rtl
       in_8b_i     => tx_data_i(15 downto 8),
       dispar_i => run_disparity_reg,
       dispar_o => run_disparity_q0,
-      ctrl_i      => tx_k_i(1) );
---      out_10b_o    => tx_data_8b10b(9 downto 0));
+      ctrl_i      => tx_k_i(1),
+      out_10b_o    => tx_data_8b10b(9 downto 0));
 
-  tx_data_8b10b <= "00000" & c_K28_5_PLUS & "00000";
+--  tx_data_8b10b <= "00000" & c_K28_5_PLUS & "00000";
 --tx_data_8b10b <= "11011" & "1000110111" & "01110";
 --  tx_data_8b10b <= "10000" & "0000110000" & "00000";
 
@@ -494,8 +486,8 @@ begin  -- rtl
       dispar_i => run_disparity_q0,
       dispar_o => run_disparity_q1,
       in_8b_i     => tx_data_i(7 downto 0),
-      ctrl_i      => tx_k_i(0) );
---      out_10b_o    => tx_data_8b10b(19 downto 10) );
+      ctrl_i      => tx_k_i(0),
+      out_10b_o    => tx_data_8b10b(19 downto 10) );
 
   p_latch_disparity : process(tx_out_clk_div2)
   begin
@@ -654,10 +646,10 @@ begin  -- rtl
   -- The family 7 GTX seem to have an artifact in rx_cdr_lock. For no reason lock may be lost for a clock cycle
   -- There is not much information on the web but examples of "Series-7 Integrated Block for PCI Express" (pipe_user.v)
   -- show that Xilinx itself implements a small delay before an rx_cdr_lock is propagated.
-  p_rx_cdr_lock_filter : process(clk_rx_62m5, gtx_rst)
+  p_rx_cdr_lock_filter : process(clk_rx_62m5, rst_ref_n)
     variable rxcdrlock_cnt      : integer range 0 to c_rxcdrlock_max;
   begin
-    if(gtx_rst = '1') then
+    if(rst_ref_n = '0') then
       rxcdrlock_cnt := 0;
       rx_cdr_lock_filtered <= '0';
     elsif rising_edge(clk_rx_62m5) then
@@ -685,7 +677,7 @@ begin  -- rtl
 
   inst_idle_detect : entity work.gtx_idle_detect_kintex7_lp
     port map (
-      rst_rx_n_i      => gtx_rst,
+      rst_rx_n_i      => rst_rx_62m5_n,
       clk_rx_62m5_i   => clk_rx_62m5,
       clk_rx_250m_i   => clk_rx_250m,
       rx_data_raw_i   => rx_data_raw_250m(39 downto 0),
@@ -766,14 +758,10 @@ begin  -- rtl
       I => clk_rx_fb_pll,
       O => clk_rx_fb_pll_bufg);
 
-
-  gtx_rst_n <= not gtx_rst;
-  rst_rx_path_n <= gtx_rst_n;
-
   U_Dec1 : gc_dec_8b10b
     port map (
       clk_i       => clk_rx_62m5,
-      rst_n_i     => rst_rx_path_n,
+      rst_n_i     => rst_rx_62m5_n,
       in_10b_i    => (rx_data_raw_62m5(19 downto 10)),
       ctrl_o      => rx_k_int(1),
       code_err_o  => rx_code_err(1),
@@ -783,7 +771,7 @@ begin  -- rtl
   U_Dec2 : gc_dec_8b10b
     port map (
       clk_i       => clk_rx_62m5,
-      rst_n_i     => rst_rx_path_n,
+      rst_n_i     => rst_rx_62m5_n,
       in_10b_i    => (rx_data_raw_62m5(9 downto 0)),
       ctrl_o      => rx_k_int(0),
       code_err_o  => rx_code_err(0),
@@ -865,9 +853,9 @@ begin  -- rtl
       );
 
 
-  p_gen_rx_outputs : process(clk_rx_62m5, rst_rx_path_n)
+  p_gen_rx_outputs : process(clk_rx_62m5, rst_rx_62m5_n)
   begin
-    if(rst_rx_path_n = '0') then
+    if(rst_rx_62m5_n = '0') then
       rx_data_o_int    <= (others => '0');
       rx_k_o_int       <= (others => '0');
       rx_enc_err_o_int <= '0';
