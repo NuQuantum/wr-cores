@@ -5,23 +5,22 @@
 -- input pulse.
 -- Author: Javier Serrano (Javier.Serrano@cern.ch)
 -- Date: 24 January 2012
--- Version: 0.01
--- Todo: Factor out syncrhonizer in a separate reusable block.
+-- Version: 0.02
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
---               GNU LESSER GENERAL PUBLIC LICENSE                             
---              -----------------------------------                            
+--               GNU LESSER GENERAL PUBLIC LICENSE
+--              -----------------------------------
 -- This source file is free software; you can redistribute it and/or modify it
 -- under the terms of the GNU Lesser General Public License as published by the
 -- Free Software Foundation; either version 2.1 of the License, or (at your
--- option) any later version.                           
+-- option) any later version.
 -- This source is distributed in the hope that it will be useful, but WITHOUT
 -- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 -- FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
 -- for more details. You should have received a copy of the GNU Lesser General
 -- Public License along with this source; if not, download it from
--- http://www.gnu.org/licenses/lgpl-2.1.html                  
+-- http://www.gnu.org/licenses/lgpl-2.1.html
 -------------------------------------------------------------------------------
 
 
@@ -30,7 +29,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity pulse_stamper is
-  
+
   generic (
     -- reference clock frequency
     g_ref_clk_rate : integer := 125000000);
@@ -63,7 +62,7 @@ entity pulse_stamper is
     tag_valid_o : out std_logic
     );
 
-  
+
 end pulse_stamper;
 
 architecture rtl of pulse_stamper is
@@ -72,18 +71,14 @@ architecture rtl of pulse_stamper is
  signal pulse_ref : std_logic_vector(2 downto 0);
  signal pulse_ref_p1 : std_logic;
  signal pulse_ref_p1_d1 : std_logic;
- 
+
  -- Time tagger signals
  signal tag_utc_ref : std_logic_vector(39 downto 0);
  signal tag_cycles_ref : std_logic_vector(27 downto 0);
 
  -- Signals for synchronizer
- signal rst_from_sync : std_logic;
- signal pulse_ref_d2 : std_logic;
- signal pulse_sys : std_logic_vector(2 downto 0);
  signal pulse_sys_p1 : std_logic;
- signal pulse_back : std_logic_vector(2 downto 0);
- 
+
  -- One of two clocks is used in WR for timestamping: 125MHz or 62.5MHz
  -- This functions translates the cycle count into 125MHz-clock cycles
  -- in the case when 62.5MHz clock is used. As a result, timestamps are
@@ -112,17 +107,17 @@ architecture rtl of pulse_stamper is
 begin  -- architecture rtl
 
  -- Synchronization of external pulse into the clk_ref_i clock domain
- sync_ext_pulse: process (clk_ref_i)
- begin
-  if clk_ref_i'event and clk_ref_i='1' then
-    pulse_ref <= pulse_ref(1 downto 0) & pulse_a_i;
-    pulse_ref_p1 <= pulse_ref(1) and not pulse_ref(2);
-    pulse_ref_p1_d1 <= pulse_ref_p1 and tm_time_valid_i;
-  end if;
- end process sync_ext_pulse;
+ inst_edge_detect : entity work.gc_sync_ffs
+   generic map (
+     g_SYNC_EDGE => "positive")
+   port map (
+     clk_i    => clk_ref_i,
+     rst_n_i  => rst_n_i,
+     data_i   => pulse_a_i,
+     ppulse_o => pulse_ref_p1);
 
  -- Time tagging of the pulse, still in the clk_ref_i domain
- tagger: process (clk_ref_i)
+ p_tagger: process (clk_ref_i)
  begin
   if clk_ref_i'event and clk_ref_i='1' then
     if pulse_ref_p1='1' and tm_time_valid_i='1' then
@@ -130,40 +125,20 @@ begin  -- architecture rtl
       tag_cycles_ref <= tm_cycles_i;
     end if;
   end if;
- end process tagger;
+ end process;
 
  -- Synchronizer to pass UTC register data to the system clock domain
  -- This synchronizer is made with the following three processes
 
- -- First one FF with async reset, still in the clk_ref_i domain
- sync_first_ff: process (clk_ref_i, rst_n_i, rst_from_sync)
- begin
-  if rst_n_i='0' or rst_from_sync='1' then
-    pulse_ref_d2 <= '0';
-  elsif clk_ref_i'event and clk_ref_i='1' then
-    if pulse_ref_p1_d1='1' then
-      pulse_ref_d2 <= '1';
-    end if;
-  end if;
- end process sync_first_ff;
+ inst_pulse_sync : entity work.gc_pulse_synchronizer
+   port map (
+     rst_n_i     => rst_n_i,
+     clk_in_i    => clk_ref_i,
+     clk_out_i   => clk_sys_i,
+     d_ready_o   => open,
+     d_p_i       => pulse_ref_p1,
+     q_p_o       => pulse_sys_p1);
 
- -- Then three FFs to take the strobe safely into the clk_sys_i domain
- sync_sys: process (clk_sys_i)
- begin
-  if clk_sys_i'event and clk_sys_i='1' then
-   pulse_sys <= pulse_sys(1 downto 0) & pulse_ref_d2;
-   pulse_sys_p1 <= pulse_sys(1) and not pulse_sys(2);
-  end if;
- end process sync_sys;
-
- -- And then back into the clk_ref_i domain
- sync_ref: process (clk_ref_i)
- begin
-  if clk_ref_i'event and clk_ref_i='1' then
-    pulse_back <= pulse_back(1 downto 0) & pulse_sys(2);
-    rst_from_sync <= pulse_back(2);
-  end if;
- end process sync_ref;
 
  -- Now we can take the time tags into the clk_sys_i domain
  sys_tags: process (clk_sys_i)
@@ -182,5 +157,5 @@ begin  -- architecture rtl
     end if;
   end if;
  end process sys_tags;
- 
+
 end architecture rtl;
