@@ -347,7 +347,7 @@ begin  -- behavioral
 
   -- sniff wb access to generate rx_fifo_rd every time the RX_FIFO register is
   -- read
-  rx_fifo_rd <= '1' when(wb_out.cyc='1' and wb_out.stb='1' and wb_out.adr(7 downto 0)=x"02" and wb_in.ack='1') else
+  rx_fifo_rd <= '1' when(wb_out.cyc='1' and wb_out.stb='1' and wb_out.adr(4 downto 0)=b"0_0010" and wb_in.ack='1') else
                 '0';
 
 -------------------------------------------------------------------------------
@@ -598,6 +598,7 @@ begin  -- behavioral
             regs_in.mcr_rx_error_i  <= '0';
             nrx_newpacket <= '0';
             if (regs_out.mcr_rx_en_o = '1') then
+              --  Stall at start of frame, will accept in RX_FRAME state.
               snk_stall_int <= not nrx_sof;
             else
               -- RX path is disabled, don't stall any traffic

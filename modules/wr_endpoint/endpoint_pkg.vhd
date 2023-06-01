@@ -447,7 +447,7 @@ package endpoint_pkg is
     wbd_width     => x"7",                 -- 8/16/32-bit port granularity
     sdb_component => (
       addr_first  => x"0000000000000000",
-      addr_last   => x"00000000000000ff",
+      addr_last   => x"000000000000007f",
       product     => (
         vendor_id => x"000000000000CE42",  -- CERN
         device_id => x"650c2d4f",

@@ -135,7 +135,6 @@ architecture struct of wrc_periph is
   signal cntr_tics     : unsigned(31 downto 0);
   signal cntr_overflow : std_logic;
   
-  signal rst_wrc_n_o_reg : std_logic := '1';
   signal diag_adr : unsigned(15 downto 0);
   signal diag_dat : std_logic_vector(31 downto 0);
   signal diag_out_regs : t_generic_word_array(g_diag_rw_size - 1 downto 0);
