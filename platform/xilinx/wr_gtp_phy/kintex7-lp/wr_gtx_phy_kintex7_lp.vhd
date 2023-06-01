@@ -762,7 +762,7 @@ begin  -- rtl
     port map (
       clk_i       => clk_rx_62m5,
       rst_n_i     => rst_rx_62m5_n,
-      in_10b_i    => (rx_data_raw_62m5(19 downto 10)),
+      in_10b_i    => rx_data_raw_62m5(19 downto 10),
       ctrl_o      => rx_k_int(1),
       code_err_o  => rx_code_err(1),
       rdisp_err_o => open,
@@ -772,7 +772,7 @@ begin  -- rtl
     port map (
       clk_i       => clk_rx_62m5,
       rst_n_i     => rst_rx_62m5_n,
-      in_10b_i    => (rx_data_raw_62m5(9 downto 0)),
+      in_10b_i    => rx_data_raw_62m5(9 downto 0),
       ctrl_o      => rx_k_int(0),
       code_err_o  => rx_code_err(0),
       rdisp_err_o => open,
