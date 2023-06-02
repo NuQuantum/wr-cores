@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-02-25
--- Last update: 2018-10-25
+-- Last update: 2023-06-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -66,9 +66,12 @@ entity dmtd_with_deglitcher is
 
     g_oversample : boolean := false;
     g_oversample_factor : integer := 1;
+
     -- reversed mode: samples clk_dmtd with clk_in.
     g_reverse : boolean := false;
 
+    -- uses an external DDMTD sampler and just deglitches and generates tags
+    -- for an externally generated DDMTD output (clk_sampled_a_i).
     g_use_sampled_clock : boolean := false
     );
   port (
@@ -96,20 +99,6 @@ entity dmtd_with_deglitcher is
     -- [clk_dmtd_i] counter resync output, pulses when free_cntr == 0
     resync_p_o : out std_logic;
 
-    -- [clk_sys_i] starts resynchronization
-    resync_start_p_i : in std_logic := '0';
-
-    -- [clk_sys_i] 1: resynchonization done
-    resync_done_o : out std_logic;
-
-    -- [clk_dmtd_i] phase shifter enable, HI level shifts the internal counter
-    -- forward/backward by 1 clk_dmtd_i cycle, effectively shifting the tag
-    -- value by +-1.
-    shift_en_i : in std_logic := '0';
-
-    -- [clk_dmtd_i] phase shift direction: 1 - forward, 0 - backward
-    shift_dir_i : in std_logic := '0';
-
     -- DMTD clock enable, active high. Can be used to reduce the DMTD sampling
     -- frequency - for example, two 10 MHz signals cannot be sampled directly
     -- with a 125 MHz clock, but it's possible with a 5 MHz reference, obtained
@@ -130,7 +119,6 @@ entity dmtd_with_deglitcher is
     tag_stb_p1_o : out std_logic;
     dbg_clk_d3_o : out std_logic
     );
-
 end dmtd_with_deglitcher;
 
 architecture rtl of dmtd_with_deglitcher is
@@ -153,7 +141,6 @@ architecture rtl of dmtd_with_deglitcher is
   signal tag_int       : unsigned(g_counter_bits-1 downto 0);
   signal resync_p_dmtd : std_logic;
 
-  signal resync_start_p_dmtd, resync_done_dmtd, resync_p_int : std_logic;
   
 begin  -- rtl
 
@@ -166,26 +153,7 @@ begin  -- rtl
       data_i   => resync_p_a_i,
       synced_o => resync_p_dmtd);
 
-  U_Sync_Start_Pulse : gc_pulse_synchronizer2
-    port map (
-      clk_in_i    => clk_sys_i,
-      rst_in_n_i  => rst_n_sysclk_i,
-      clk_out_i   => clk_dmtd_i,
-      rst_out_n_i => rst_n_dmtdclk_i,
-      d_ready_o   => open,
-      d_p_i       => resync_start_p_i,
-      q_p_o       => resync_start_p_dmtd);
-
-  U_Sync_Resync_Done : gc_sync_ffs
-    generic map (
-      g_sync_edge => "positive")
-    port map (
-      clk_i    => clk_sys_i,
-      rst_n_i  => rst_n_sysclk_i,
-      data_i   => resync_done_dmtd,
-      synced_o => resync_done_o);
-
-  gen_builtin : if(g_use_sampled_clock = false )generate
+  gen_builtin : if( g_use_sampled_clock = false )generate
 
    U_Sampler: entity work.dmtd_sampler
       generic map (
@@ -212,19 +180,13 @@ begin  -- rtl
 
     if rising_edge(clk_dmtd_i) then     -- rising clock edge
 
-      if (rst_n_dmtdclk_i = '0' or (resync_p_dmtd = '1' and resync_done_dmtd = '0')) then  -- synchronous reset (active low)
+      if (rst_n_dmtdclk_i = '0' or resync_p_dmtd = '1') then  -- synchronous reset (active low)
         stab_cntr     <= (others => '0');
         state         <= WAIT_STABLE_0;
         free_cntr     <= (others => '0');
         new_edge_sreg <= (others => '0');
       elsif(clk_dmtd_en_i = '1') then
         
-        if (shift_en_i = '0') then      -- phase shifter
-          free_cntr <= free_cntr + 1;
-        elsif (shift_dir_i = '1') then
-          free_cntr <= free_cntr + 2;
-        end if;
-
         case state is
           when WAIT_STABLE_0 =>         -- out-of-sync
             new_edge_sreg <= '0' & new_edge_sreg(new_edge_sreg'length-1 downto 1);
@@ -276,21 +238,6 @@ begin  -- rtl
         resync_p_o <= '1';
       else
         resync_p_o <= '0';
-      end if;
-    end if;
-  end process;
-
-  p_resync_pulse_trigger : process(clk_dmtd_i)
-  begin
-    if rising_edge(clk_dmtd_i) then
-      if rst_n_dmtdclk_i = '0' then
-        resync_done_dmtd <= '1';
-      else
-        if(resync_start_p_dmtd = '1') then
-          resync_done_dmtd <= '0';
-        elsif(resync_p_dmtd = '1') then
-          resync_done_dmtd <= '1';
-        end if;
       end if;
     end if;
   end process;

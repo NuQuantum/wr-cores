@@ -360,17 +360,11 @@ begin  -- rtl
         clk_in_i  => clk_ref_i(i),
         clk_sampled_a_i => clk_ref_sampled_i(i),
 
-        resync_done_o    => open,
-        resync_start_p_i => '0',
         resync_p_a_i     => fb_resync_out(0),
-        resync_p_o       => open,
 
         tag_o                => tags(i),
         tag_stb_p1_o         => tags_p(i),
-        shift_en_i           => '0',
-        shift_dir_i          => '0',
-        deglitch_threshold_i => deglitch_thr_slv,
-        dbg_dmtdout_o        => open);
+        deglitch_threshold_i => deglitch_thr_slv);
 
 
   end generate gen_ref_dmtds;
@@ -396,15 +390,11 @@ begin  -- rtl
         clk_sys_i => clk_sys_i,
         clk_in_i  => clk_fb_i(i),
 
-        resync_done_o    => open,
-        resync_start_p_i => '0',
         resync_p_a_i     => fb_resync_out(0),
         resync_p_o       => fb_resync_out(i),
 
         tag_o        => tags(i+g_num_ref_inputs),
         tag_stb_p1_o => tags_p(i+g_num_ref_inputs),
-        shift_en_i   => '0',
-        shift_dir_i  => '0',
 
         deglitch_threshold_i => deglitch_thr_slv,
         dbg_dmtdout_o        => open,
@@ -433,19 +423,12 @@ begin  -- rtl
         clk_sys_i => clk_sys_i,
         clk_in_i  => clk_ext_mul_i(I),
 
-        resync_done_o    => open,
-        resync_start_p_i => '0',
         resync_p_a_i     => fb_resync_out(0),
-        resync_p_o       => open,
 
         tag_o        => tags(g_num_ref_inputs + g_num_outputs + I),
         tag_stb_p1_o => tags_p(g_num_ref_inputs + g_num_outputs + I),
-        shift_en_i   => '0',
-        shift_dir_i  => '0',
 
-        deglitch_threshold_i => deglitch_thr_slv,
-        dbg_dmtdout_o        => open,
-        dbg_clk_d3_o         => open);
+        deglitch_threshold_i => deglitch_thr_slv);
 
   end generate gen_ext_dmtds;
 
