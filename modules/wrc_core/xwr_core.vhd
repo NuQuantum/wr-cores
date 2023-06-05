@@ -6,7 +6,6 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-02-02
--- Last update: 2023-05-05
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -152,19 +151,19 @@ entity xwr_core is
     -----------------------------------------
     -- PHY I/f
     -----------------------------------------
-    phy_ref_clk_i : in std_logic;
+    phy_ref_clk_i        : in std_logic := '0';
 
     phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
     phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
-    phy_tx_disparity_i   : in  std_logic;
-    phy_tx_enc_err_i     : in  std_logic;
+    phy_tx_disparity_i   : in  std_logic := '0';
+    phy_tx_enc_err_i     : in  std_logic := '0';
 
-    phy_rx_data_i        : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
-    phy_rx_rbclk_i       : in std_logic;
+    phy_rx_data_i        : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others => '0');
+    phy_rx_rbclk_i       : in std_logic := '0';
     phy_rx_rbclk_sampled_i : in std_logic := '0';
-    phy_rx_k_i           : in std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
-    phy_rx_enc_err_i     : in std_logic;
-    phy_rx_bitslide_i    : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
+    phy_rx_k_i           : in std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0) := (others => '0');
+    phy_rx_enc_err_i     : in std_logic := '0';
+    phy_rx_bitslide_i    : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others => '0');
 
     phy_mdio_master_o : out t_wishbone_master_out;
     phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out; 
