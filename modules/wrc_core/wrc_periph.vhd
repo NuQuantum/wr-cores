@@ -6,7 +6,6 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-04-04
--- Last update: 2023-04-26
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -70,8 +69,6 @@ entity wrc_periph is
     rst_net_n_o : out std_logic;
     rst_wrc_n_o : out std_logic;
 
-    led_red_o   : out std_logic;
-    led_green_o : out std_logic;
     scl_o       : out std_logic;
     scl_i       : in  std_logic;
     sda_o       : out std_logic;
@@ -185,26 +182,6 @@ begin
     end if; 
   end process;
   
-  -------------------------------------
-  -- LEDs
-  -------------------------------------
-  process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if(sysc_regs_o.gpsr_led_link_o = '1') then
-        led_red_o <= '1';
-      elsif(sysc_regs_o.gpcr_led_link_o = '1') then
-        led_red_o <= '0';
-      end if;
-
-      if(sysc_regs_o.gpsr_led_stat_o = '1') then
-        led_green_o <= '1';
-      elsif(sysc_regs_o.gpcr_led_stat_o = '1') then
-        led_green_o <= '0';
-      end if;
-    end if;
-  end process;
-
   -------------------------------------
   -- buttons
   -------------------------------------

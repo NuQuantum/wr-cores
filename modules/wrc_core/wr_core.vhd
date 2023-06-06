@@ -897,8 +897,6 @@ begin
       rst_net_n_o => rst_net_n,
       rst_wrc_n_o => rst_wrc_n,
 
-      led_red_o   => open,              --led_red_o,
-      led_green_o => open,              --led_green_o,
       scl_o       => scl_o,
       scl_i       => scl_i,
       sda_o       => sda_o,

@@ -6,7 +6,6 @@
 -- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2011-05-11
--- Last update: 2023-05-05
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -297,8 +296,6 @@ package wrcore_pkg is
       rst_n_i     : in  std_logic;
       rst_net_n_o : out std_logic;
       rst_wrc_n_o : out std_logic;
-      led_red_o   : out std_logic;
-      led_green_o : out std_logic;
       scl_o       : out std_logic;
       scl_i       : in  std_logic;
       sda_o       : out std_logic;
