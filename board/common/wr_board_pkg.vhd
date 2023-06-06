@@ -149,6 +149,8 @@ package wr_board_pkg is
       phy8_i               : in  t_phy_8bits_to_wrc                               := c_dummy_phy8_to_wrc;
       phy16_o              : out t_phy_16bits_from_wrc;
       phy16_i              : in  t_phy_16bits_to_wrc                              := c_dummy_phy16_to_wrc;
+      phy_mdio_master_i    : in  t_wishbone_master_in := (ack => '1', err => '0', rty => '0', stall => '0', dat => (others => '1'));
+      phy_mdio_master_o    : out t_wishbone_master_out;
       scl_o                : out std_logic;
       scl_i                : in  std_logic                                        := '1';
       sda_o                : out std_logic;

@@ -129,6 +129,9 @@ entity xwrc_board_common is
     phy16_o : out t_phy_16bits_from_wrc;
     phy16_i : in  t_phy_16bits_to_wrc := c_dummy_phy16_to_wrc;
 
+    phy_mdio_master_i : in  t_wishbone_master_in := (ack => '1', err => '0', rty => '0', stall => '0', dat => (others => '1'));
+    phy_mdio_master_o : out t_wishbone_master_out;
+
     ---------------------------------------------------------------------------
     -- I2C EEPROM
     ---------------------------------------------------------------------------
@@ -444,8 +447,8 @@ begin  -- architecture struct
       phy8_i               => phy8_i,
       phy16_o              => phy16_o,
       phy16_i              => phy16_i,
-      phy_mdio_master_i    => phy_mdio_master_in,
-      phy_mdio_master_o    => open,
+      phy_mdio_master_i    => phy_mdio_master_i,
+      phy_mdio_master_o    => phy_mdio_master_o,
       led_act_o            => led_act_o,
       led_link_o           => led_link_o,
       scl_o                => scl_o,
@@ -506,9 +509,6 @@ begin  -- architecture struct
   tm_time_valid_o <= tm_time_valid;
   tm_tai_o        <= tm_tai;
   tm_cycles_o     <= tm_cycles;
-
-  --  Avoid freeze
-  phy_mdio_master_in <= (ack => '1', err => '0', rty => '0', stall => '0', dat => (others => '1'));
 
   gen_wr_streamers : if (g_fabric_iface = STREAMERS) generate
 
