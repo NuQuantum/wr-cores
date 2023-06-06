@@ -268,32 +268,32 @@ begin
   -------------------------------------
   -- I2C - SFP
   -------------------------------------
-  p_drive_sfpi2c : process(clk_sys_i)
+  p_drive_sfp1_i2c : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
         sfp_scl_o <= '1';
         sfp_sda_o <= '1';
       else
-        if(sysc_regs_o.gpsr_sfp_sda_load_o = '1' and sysc_regs_o.gpsr_sfp_sda_o = '1') then
+        if(sysc_regs_o.gpsr_sfp1_sda_load_o = '1' and sysc_regs_o.gpsr_sfp1_sda_o = '1') then
           sfp_sda_o <= '1';
-        elsif(sysc_regs_o.gpcr_sfp_sda_o = '1') then
+        elsif(sysc_regs_o.gpcr_sfp1_sda_o = '1') then
           sfp_sda_o <= '0';
         end if;
 
-        if(sysc_regs_o.gpsr_sfp_scl_load_o = '1' and sysc_regs_o.gpsr_sfp_scl_o = '1') then
+        if(sysc_regs_o.gpsr_sfp1_scl_load_o = '1' and sysc_regs_o.gpsr_sfp1_scl_o = '1') then
           sfp_scl_o <= '1';
-        elsif(sysc_regs_o.gpcr_sfp_scl_o = '1') then
+        elsif(sysc_regs_o.gpcr_sfp1_scl_o = '1') then
           sfp_scl_o <= '0';
         end if;
       end if;
     end if;
   end process;
 
-  sysc_regs_i.gpsr_sfp_sda_i <= sfp_sda_i;
-  sysc_regs_i.gpsr_sfp_scl_i <= sfp_scl_i;
+  sysc_regs_i.gpsr_sfp1_sda_i <= sfp_sda_i;
+  sysc_regs_i.gpsr_sfp1_scl_i <= sfp_scl_i;
 
-  sysc_regs_i.gpsr_sfp_det_i <= sfp_det_i;
+  sysc_regs_i.gpsr_sfp1_det_i <= sfp_det_i;
 
   -------------------------------------
   -- SPI - Flash
