@@ -71,8 +71,8 @@ memory-map:
           description: Reset of PHY CPLL or QPLL
           range: 4
       - field:
-          name: txusrpll_reset
-          description: Reset of PHY TXUSRCLK PLL (GTXE1/2)
+          name: aux_reset
+          description: Auxiliary Reset of PHY (for example to reset TXUSRCLK PLL)
           range: 5
       - field:
           name: comma_target_pos
