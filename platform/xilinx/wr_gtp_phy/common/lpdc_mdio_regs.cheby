@@ -67,8 +67,8 @@ memory-map:
           description: Reset of PHY RX path
           range: 3
       - field:
-          name: qpll_sw_reset
-          description: Reset of PHY QPLL (GTXE1/2)
+          name: pll_sw_reset
+          description: Reset of PHY CPLL or QPLL
           range: 4
       - field:
           name: txusrpll_reset
@@ -91,8 +91,8 @@ memory-map:
       address: 0x4
       children:
       - field:
-          name: qpll_locked
-          description: QPLL lock indication
+          name: pll_locked
+          description: CPLL or QPLL lock indication
           range: 0
       - field:
           name: link_up

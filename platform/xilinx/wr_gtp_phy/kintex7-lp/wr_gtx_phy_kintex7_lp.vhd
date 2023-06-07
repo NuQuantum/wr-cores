@@ -332,7 +332,7 @@ begin  -- rtl
     (
       clk_i    => clk_dmtd_i,
       rst_n_i  => '1',
-      data_i   => lpdc_regs_out.CTRL_qpll_sw_reset,
+      data_i   => lpdc_regs_out.CTRL_pll_sw_reset,
       synced_o => cpll_reset
       );
 
@@ -786,7 +786,7 @@ begin  -- rtl
       clk_i    => clk_sys_i,
       rst_n_i  => rst_sys_n_i,
       data_i   => cpll_locked,
-      synced_o => lpdc_regs_in.STAT_qpll_locked
+      synced_o => lpdc_regs_in.STAT_pll_locked
       );
 
   inst_sync_rx_pll_locked : gc_sync_ffs
