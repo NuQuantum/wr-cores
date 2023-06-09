@@ -162,6 +162,7 @@ elif (syn_device[0:6].upper()=="XCAU10" or # Artix Ultrascale+ AU10P AU15P GTH
     files.extend([
         "family7-gthe4-lp/wr_gthe4_phy_family7_lp.vhd",
         "family7-gtx-lp/gtx_comma_detect_lp.vhd",
+        "common/lpdc_mdio_regs.vhd",
         ]);
     files.extend( xilinx_ip_gthe4_lp );        # Note that gthe4 depend on Vivado version
     files.extend( xilinx_ip_gthe4_common_lp ); # and instantiate its specific common files 
