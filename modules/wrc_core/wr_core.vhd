@@ -108,7 +108,8 @@ entity wr_core is
     g_diag_rw_size              : integer                        := 0;
     g_dac_bits                  : integer                        := 16;
     g_softpll_aux_channel_config : t_softpll_channels_config_array := c_softpll_default_channels_config;
-    g_with_clock_freq_monitor   : boolean                        := true
+    g_with_clock_freq_monitor   : boolean                        := true;
+    g_hwbld_date                : std_logic_vector(31 downto 0)  := (others => 'X')
     );
   port(
     ---------------------------------------------------------------------------
@@ -874,7 +875,7 @@ begin
   -----------------------------------------------------------------------------
   -- WB Peripherials
   -----------------------------------------------------------------------------
-  PERIPH : wrc_periph
+  PERIPH : entity work.wrc_periph
     generic map(
       g_board_name      => g_board_name,
       g_flash_secsz_kb  => g_flash_secsz_kb,
@@ -890,7 +891,8 @@ begin
       g_diag_id         => g_diag_id,
       g_diag_ver        => g_diag_ver,
       g_diag_ro_size    => g_diag_ro_size,
-      g_diag_rw_size    => g_diag_rw_size)
+      g_diag_rw_size    => g_diag_rw_size,
+      g_hwbld_date      => g_hwbld_date)
     port map(
       clk_sys_i   => clk_sys_i,
       rst_n_i     => rst_n_i,

@@ -61,7 +61,8 @@ entity wrc_periph is
     g_diag_ver        : integer := 0;
     g_diag_ro_size    : integer := 0;
     g_diag_rw_size    : integer := 0;
-    g_wdiags_num_words : integer := 64);
+    g_wdiags_num_words : integer := 64;
+    g_hwbld_date      : std_logic_vector(31 downto 0));
   port(
     clk_sys_i : in std_logic;
     rst_n_i   : in std_logic;
@@ -331,6 +332,8 @@ begin
   sysc_regs_i.gpsr_spi_mosi_i <= '0';
   sysc_regs_i.gpsr_spi_miso_i <= spi_miso_i;
 
+
+  sysc_regs_i.hwbld_date_i <= g_hwbld_date;
 
   -------------------------------------
   -- DIAG to/from external modules

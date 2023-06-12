@@ -106,7 +106,8 @@ entity xwr_core is
     g_diag_rw_size              : integer                        := 0;
     g_dac_bits                  : integer                        := 16;
     g_softpll_aux_channel_config : t_softpll_channels_config_array := c_softpll_default_channels_config;
-    g_with_clock_freq_monitor   : boolean                        := true
+    g_with_clock_freq_monitor   : boolean                        := true;
+    g_hwbld_date                : std_logic_vector(31 downto 0)  := (others => 'X')
     );
   port(
     ---------------------------------------------------------------------------
@@ -323,7 +324,8 @@ begin
       g_dac_bits                  => g_dac_bits,
       g_use_platform_specific_dpram => g_use_platform_specific_dpram,
       g_softpll_aux_channel_config => g_softpll_aux_channel_config,
-      g_with_clock_freq_monitor   => g_with_clock_freq_monitor
+      g_with_clock_freq_monitor   => g_with_clock_freq_monitor,
+      g_hwbld_date                => g_hwbld_date
       )
     port map(
       clk_sys_i     => clk_sys_i,
