@@ -6,7 +6,6 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2023-04-24
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -423,7 +422,7 @@ begin  -- rtl
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2,
-				g_reverse	=> g_reverse_dmtds,
+        g_reverse	    => g_reverse_dmtds,
         g_use_sampled_clock => false)
       port map (
         rst_n_dmtdclk_i => rst_dmtd_n_i,
