@@ -421,6 +421,7 @@ package wrcore_pkg is
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_enable_debugger   : boolean                        := false;
       g_softpll_use_sampled_ref_clocks : boolean := false;
+      g_softpll_reverse_dmtds : boolean := false;
       g_vuart_fifo_size           : integer                        := 1024;
       g_pcs_16bit                 : boolean                        := false;
       g_records_for_phy           : boolean                        := false;
@@ -577,6 +578,7 @@ package wrcore_pkg is
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_enable_debugger   : boolean                        := false;
       g_softpll_use_sampled_ref_clocks : boolean := false;
+      g_softpll_reverse_dmtds : boolean := false;
       g_vuart_fifo_size           : integer                        := 1024;
       g_pcs_16bit                 : boolean                        := false;
       g_records_for_phy           : boolean                        := false;

@@ -354,7 +354,6 @@ begin  -- rtl
         rst_n_sysclk_i  => rst_n_i,
 
         clk_dmtd_i    => clk_dmtd_i,
-        clk_dmtd_en_i => '1',
 
         clk_sys_i => clk_sys_i,
         clk_in_i  => clk_ref_i(i),
@@ -364,39 +363,40 @@ begin  -- rtl
 
         tag_o                => tags(i),
         tag_stb_p1_o         => tags_p(i),
-        deglitch_threshold_i => deglitch_thr_slv);
+        r_deglitch_threshold_i => deglitch_thr_slv);
 
 
   end generate gen_ref_dmtds;
 
   gen_feedback_dmtds : for i in 0 to g_num_outputs-1 generate
-    
+    signal resync_p : std_logic;
+  begin
+    resync_p <= f_pick(i = 0, '0', fb_resync_out(0));
+
     DMTD_FB : entity work.dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2,
         g_reverse => g_reverse_dmtds,
         g_use_sampled_clock => false,
-        g_oversample => g_aux_config(i).oversample,
-        g_oversample_factor => g_aux_config(i).divider)
+        g_with_oversampling => g_aux_config(i).oversample)
       port map (
         rst_n_dmtdclk_i => rst_dmtd_n_i,
         rst_n_sysclk_i  => rst_n_i,
 
         clk_dmtd_i    => clk_dmtd_i,
-        clk_dmtd_en_i => '1',
         clk_dmtd_over_i => clk_dmtd_over_i,
 
         clk_sys_i => clk_sys_i,
         clk_in_i  => clk_fb_i(i),
 
-        resync_p_a_i     => fb_resync_out(0),
+        resync_p_a_i     => resync_p,
         resync_p_o       => fb_resync_out(i),
 
         tag_o        => tags(i+g_num_ref_inputs),
         tag_stb_p1_o => tags_p(i+g_num_ref_inputs),
 
-        deglitch_threshold_i => deglitch_thr_slv,
+        r_deglitch_threshold_i => deglitch_thr_slv,
         dbg_dmtdout_o        => open,
         dbg_clk_d3_o         => debug_o(i)); --debug_o(4));
 
@@ -418,7 +418,6 @@ begin  -- rtl
         rst_n_dmtdclk_i => rst_dmtd_n_i,
         rst_n_sysclk_i  => rst_n_i,
         clk_dmtd_i      => clk_dmtd_i,
-        clk_dmtd_en_i   => '1',
 
         clk_sys_i => clk_sys_i,
         clk_in_i  => clk_ext_mul_i(I),
@@ -428,7 +427,7 @@ begin  -- rtl
         tag_o        => tags(g_num_ref_inputs + g_num_outputs + I),
         tag_stb_p1_o => tags_p(g_num_ref_inputs + g_num_outputs + I),
 
-        deglitch_threshold_i => deglitch_thr_slv);
+        r_deglitch_threshold_i => deglitch_thr_slv);
 
   end generate gen_ext_dmtds;
 

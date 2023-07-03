@@ -480,6 +480,9 @@ architecture syn of wr_endpoint is
       TRIG3   : in    std_logic_vector(31 downto 0));
   end component;
 
+  attribute mark_debug : string;
+  attribute mark_debug of rmon_events_o : signal is "true";
+
 begin
 
   U_Sync_phy_rdy_sysclk : gc_sync_ffs

@@ -214,6 +214,17 @@ architecture behavioral of ep_rx_pcs_16bit is
   signal pcs_valid_int     : std_logic;
   signal timestamp_pending : std_logic_vector(2 downto 0) := "000";
 
+  attribute mark_debug : string;
+  attribute mark_debug of pcs_fab_out : signal is "true";
+  attribute mark_debug of d_err : signal is "true";
+  attribute mark_debug of d_data : signal is "true";
+  attribute mark_debug of d_is_idle : signal is "true";
+  attribute mark_debug of d_is_k : signal is "true";
+  attribute mark_debug of odd_reception : signal is "true";
+  attribute mark_debug of d_is_k_shrunk : signal is "true";
+  attribute mark_debug of rx_synced : signal is "true";
+  attribute mark_debug of rx_state : signal is "true";
+
   signal mdio_wr_spec_rx_cal_stat_rx_clk : std_logic;
   signal mdio_wr_spec_cal_crst_rx_clk : std_logic;
 

@@ -13,8 +13,6 @@ module wr_1000basex_phy_tx_path_model
    input [15:0] tx_data_i,
    input [1:0] 	tx_k_i,
    input [19:0] tx_raw_i,
-   input [15:0] tx_data_i,
-   input [1:0] 	tx_k_i,
    input tx_is_raw_i,
    output 	tx_disparity_o,
    
@@ -33,9 +31,6 @@ module wr_1000basex_phy_tx_path_model
    
    reg 	      clk_tx = 0;
    
-<<<<<<< HEAD
-=======
-
    function bit[31:0] f_reverse(bit[31:0] x, int n);
 
       bit [31:0] rv;
@@ -45,10 +40,6 @@ module wr_1000basex_phy_tx_path_model
 	rv[n-1-i]=x[i];
       return rv;
    endfunction // f_reverse
-   
-
-     
->>>>>>> origin/Virtex5_PHY_fix
    
    always@(posedge clk_ref_i)
      if(pll_en)
