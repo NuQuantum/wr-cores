@@ -383,6 +383,8 @@ begin  -- rtl
         r_stat_reset_i => regs_in.dmtd_stat_cr_rst_o,
         r_stat_ready_o => r_stat_valid_ref(i)
         );
+
+
   end generate gen_ref_dmtds;
 
   gen_feedback_dmtds : for i in 0 to g_num_outputs-1 generate
@@ -456,6 +458,7 @@ begin  -- rtl
         tag_stb_p1_o => tags_p(g_num_ref_inputs + g_num_outputs + I),
 
         r_deglitch_threshold_i => deglitch_thr_slv);
+
   end generate gen_ext_dmtds;
 
   gen_with_ext_clock_input: if g_num_exts > 0 generate
@@ -790,9 +793,9 @@ begin  -- rtl
   regs_out.csr_n_out_i <= std_logic_vector(to_unsigned(g_num_outputs, regs_out.csr_n_out_i'length));
 
   dac_dmtd_load_o <= regs_in.dac_hpll_wr_o;
-  dac_dmtd_data_o <= regs_in.dac_hpll_o;
+  dac_dmtd_data_o <= regs_in.dac_hpll_o(g_dac_bits-1 downto 0);
 
-  dac_out_data_o <= regs_in.dac_main_value_o;
+  dac_out_data_o <= regs_in.dac_main_value_o(g_dac_bits-1 downto 0);
   dac_out_sel_o  <= regs_in.dac_main_dac_sel_o;
   dac_out_load_o <= regs_in.dac_main_value_wr_o;
 

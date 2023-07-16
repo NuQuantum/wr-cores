@@ -307,7 +307,7 @@ peripheral {
 			field {
 				 name = "DAC value";
 				 type = PASS_THROUGH;
-				 size = 16;
+				 size = 24;
 			};
 	 };
 
@@ -319,7 +319,7 @@ peripheral {
 				 name = "DAC value";
 				 prefix = "VALUE";
 				 type = PASS_THROUGH;
-				 size = 16;
+				 size = 24;
 			};
 
 			field {
