@@ -225,8 +225,8 @@ begin
   --    data_i   => areset_edge_n_i,
   --    ppulse_o => areset_edge_ppulse);
 
-  -- logic AND of all async reset sources (active high)
-  rstlogic_arst <= (not pll_locked) and (not areset_n_i);
+  -- logic OR of all async reset sources (active high)
+  rstlogic_arst <= (not pll_locked) or (not areset_n_i);
 
   -- concatenation of all clocks required to have synced resets
   rstlogic_clk_in(0)          <= clk_pll_62m5;

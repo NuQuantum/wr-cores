@@ -322,8 +322,8 @@ begin  -- architecture struct
       data_i   => areset_edge_n_i,
       ppulse_o => areset_edge_ppulse);
 
-  -- logic AND of all async reset sources (active high)
-  rstlogic_arst <= (not pll_locked) and (not areset_n_i) and areset_edge_ppulse;
+  -- logic OR of all async reset sources (active high)
+  rstlogic_arst <= (not pll_locked) or (not areset_n_i) or areset_edge_ppulse;
 
   -- concatenation of all clocks required to have synced resets
   rstlogic_clk_in(0)          <= clk_pll_62m5;
