@@ -8,11 +8,7 @@ architecture arch of serial_dac856x_tb is
   signal clk, rst_n : std_logic;
   signal din, sync_n, sclk : std_logic;
   signal value_a, value_b : std_logic_vector(15 downto 0);
-  signal en_a, en_b : std_logic;
-  signal data : std_logic_vector(23 downto 0);
-  signal wr_a, wr_b, wr : std_logic;
-  signal busy : std_logic;
-
+  signal wr_a, wr_b : std_logic;
 begin
   inst_dut: entity work.serial_dac856x
     generic map (
@@ -25,11 +21,7 @@ begin
       wr_a_i => wr_a,
       value_b_i => value_b,
       wr_b_i => wr_b,
-      en_a_i => en_a,
-      en_b_i => en_b,
-      data_i => data,
-      wr_i => wr,
-      busy_o => busy,
+
       sclk_o => sclk,
       d_o => din,
       sync_n_o => sync_n
@@ -49,27 +41,14 @@ begin
   begin
     wr_a <= '0';
     wr_b <= '0';
-    wr <= '0';
-    en_a <= '0';
-    en_b <= '0';
     wait until rising_edge(clk) and rst_n = '1';
-    assert busy = '0';
     value_a <= x"f549";
     wr_a <= '1';
     wait until rising_edge(clk);
 
     value_a <= (others => 'X');
     wr_a <= '0';
-    assert busy = '0';
     wait until rising_edge(clk);
-
-    en_a <= '1';
-    wait until rising_edge(clk);
-
-    data <= x"800001";
-    wr <= '1';
-    wait until rising_edge(clk);
-    wr <= '0';
 
     --  TODO: real test
     wait;

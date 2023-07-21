@@ -5,7 +5,8 @@ use ieee.numeric_std.all;
 entity serial_dac856x is
   generic (
     --  SCLK is CLK / (g_sclk_div + 1)
-    g_sclk_div : positive := 1
+    g_sclk_div : positive := 1;
+    g_internal_ref : std_logic := '1'
   );
   port (
     clk_i     :     std_logic;
@@ -18,15 +19,6 @@ entity serial_dac856x is
     value_b_i :     std_logic_vector (15 downto 0);
     wr_b_i    :     std_logic;
 
-    --  If true, values for a and b will be sent.
-    en_a_i    :     std_logic;
-    en_b_i    :     std_logic;
-
-    --  Extra config.  When BUSY is set, the data are not yet sent.
-    data_i    :     std_logic_vector(23 downto 0);
-    wr_i      :     std_logic;
-    busy_o    : out std_logic;
-
     --  SPI interface
     sclk_o    : out std_logic;
     d_o       : out std_logic;
@@ -35,20 +27,24 @@ entity serial_dac856x is
 end serial_dac856x;
 
 architecture behav of serial_dac856x is
+  --  Initialization state machine.
+  type t_state is (S_WAIT, S_CMD_SYNC, S_CMD_REF, S_DONE);
+  signal state : t_state;
+
+  --  Serial clock generation.
   signal sclk_p : std_logic;
   signal sclk_cnt : natural range g_sclk_div - 1 downto 0;
 
-  signal set_a, set_b, set_d : std_logic;
+  --  Data to be sent.
+  signal set_a, set_b : std_logic;
   signal val_a, val_b : std_logic_vector(15 downto 0);
-  signal val_d : std_logic_vector(23 downto 0);
 
   subtype t_clk_count is natural range (24 + 4) - 1 downto 0;
-  signal edge : std_logic;
   signal clk_count : t_clk_count;
+  signal edge : std_logic;
   signal buf : std_logic_vector(23 downto 0);
   signal busy : std_logic;
 begin
-
   --  Clock divider.
   process (clk_i)
   begin
@@ -79,7 +75,9 @@ begin
         d_o <= '0';
         set_a <= '0';
         set_b <= '0';
-        set_d <= '0';
+
+        state <= S_WAIT;
+        clk_count <= 16;
       else
         --  Accept values.  Will overwrite but not corrupt current values.
         if wr_a_i = '1' then
@@ -90,17 +88,16 @@ begin
           val_b <= value_b_i;
           set_b <= '1';
         end if;
-        if wr_i = '1' then
-          val_d <= data_i;
-          set_d <= '1';
-        end if;
 
         if busy = '1' then
           --  Transmit, but only on clock divider pulses.
+          --  Send 24 bits and then wait for 4 cycles.
+          --  Set the data on the rising edge (it is sampled on the falling edge)
           if sclk_p = '1' then
             if clk_count > 3 then
               sclk_o <= edge;
             else
+              --  Stop the clock after 24 bits, and make it silent.
               sclk_o <= '1';
             end if;
             if edge = '1' then
@@ -122,26 +119,40 @@ begin
             edge <= not edge;
           end if;
         else
-          --  Choose (with implicit priority the new data to be transmitted).
-          if set_d = '1' then
-            buf <= val_d;
-            busy <= '1';
-            set_d <= '0';
-          elsif set_a = '1' and en_a_i = '1' then
-            buf <= b"00_011_000" & val_a;
-            busy <= '1';
-            set_a <= '0';
-          elsif set_b = '1' and en_b_i = '1' then
-            buf <= b"00_011_001" & val_b;
-            busy <= '1';
-            set_b <= '0';
-          end if;
           clk_count <= t_clk_count'high;
           edge <= '1';
+          case state is
+            when S_WAIT =>
+              if clk_count = 0 then
+                state <= S_CMD_SYNC;
+              else
+                --  This overwrites clk_count!
+                clk_count <= clk_count - 1;
+              end if;
+            when S_CMD_SYNC =>
+              -- synchronous mode for dac-a and dac-b
+              buf <= "XX" & "110" & "XXX" & "XXXXXXXXXXXXXX11";
+              busy <= '1';
+              state <= S_CMD_REF;
+            when S_CMD_REF =>
+              --  Set reference
+              buf <= "XX" & "111" & "XXX" & "XXXXXXXXXXXXXXX" & g_internal_ref;
+              busy <= '1';
+              state <= S_DONE;
+            when S_DONE =>
+              --  Choose (with implicit priority the new data to be transmitted).
+              if set_a = '1' then
+                buf <= b"00_011_000" & val_a;
+                busy <= '1';
+                set_a <= '0';
+              elsif set_b = '1' then
+                buf <= b"00_011_001" & val_b;
+                busy <= '1';
+                set_b <= '0';
+              end if;
+          end case;
         end if;
       end if;
     end if;
   end process;
-
-  busy_o <= set_d;
 end behav;
