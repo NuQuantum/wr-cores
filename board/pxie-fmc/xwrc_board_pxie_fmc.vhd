@@ -219,10 +219,11 @@ entity xwrc_board_pxie_fmc is
     led_act_o  : out std_logic;
     led_link_o : out std_logic;
     -- 1PPS output
-    pps_p_o    : out std_logic;
-    pps_led_o  : out std_logic;
+    pps_p_o     : out std_logic;
+    pps_valid_o : out std_logic;
+    pps_led_o   : out std_logic;
     -- Link ok indication
-    link_ok_o  : out std_logic
+    link_ok_o   : out std_logic
     );
 
 end entity xwrc_board_pxie_fmc;
@@ -462,6 +463,7 @@ begin  -- architecture struct
       led_act_o            => led_act_o,
       led_link_o           => led_link_o,
       pps_p_o              => pps_p_o,
+      pps_valid_o          => pps_valid_o,
       pps_led_o            => pps_led_o,
       link_ok_o            => link_ok_o);
 
