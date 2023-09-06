@@ -84,13 +84,11 @@ architecture rtl of wrc_dac_dithering is
   signal sr_div_p   : std_logic;
 
   signal rnd_state  : std_logic_vector(31 downto 0);
-  signal x_latched  : signed(24 downto 0);
-  signal y_dithered : signed(24 downto 0);
-  signal dither     : signed(g_dither_amplitude_log2+1 downto 0);
+  signal x_latched  : signed(23 downto 0);
+  signal dither     : signed(g_dither_amplitude_log2-1 downto 0);
 begin
 
-  dither <= signed("00"&rnd_state(g_dither_amplitude_log2-1 downto 0));
-
+  dither <= signed(rnd_state(g_dither_amplitude_log2-1 downto 0));
 
   p_clock_div : process(clk_sys_i)
   begin
@@ -109,19 +107,22 @@ begin
   end process;
 
   p_dither : process(clk_sys_i)
+    variable y_dithered : signed(23 downto 0);
   begin
     if rising_edge(clk_sys_i) then
       if rst_sys_n_i = '0' then
         rnd_state <= g_dither_init_value;
         y_valid_o <= '0';
+        x_latched <= x"000100";
       else
         if x_valid_i = '1' then
-          x_latched <= signed('0'&x_i);
+          x_latched <= signed(x_i);
         end if;
 
         if sr_div_p = '1' then
           rnd_state  <= f_xorshift32_next(rnd_state);
-          y_dithered <= x_latched + dither;
+
+          y_dithered := x_latched + dither;
           y_o        <= std_logic_vector(y_dithered(23 downto 8));
           y_valid_o <= '1';
         else
@@ -130,8 +131,4 @@ begin
       end if;
     end if;
   end process;
-
 end rtl;
-
-
-
