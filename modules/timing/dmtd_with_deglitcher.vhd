@@ -103,7 +103,6 @@ entity dmtd_with_deglitcher is
 
     -- [clk_dmtd_over_i] counter resync input (oversampled mode)
     resync_p_over_i : in std_logic := '0';
-
     -- CONTROL REGISTERS (wired from SoftPLL)
 
     -- [clk_dmtd_i] deglitcher threshold
@@ -114,6 +113,19 @@ entity dmtd_with_deglitcher is
     -- fractional mode PPS alignment clock divider
     r_oversample_pps_div_i : in std_logic_vector(5 downto 0) := (others => '0');
 
+    -- min/max stable 0 duration (selectable with r_minmax_sel_i)
+    r_low_o : out std_logic_vector(15 downto 0);
+    -- min/max stable 1 duration (selectable with r_minmax_sel_i)
+    r_high_o : out std_logic_vector(15 downto 0);
+    -- min/max sample count
+    r_samples_i : in std_logic_vector(15 downto 0) := (others => '0');
+    -- 1: calculate max low/high period, 0: calculate min low/high period.
+    r_minmax_sel_i : in std_logic := '0';
+    -- 1: resets r_low_o/r_high_o/r_samples_o
+    r_stat_reset_i : in std_logic := '0';
+
+    r_stat_ready_o : out std_logic;
+
     -- [clk_dmtd_i] raw DDMTD output (for debugging purposes)
     dbg_dmtdout_o : out std_logic;
 
@@ -122,7 +134,6 @@ entity dmtd_with_deglitcher is
 
     -- [clk_sys_i] deglitched edge tag value
     tag_o : out std_logic_vector(g_counter_bits-1 downto 0);
-    tag_pps_mark_o : out std_logic;
 
     -- [clk_sys_i] pulse indicates new phase tag on tag_o
     tag_stb_p1_o : out std_logic;
@@ -140,7 +151,8 @@ architecture rtl of dmtd_with_deglitcher is
   signal stab_cntr : unsigned(15 downto 0);
   signal free_cntr : unsigned(g_counter_bits-1 downto 0);
 
-  signal clk_sampled : std_logic;
+
+  signal clk_sampled, clk_sampled_d : std_logic;
 
   signal new_edge_sreg : std_logic_vector(5 downto 0);
   signal new_edge_p    : std_logic;
@@ -148,6 +160,12 @@ architecture rtl of dmtd_with_deglitcher is
   signal tag_int       : unsigned(g_counter_bits-1 downto 0);
   signal resync_p_dmtd : std_logic;
 
+  signal stat_sample_cnt : unsigned(15 downto 0);
+  signal stat_length_low, stat_length_high : unsigned(15 downto 0);
+  signal stat_length_low_minmax, stat_length_high_minmax : unsigned(15 downto 0);
+  signal stat_discard_cnt : unsigned(1 downto 0);
+  signal stat_discard_p : std_logic;
+  signal stat_ready_dmtd, r_minmax_reset_dmtd : std_logic;
 
 begin  -- rtl
 
@@ -182,6 +200,8 @@ begin  -- rtl
     clk_sampled <= clk_sampled_a_i;
   end generate gen_externally_sampled;
 
+
+
 -- glitchproof DMTD output edge detection
   p_deglitch : process (clk_dmtd_i)
   begin  -- process deglitch
@@ -193,12 +213,14 @@ begin  -- rtl
         state         <= WAIT_STABLE_0;
         free_cntr     <= (others => '0');
         new_edge_sreg <= (others => '0');
+        stat_discard_p <= '0';
       else
         free_cntr <= free_cntr + 1;
 
         case state is
           when WAIT_STABLE_0 =>         -- out-of-sync
             new_edge_sreg <= '0' & new_edge_sreg(new_edge_sreg'length-1 downto 1);
+            stat_discard_p <= '0';
 
             if clk_sampled /= '0' then
               stab_cntr <= (others => '0');
@@ -228,17 +250,99 @@ begin  -- rtl
               tag_o         <= std_logic_vector(tag_int);
               new_edge_sreg <= (others => '1');
               stab_cntr     <= (others => '0');
+              stat_discard_p <= '1';
             elsif (clk_sampled = '0') then
               stab_cntr <= (others => '0');
             else
               stab_cntr <= stab_cntr + 1;
             end if;
-
-
         end case;
       end if;
     end if;
   end process p_deglitch;
+
+
+  gen_with_jitter_stats : if g_with_jitter_stats_regs generate
+
+    inst_sync_stat_ready : gc_sync_ffs
+      generic map (
+        g_sync_edge => "positive")
+      port map (
+        clk_i    => clk_sys_i,
+        rst_n_i  => rst_n_sysclk_i,
+        data_i   => stat_ready_dmtd,
+        synced_o => r_stat_ready_o);
+
+    inst_sync_stat_reset : gc_sync_ffs
+      generic map (
+        g_sync_edge => "positive")
+      port map (
+        clk_i    => clk_dmtd_i,
+        rst_n_i  => rst_n_dmtdclk_i,
+        data_i   => r_stat_reset_i,
+        synced_o => r_minmax_reset_dmtd);
+
+    p_stats : process(clk_dmtd_i)
+    begin
+      if rising_edge(clk_dmtd_i) then
+        if r_minmax_reset_dmtd = '1' or rst_n_dmtdclk_i = '0' then
+          if r_minmax_sel_i = '1' then
+            -- max
+            stat_length_high_minmax <= (others => '0');
+            stat_length_low_minmax <= (others => '0');
+          else
+            -- min
+            stat_length_high_minmax <= (others => '1');
+            stat_length_low_minmax <= (others => '1');
+          end if;
+
+          stat_sample_cnt <= (others => '0');
+          stat_length_low <= (others => '0');
+          stat_length_high <= (others => '0');
+          stat_discard_cnt <= (others => '0');
+          stat_ready_dmtd <= '0';
+        else
+          if stat_sample_cnt = unsigned(r_samples_i) then
+            r_low_o <= std_logic_vector( stat_length_low_minmax );
+            r_high_o <= std_logic_vector( stat_length_high_minmax );
+            stat_ready_dmtd <= '1';
+          end if;
+
+          if stat_discard_p = '1' and stat_discard_cnt /= 3 then
+            stat_discard_cnt <= stat_discard_cnt + 1;
+          end if;
+
+          if stat_discard_cnt = 3 then
+            if clk_sampled = '1' then
+              stat_length_high <= stat_length_high + 1;
+              stat_length_low <= (others => '0');
+              if stat_length_low > unsigned(r_deglitch_threshold_i) then
+                stat_sample_cnt <= stat_sample_cnt + 1;
+                if r_minmax_sel_i = '0' and stat_length_low < stat_length_low_minmax then
+                  stat_length_low_minmax <= stat_length_low;
+                elsif r_minmax_sel_i = '1' and stat_length_low > stat_length_low_minmax then
+                  stat_length_low_minmax <= stat_length_low;
+                end if;
+              end if;
+            else
+              stat_length_low <= stat_length_low + 1;
+              stat_length_high <= (others => '0');
+
+              if stat_length_high > unsigned(r_deglitch_threshold_i) then
+                stat_sample_cnt <= stat_sample_cnt + 1;
+
+                if r_minmax_sel_i = '0' and stat_length_high < stat_length_high_minmax then
+                  stat_length_high_minmax <= stat_length_high;
+                elsif r_minmax_sel_i = '1' and stat_length_high > stat_length_low_minmax then
+                  stat_length_high_minmax <= stat_length_low;
+                end if;
+              end if;
+            end if;
+          end if;
+        end if;
+      end if;
+    end process;
+  end generate gen_with_jitter_stats;
 
   p_resync_pulse_output : process(clk_dmtd_i)
   begin

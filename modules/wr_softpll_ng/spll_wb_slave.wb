@@ -153,48 +153,69 @@ peripheral {
    };
   
 	 reg {
-			name = "DMTD VCO Frequency";
-			prefix = "F_DMTD";
+			name = "DMTD stat control";
+			prefix = "DMTD_STAT_CR";
 			
 			field {
-				 name = "FREQ";
-				 prefix = "FREQ";
+				 name = "SAMPLES";
+				 prefix = "SAMPLES";
 				 type = SLV;
-				 size = 28;
-				 access_bus = READ_ONLY;
-				 access_dev = WRITE_ONLY;
+				 size = 16;
+				 access_bus = READ_WRITE;
+				 access_dev = READ_ONLY;
 			};
 
 			field {
 				 name = "VALID";
 				 prefix = "VALID";
 				 type = BIT;
+				 access_bus = READ_ONLY;
+				 access_dev = WRITE_ONLY;
+
+			};
+			field {
+				 name = "RST";
+				 prefix = "RST";
+				 type = MONOSTABLE;
+
+			};
+			field {
+				 name = "MINMAX_SEL";
+				 prefix = "MINMAX_SEL";
+				 type = BIT;
 				 access_bus = READ_WRITE;
-				 access_dev = READ_WRITE;
-				 load = LOAD_EXT;
+				 access_dev = READ_ONLY;
+			};
+			field {
+				 name = "CHAN_SEL";
+				 prefix = "CHAN_SEL";
+				 type = SLV;
+				 size = 4;
+				 access_bus = READ_WRITE;
+				 access_dev = READ_ONLY;
 			};
 	 };
 
 	 reg {
-			name = "REF VCO Frequency";
-			prefix = "F_REF";
+			name = "DMTD stat values";
+			prefix = "DMTD_STAT_VAL";
 			
 			field {
-				 name = "FREQ";
-				 prefix = "FREQ";
+				 name = "HIGH";
+				 prefix = "HIGH";
 				 type = SLV;
-				 size = 28;
+				 size = 16;
 				 access_bus = READ_ONLY;
 				 access_dev = WRITE_ONLY;
 			};
 
 			field {
-				 name = "VALID";
-				 prefix = "VALID";
-				 type = BIT;
-				 access_bus = READ_WRITE;
-				 access_dev = READ_WRITE;
-				 load = LOAD_EXT;
+				 name = "LOW";
+				 prefix = "LOW";
+				 type = SLV;
+				 size = 16;
+			 	 access_bus = READ_ONLY;
+				 access_dev = WRITE_ONLY;
 			};
 	 };
 
