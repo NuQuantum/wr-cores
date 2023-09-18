@@ -522,6 +522,10 @@ begin  -- rtl
                                r_stat_low_fb, r_stat_low_ref,
                                regs_in )
   begin
+    regs_out.dmtd_stat_cr_valid_i <= '0';
+    regs_out.dmtd_stat_val_low_i <= (others => '0');
+    regs_out.dmtd_stat_val_high_i <= (others => '0');
+
     case regs_in.dmtd_stat_cr_chan_sel_o is
       when "0000" =>
         regs_out.dmtd_stat_val_high_i <= r_stat_high_ref(0);
@@ -532,13 +536,13 @@ begin  -- rtl
         regs_out.dmtd_stat_val_low_i <= r_stat_low_fb(0);
         regs_out.dmtd_stat_cr_valid_i <= r_stat_valid_fb(0);
       when "0010" => -- fixme: hack
-        regs_out.dmtd_stat_val_high_i <= r_stat_high_fb(1);
-        regs_out.dmtd_stat_val_low_i <= r_stat_low_fb(1);
-        regs_out.dmtd_stat_cr_valid_i <= r_stat_valid_fb(1);
+        if g_num_outputs > 1 then
+          regs_out.dmtd_stat_val_high_i <= r_stat_high_fb(1);
+          regs_out.dmtd_stat_val_low_i <= r_stat_low_fb(1);
+          regs_out.dmtd_stat_cr_valid_i <= r_stat_valid_fb(1);
+        end if;
       when others =>
-        regs_out.dmtd_stat_cr_valid_i <= '0';
-        regs_out.dmtd_stat_val_low_i <= (others => '0');
-        regs_out.dmtd_stat_val_high_i <= (others => '0');
+        null;
     end case;
   end process;
   
