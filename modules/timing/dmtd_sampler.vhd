@@ -175,10 +175,10 @@ begin  -- rtl
     p_the_dmtd_itself : process(clk_in)
     begin
       if rising_edge(clk_in) then
-        if en_i = '1' then
           clk_i_d0 <= clk_dmtd_i;
+        if en_i = '1' then
+          clk_i_d1 <= clk_i_d0;
         end if;
-        clk_i_d1 <= clk_i_d0;
       end if;
     end process;
 
