@@ -154,8 +154,8 @@ architecture rtl of dmtd_with_deglitcher is
 
   signal clk_sampled, clk_sampled_d : std_logic;
 
-  signal new_edge_sreg : std_logic_vector(5 downto 0);
-  signal new_edge_p    : std_logic;
+  signal new_edge_p_dmtdclk    : std_logic;
+  signal new_edge_p_sysclk    : std_logic;
 
   signal tag_int       : unsigned(g_counter_bits-1 downto 0);
   signal resync_p_dmtd : std_logic;
@@ -201,6 +201,17 @@ begin  -- rtl
   end generate gen_externally_sampled;
 
 
+  p_free_counter : process(clk_dmtd_i)
+  begin
+    if rising_edge(clk_dmtd_i) then
+      if (rst_n_dmtdclk_i = '0' or resync_p_dmtd = '1') then  -- synchronous reset (active low)
+        free_cntr <= (others => '0');
+      else
+        free_cntr <= free_cntr + 1;
+      end if;
+    end if;
+  end process;
+
 
 -- glitchproof DMTD output edge detection
   p_deglitch : process (clk_dmtd_i)
@@ -208,19 +219,17 @@ begin  -- rtl
 
     if rising_edge(clk_dmtd_i) then     -- rising clock edge
 
-      if (rst_n_dmtdclk_i = '0' or resync_p_dmtd = '1') then  -- synchronous reset (active low)
+      if rst_n_dmtdclk_i = '0' then  -- synchronous reset (active low)
         stab_cntr     <= (others => '0');
         state         <= WAIT_STABLE_0;
-        free_cntr     <= (others => '0');
-        new_edge_sreg <= (others => '0');
         stat_discard_p <= '0';
+        new_edge_p_dmtdclk <= '0';
       else
-        free_cntr <= free_cntr + 1;
 
         case state is
           when WAIT_STABLE_0 =>         -- out-of-sync
-            new_edge_sreg <= '0' & new_edge_sreg(new_edge_sreg'length-1 downto 1);
             stat_discard_p <= '0';
+            new_edge_p_dmtdclk <= '0';
 
             if clk_sampled /= '0' then
               stab_cntr <= (others => '0');
@@ -234,6 +243,7 @@ begin  -- rtl
             end if;
 
           when WAIT_EDGE =>
+            new_edge_p_dmtdclk <= '0';
             if (clk_sampled /= '0') then   -- got a glitch?
               state     <= GOT_EDGE;
               tag_int   <= free_cntr;
@@ -248,7 +258,7 @@ begin  -- rtl
             if stab_cntr = unsigned(r_deglitch_threshold_i) then
               state         <= WAIT_STABLE_0;
               tag_o         <= std_logic_vector(tag_int);
-              new_edge_sreg <= (others => '1');
+              new_edge_p_dmtdclk <= '1';
               stab_cntr     <= (others => '0');
               stat_discard_p <= '1';
             elsif (clk_sampled = '0') then
@@ -355,18 +365,18 @@ begin  -- rtl
     end if;
   end process;
 
-  U_sync_tag_strobe : gc_sync_ffs
-    generic map (
-      g_sync_edge => "positive")
-    port map (
-      clk_i    => clk_sys_i,
-      rst_n_i  => rst_n_sysclk_i,
-      data_i   => new_edge_sreg(0),
-      synced_o => open,
-      npulse_o => open,
-      ppulse_o => new_edge_p);
 
-  tag_stb_p1_o <= new_edge_p;
+
+  U_sync_tag_strobe : entity work.gc_pulse_synchronizer2
+      port map (
+        clk_in_i    => clk_dmtd_i,
+        rst_in_n_i  => rst_n_dmtdclk_i,
+        clk_out_i   => clk_sys_i,
+        rst_out_n_i => rst_n_sysclk_i,
+        d_p_i       => new_edge_p_dmtdclk,
+        q_p_o       => new_edge_p_sysclk);
+
+  tag_stb_p1_o <= new_edge_p_sysclk;
 
   U_Extend_Debug_Pulses : gc_extend_pulse
     generic map (
@@ -374,7 +384,7 @@ begin  -- rtl
     port map (
       clk_i      => clk_sys_i,
       rst_n_i    => rst_n_sysclk_i,
-      pulse_i    => new_edge_p,
+      pulse_i    => new_edge_p_sysclk,
       extended_o => dbg_dmtdout_o);
 
   dbg_clk_d3_o <= clk_sampled;
