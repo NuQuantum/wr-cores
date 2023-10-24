@@ -66,7 +66,7 @@ entity xwrc_platform_xilinx is
       g_use_default_plls          : boolean := TRUE;
       -- Config for the auxiliary PLL output (for now only used in Spartan-6
       g_aux_pll_cfg               : t_auxpll_cfg_array := c_AUXPLL_CFG_ARRAY_DEFAULT;
-      -- Select GTP channel to use 
+      -- Select GTP channel to use
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
       -- Select PHY reference clock
@@ -127,7 +127,7 @@ entity xwrc_platform_xilinx is
     sfp_los_i             : in  std_logic             := '0';
     sfp_tx_disable_o      : out std_logic;
     ---------------------------------------------------------------------------
-    -- if both SFP channels are enabled and sfp_mux is enabled, 
+    -- if both SFP channels are enabled and sfp_mux is enabled,
     -- this is the bit to switch between them
     -- '0' - enable  SFP (channel 0) and disable SFP1 (channel 1)
     -- '1' - disable SFP (channel 0) and enable  SFP1 (channel 1)
@@ -203,13 +203,13 @@ begin  -- architecture rtl
       severity ERROR;
   end generate gen_no_gtp_channel;
 
-  gen_mux_support: if (g_gtp_mux_enable =  TRUE and g_fpga_family /= "virtex5") 
+  gen_mux_support: if (g_gtp_mux_enable =  TRUE and g_fpga_family /= "virtex5")
   generate
     assert FALSE
       report "GTP/SFP mux is supported only on virtex5"
       severity ERROR;
   end generate gen_mux_support;
-  
+
   gen_dual_SFP_support: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0 and
                     g_gtp_mux_enable =  FALSE)
   generate
@@ -381,7 +381,7 @@ begin  -- architecture rtl
             clk_dmtd <= not clk_dmtd;
           end if;
         end process;
-        
+
         pll_dmtd_locked <= '1';
       end generate gen_kintex7_artix7_direct_dmtd;
 
@@ -393,7 +393,7 @@ begin  -- architecture rtl
 
       -- External 10MHz reference PLL for Kintex7
       gen_kintex7_artix7_ext_ref_pll : if (g_with_external_clock_input = TRUE) generate
-        
+
         signal clk_ext_fbi : std_logic;
         signal clk_ext_fbo : std_logic;
         signal clk_ext_buf : std_logic;
@@ -489,8 +489,11 @@ begin  -- architecture rtl
       signal pll_sys_locked  : std_logic;
       signal clk_dmtd     : std_logic;
       signal clk_dmtd_div : std_logic;
+      signal clk_pll_aux  : std_logic_vector(3 downto 0);
 
     begin
+      --  Note: VCO must be between 800Mhz and 1600Mhz (ds925 v1.18 table 85)
+      --  With MULT=8, VCO is 1GHz
       cmp_sys_clk_pll : MMCME3_ADV
         generic map (
           BANDWIDTH            => "OPTIMIZED",
@@ -498,18 +501,44 @@ begin  -- architecture rtl
           COMPENSATION         => "AUTO",
           STARTUP_WAIT         => "FALSE",
           DIVCLK_DIVIDE        => 1,
-          CLKFBOUT_MULT_F      => 9.500,
+          CLKFBOUT_MULT_F      => 8.0,
           CLKFBOUT_PHASE       => 0.000,
           CLKFBOUT_USE_FINE_PS => "FALSE",
 
-          CLKOUT0_DIVIDE_F     => 19.000,
+          CLKIN1_PERIOD        => 8.000,
+
+          CLKOUT0_DIVIDE_F     => 16.000,
           CLKOUT0_PHASE        => 0.000,
           CLKOUT0_DUTY_CYCLE   => 0.500,
           CLKOUT0_USE_FINE_PS  => "FALSE",
-          CLKIN1_PERIOD        => 8.000)
+
+          CLKOUT1_DIVIDE     => g_aux_pll_cfg(0).divide,
+          CLKOUT1_PHASE      => 0.000,
+          CLKOUT1_DUTY_CYCLE => 0.500,
+          CLKOUT1_USE_FINE_PS  => "FALSE",
+
+          CLKOUT2_DIVIDE     => g_aux_pll_cfg(1).divide,
+          CLKOUT2_PHASE      => 0.000,
+          CLKOUT2_DUTY_CYCLE => 0.500,
+          CLKOUT2_USE_FINE_PS  => "FALSE",
+
+          CLKOUT3_DIVIDE     => g_aux_pll_cfg(2).divide,
+          CLKOUT3_PHASE      => 0.000,
+          CLKOUT3_DUTY_CYCLE => 0.500,
+          CLKOUT3_USE_FINE_PS  => "FALSE",
+
+          CLKOUT4_DIVIDE     => g_aux_pll_cfg(3).divide,
+          CLKOUT4_PHASE      => 0.000,
+          CLKOUT4_DUTY_CYCLE => 0.500,
+          CLKOUT4_USE_FINE_PS  => "FALSE"
+          )
         port map (
           CLKFBOUT => clk_sys_fb,
           CLKOUT0  => clk_sys_prebuf,
+          CLKOUT1  => clk_pll_aux(0),
+          CLKOUT2  => clk_pll_aux(1),
+          CLKOUT3  => clk_pll_aux(2),
+          CLKOUT4  => clk_pll_aux(3),
           CLKFBIN  => clk_sys_fb,
           CLKIN1   => clk_125m_pllref_i,
           CLKIN2   => '0',
@@ -545,7 +574,23 @@ begin  -- architecture rtl
           CLR => '0',
           I   => clk_125m_dmtd_i);
 
-
+      gen_auxclk_bufs: for I in g_aux_pll_cfg'range generate
+        -- Aux PLL_BASE clocks with BUFG enabled
+        gen_auxclk_bufg_en: if g_aux_pll_cfg(I).enabled and g_aux_pll_cfg(I).bufg_en generate
+          cmp_clk_sys_buf_o : BUFG
+            port map (
+              O => clk_pll_aux_o(I),
+              I => clk_pll_aux(I));
+        end generate;
+        -- Aux PLL_BASE clocks with BUFG disabled
+        gen_auxclk_no_bufg: if g_aux_pll_cfg(I).enabled and g_aux_pll_cfg(I).bufg_en = FALSE generate
+          clk_pll_aux_o(I) <= clk_pll_aux(I);
+        end generate;
+        -- Disabled aux PLL_BASE clocks
+        gen_auxclk_disabled: if not g_aux_pll_cfg(I).enabled generate
+          clk_pll_aux_o(I) <= '0';
+        end generate;
+      end generate;
     end generate gen_zynqus_default_plls;
 
     ---------------------------------------------------------------------------
@@ -671,7 +716,7 @@ begin  -- architecture rtl
     phy8_o <= c_dummy_phy8_to_wrc;
 
     gen_gtp_ch_dual: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
-    generate 
+    generate
       assert FALSE
         report "Cannot enable both GTP channels simultaneously on Kintex 7"
         severity ERROR;
@@ -747,7 +792,7 @@ begin  -- architecture rtl
     phy8_o <= c_dummy_phy8_to_wrc;
 
     gen_gtp_ch_dual : if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
-    generate 
+    generate
       assert FALSE
         report "Cannot enable both GTP channels simultaneously on ARTIX 7"
         severity ERROR;
@@ -805,7 +850,7 @@ begin  -- architecture rtl
         pad_rxp_i      => sfp_rxp_i,
         rdy_o          => phy16_o.rdy);
 
-    clk_125m_ref_o       <= clk_ref;
+    clk_125m_ref_o       <= clk_ref;  --  Note: 62.5Mhz
     clk_ref_locked_o     <= '1';
     phy16_o.ref_clk      <= clk_ref;
     phy16_o.sfp_tx_fault <= sfp_tx_fault_i;

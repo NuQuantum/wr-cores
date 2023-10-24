@@ -578,6 +578,7 @@ begin  -- architecture rtl
       signal pll_sys_locked   : std_logic;
       signal clk_dmtd         : std_logic := '0'; -- initialize for simulation
       signal pll_dmtd_locked  : std_logic;
+      signal clk_pll_aux  : std_logic_vector(3 downto 0);
 
     begin
       -- System PLL (125 MHz -> 62.5 MHz)
@@ -592,17 +593,42 @@ begin  -- architecture rtl
           CLKFBOUT_PHASE       => 0.000,
           CLKFBOUT_USE_FINE_PS => false,
 
+          CLKIN1_PERIOD       => 8.000,            -- 8 ns means 125 MHz
+
           CLKOUT0_DIVIDE_F    => 16.000,     -- 62.5 MHz sys clock
           CLKOUT0_PHASE       => 0.000,
           CLKOUT0_DUTY_CYCLE  => 0.500,
           CLKOUT0_USE_FINE_PS => false,
 
-          CLKIN1_PERIOD => 8.000,            -- 8 ns means 125 MHz
+          CLKOUT1_DIVIDE     => g_aux_pll_cfg(0).divide,
+          CLKOUT1_PHASE      => 0.000,
+          CLKOUT1_DUTY_CYCLE => 0.500,
+          CLKOUT1_USE_FINE_PS  => false,
+
+          CLKOUT2_DIVIDE     => g_aux_pll_cfg(1).divide,
+          CLKOUT2_PHASE      => 0.000,
+          CLKOUT2_DUTY_CYCLE => 0.500,
+          CLKOUT2_USE_FINE_PS  => false,
+
+          CLKOUT3_DIVIDE     => g_aux_pll_cfg(2).divide,
+          CLKOUT3_PHASE      => 0.000,
+          CLKOUT3_DUTY_CYCLE => 0.500,
+          CLKOUT3_USE_FINE_PS  => false,
+
+          CLKOUT4_DIVIDE     => g_aux_pll_cfg(3).divide,
+          CLKOUT4_PHASE      => 0.000,
+          CLKOUT4_DUTY_CYCLE => 0.500,
+          CLKOUT4_USE_FINE_PS  => false,
+
           REF_JITTER1   => 0.010)
         port map (
           -- Output clocks
           CLKFBOUT     => clk_sys_fb,
           CLKOUT0      => clk_sys,
+          CLKOUT1      => clk_pll_aux(0),
+          CLKOUT2      => clk_pll_aux(1),
+          CLKOUT3      => clk_pll_aux(2),
+          CLKOUT4      => clk_pll_aux(3),
           -- Input clock control
           CLKFBIN      => clk_sys_fb,
           CLKIN1       => clk_125m_pllref_buf,
@@ -809,6 +835,23 @@ begin  -- architecture rtl
 
       end generate gen_kintex7_artix7_ext_ref_pll;
 
+      gen_auxclk_bufs: for I in g_aux_pll_cfg'range generate
+        -- Aux PLL_BASE clocks with BUFG enabled
+        gen_auxclk_bufg_en: if g_aux_pll_cfg(I).enabled and g_aux_pll_cfg(I).bufg_en generate
+          cmp_clk_sys_buf_o : BUFG
+            port map (
+              O => clk_pll_aux_o(I),
+              I => clk_pll_aux(I));
+        end generate;
+        -- Aux PLL_BASE clocks with BUFG disabled
+        gen_auxclk_no_bufg: if g_aux_pll_cfg(I).enabled and g_aux_pll_cfg(I).bufg_en = FALSE generate
+          clk_pll_aux_o(I) <= clk_pll_aux(I);
+        end generate;
+        -- Disabled aux PLL_BASE clocks
+        gen_auxclk_disabled: if not g_aux_pll_cfg(I).enabled generate
+          clk_pll_aux_o(I) <= '0';
+        end generate;
+      end generate;
     end generate gen_kintex7_artix7_default_plls;
 
 
