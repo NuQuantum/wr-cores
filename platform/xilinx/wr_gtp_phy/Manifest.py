@@ -95,7 +95,10 @@ xilinx_ip_gthe4_common_lp = [
     "xilinx-ip/gthe4_lp/common/gtwizard_ultrascale_v1_7_reset_sync.v",
 ];
 
-if (syn_device[0:4].upper()=="XC6S"): # Spartan6
+if globals().get('wrcore_platform') is False:
+    # No platform (avoid inclusion of xdc files)
+    pass
+elif (syn_device[0:4].upper()=="XC6S"): # Spartan6
     files.extend(["spartan6/wr_gtp_phy_spartan6.vhd",
         "spartan6/whiterabbitgtp_wrapper_tile_spartan6.vhd",
         "spartan6/gtp_phase_align.vhd"])
@@ -117,8 +120,10 @@ elif (syn_device[0:4].upper()=="XC5V"): # Virtex5
         "virtex5/v5_gtp_comma_detect.vhd"
     ])
 
-elif (syn_device[0:4].upper()=="XC7A"): # Family 7 GTP (Artix7)
-    files.extend(["family7-gtp/wr_gtp_phy_family7.vhd",
+elif (syn_device[0:4].upper()=="XC7A" or # Family 7 GTP (Artix7)
+      syn_device.upper()=="XC7Z015"):
+    files.extend([
+        "family7-gtp/wr_gtp_phy_family7.vhd",
         "family7-gtp/whiterabbit_gtpe2_channel_wrapper.vhd",
         "family7-gtp/whiterabbit_gtpe2_channel_wrapper_gt.vhd",
         "family7-gtp/whiterabbit_gtpe2_channel_wrapper_gtrxreset_seq.vhd" ]);
