@@ -109,7 +109,7 @@ begin  -- behavioral
       value_i       => dac_data,
       cs_sel_i      => dac_cs_sel,
       load_i        => dac_load,
-      sclk_divsel_i => "001",
+      sclk_divsel_i => "010",
       dac_cs_n_o    => dac_cs_n_o,
       dac_sclk_o    => dac_sclk_int,
       dac_sdata_o   => dac_din_o,
