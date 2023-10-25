@@ -28,7 +28,7 @@ end serial_dac856x;
 
 architecture behav of serial_dac856x is
   --  Initialization state machine.
-  type t_state is (S_WAIT, S_CMD_SYNC, S_CMD_REF, S_DONE);
+  type t_state is (S_WAIT, S_CMD_SYNC, S_CMD_REF, S_CMD_GAIN, S_DONE);
   signal state : t_state;
 
   --  Serial clock generation.
@@ -137,6 +137,11 @@ begin
             when S_CMD_REF =>
               --  Set reference
               buf <= "XX" & "111" & "XXX" & "XXXXXXXXXXXXXXX" & g_internal_ref;
+              busy <= '1';
+              state <= S_CMD_GAIN;
+            when S_CMD_GAIN =>
+              --  Set gain (1 on both channels)
+              buf <= "XX" & "010" & "XXX" & "XXXXXXXXXXXXXX" & "11";
               busy <= '1';
               state <= S_DONE;
             when S_DONE =>
