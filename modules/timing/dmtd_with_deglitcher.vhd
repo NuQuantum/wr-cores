@@ -167,6 +167,16 @@ architecture rtl of dmtd_with_deglitcher is
   signal stat_discard_p : std_logic;
   signal stat_ready_dmtd, r_minmax_reset_dmtd : std_logic;
 
+  attribute mark_debug : string;
+  attribute mark_debug of free_cntr : signal is "true";
+  attribute mark_debug of state : signal is "true";
+  attribute mark_debug of tag_o : signal is "true";
+  attribute mark_debug of tag_stb_p1_o : signal is "true";
+
+  signal tag_latched_dmtdclk : std_logic_vector(g_counter_bits-1 downto 0);
+  signal tag_latched_sysclk : std_logic_vector(g_counter_bits-1 downto 0);
+  signal new_edge_p_sysclk_d0 : std_logic;
+  
 begin  -- rtl
 
   U_Sync_Resync_Pulse : gc_sync_ffs
@@ -257,8 +267,8 @@ begin  -- rtl
 
             if stab_cntr = unsigned(r_deglitch_threshold_i) then
               state         <= WAIT_STABLE_0;
-              tag_o         <= std_logic_vector(tag_int);
               new_edge_p_dmtdclk <= '1';
+              tag_latched_dmtdclk <= std_logic_vector(tag_int);
               stab_cntr     <= (others => '0');
               stat_discard_p <= '1';
             elsif (clk_sampled = '0') then
@@ -366,6 +376,15 @@ begin  -- rtl
   end process;
 
 
+  U_sync_tag : entity work.gc_sync_register
+      generic map (
+        g_width => g_counter_bits)
+      port map (
+        clk_i     => clk_sys_i,
+        rst_n_a_i => rst_n_sysclk_i,
+        d_i       => tag_latched_dmtdclk,
+        q_o       => tag_latched_sysclk);
+  
 
   U_sync_tag_strobe : entity work.gc_pulse_synchronizer2
       port map (
@@ -376,8 +395,26 @@ begin  -- rtl
         d_p_i       => new_edge_p_dmtdclk,
         q_p_o       => new_edge_p_sysclk);
 
-  tag_stb_p1_o <= new_edge_p_sysclk;
-
+  p_tag_output : process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_sysclk_i = '0' then
+        tag_stb_p1_o <= '0';
+      else
+        new_edge_p_sysclk_d0 <= new_edge_p_sysclk;
+        
+        if new_edge_p_sysclk_d0 = '1' then
+          tag_o <= tag_latched_sysclk;
+          tag_stb_p1_o <= '1';
+        else
+          tag_stb_p1_o <= '0';
+        end if;
+      end if;
+    end if;
+  end process;
+  
+  
+  
   U_Extend_Debug_Pulses : gc_extend_pulse
     generic map (
       g_width => 3000)

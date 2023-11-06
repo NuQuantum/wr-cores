@@ -135,6 +135,8 @@ begin  -- rtl
       end if;
     end process;
 
+    clk_sampled_o <= clk_i_d3;
+
   end generate gen_straight_oversampled;
 
 
@@ -164,6 +166,9 @@ begin  -- rtl
       end if;
     end process;
 
+    clk_sampled_o <= clk_i_d3;
+
+
   end generate gen_straight_nonoversampled;
 
   gen_reverse_nonoversampled : if(g_reverse = true and g_with_oversampling = false) generate
@@ -182,17 +187,16 @@ begin  -- rtl
       end if;
     end process;
 
-    p_sync : process(clk_dmtd_i)
-    begin
-      if rising_edge(clk_dmtd_i) then
-        clk_i_dx <= clk_i_d1;
-        clk_i_d2 <= not clk_i_dx;
-        clk_i_d3 <= clk_i_d2;
-      end if;
-    end process;
+    inst_sync_1: entity work.gc_sync
+      port map (
+        clk_i     => clk_dmtd_i,
+        rst_n_a_i => '1',
+        d_i       => clk_i_d1,
+        q_o       => clk_i_d3);
+
+    clk_sampled_o <= not clk_i_d3;
 
   end generate gen_reverse_nonoversampled;
 
-  clk_sampled_o <= clk_i_d3;
 
 end rtl;

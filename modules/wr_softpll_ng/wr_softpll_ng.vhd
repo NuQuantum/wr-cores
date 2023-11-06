@@ -79,7 +79,7 @@ entity wr_softpll_ng is
 -- use with care.
     g_divide_input_by_2 : boolean := false;
 
-    g_with_jitter_stats_regs : boolean := true;
+    g_with_jitter_stats_regs : boolean := false;
     
     g_ref_clock_rate : integer := 125_000_000;
     g_ext_clock_rate : integer :=  10_000_000;
@@ -323,6 +323,14 @@ architecture rtl of wr_softpll_ng is
   signal r_stat_high_fb : t_stat_array(0 to g_num_outputs-1);
   signal r_stat_low_fb : t_stat_array(0 to g_num_outputs-1);
   signal r_stat_valid_fb : std_logic_vector(g_num_outputs-1 downto 0);
+
+  signal trr_wr_full : std_logic;
+
+  attribute mark_debug : string;
+  attribute mark_debug of tag_muxed : signal is "true";
+  attribute mark_debug of trr_wr_full : signal is "true";
+  attribute mark_debug of tag_valid : signal is "true";
+  
   
     
 begin  -- rtl
@@ -705,6 +713,9 @@ begin  -- rtl
       end if;
     end if;
   end process;
+
+
+  trr_wr_full <= regs_in.trr_wr_full_o;
 
   regs_out.trr_wr_req_i  <= tag_valid and not regs_in.trr_wr_full_o;
   regs_out.trr_chan_id_i <= '0'&tag_src;
