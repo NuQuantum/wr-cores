@@ -127,7 +127,7 @@ begin
 
   dwb_o <= dwb_out;
 
-  U_cpu_core : urv_cpu
+  U_cpu_core : entity work.urv_cpu
     generic map (
       g_with_hw_debug => 1,
       g_with_hw_mulh => 1,

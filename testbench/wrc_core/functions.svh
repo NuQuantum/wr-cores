@@ -48,14 +48,14 @@ semaphore  txPkt = new(1);
  */
 task send_frames(WBPacketSource src, int n_packets, int ifg = 0 /*[us]*/);
 // TODO: improve the IFG: allow to make it tighter
-  int i, seed = 0,n1=0,n2=0;
+  automatic int i, seed = 0,n1=0,n2=0;
   int cur_size, dir;
   EthPacket pkt, tmpl;
   EthPacket to_ext[$], to_minic[$];
-  EthPacketGenerator gen  = new;
+  automatic EthPacketGenerator gen  = new;
   int random_ifg; //us
-  int min_ifg = 1; //us
-  int max_ifg = 100;//us
+  automatic int min_ifg = 1; //us
+  automatic int max_ifg = 100;//us
   
   tmpl                = new;
   tmpl.src                = '{'h22,'h33,'h44,'h44,'h55,'h66};

@@ -3,11 +3,13 @@ target = "xilinx"
 syn_device = "xc6slx45t"
 syn_grade = "-3"
 syn_package = "fgg484"
-#sim_tool = "modelsim"
-sim_tool = "riviera"
+sim_tool = "modelsim"
+#sim_tool = "riviera"
 top_module = "main"
 fetchto = "../../ip_cores"
 vlog_opt = "+incdir+../../sim"
+
+vcom_opt="-mixedsvvh"
 
 files = [ "main.sv" ]
 

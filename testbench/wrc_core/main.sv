@@ -88,6 +88,15 @@
 `define BASE_SYSCON 'h20400
 `define BASE_MINIC  'h20000
 
+`define BASE_WRC_CPU_REGS 'hb00
+`define WRC_CPU_RESET 'h00
+`define WRC_CPU_UADDR 'h4
+`define WRC_CPU_UDATA 'h8
+
+/* the simulation sends frame_number frames with forced Inter-frame gap of 1 us
+and frame_number frames with random Inter-frame gap, between 1 and 100us */
+int frame_number = 100;
+
 module main;
 
   wire clk_ref;
@@ -164,8 +173,8 @@ module main;
     .g_address_granularity      (BYTE),
     .g_tx_runt_padding          (1),
     .g_with_external_clock_input(1),
-    .g_dpram_initf              ("../../bin/wrpc/wrc_phy8_sim.bram"),
-    .g_dpram_size               (131072/4),
+    .g_dpram_initf              ("../../bin/wrpc/wrc.bram"),
+    .g_dpram_size               (196608/4),
     .g_diag_id                  (1),
     .g_diag_ver                 (2),
     .g_diag_ro_size             (5),
@@ -353,7 +362,6 @@ module main;
 
     CSimDrv_WR_Endpoint ep_drv;
     uint64_t val;
-    int frame_number = 10000;
 
     @(posedge rst_n);
     repeat(3) @(posedge clk_sys);
@@ -381,6 +389,21 @@ module main;
     #1us;
     acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_RSTR, 'hdeadbee );
 
+    // set hdl_testbench structure used for communication with risc-v software
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_RESET, 1);
+    // magic - addr = 0x4000 (in bytes), data = 0x4d433ebc
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_UADDR, 'h1000); 
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_UDATA, 'hbc3e434d);
+    // version - addr = 0x4004 (in bytes), data = 1
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_UADDR, 'h1001); 
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_UDATA, 'h01000000);
+    // test_num - addr = 0x4008 (in bytes), data = 1 
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_UADDR, 'h1002); 
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_UDATA, 'h01000000);
+    // flag - addr = 0x400C (in bytes), data = 0x12345678
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_UADDR, 'h1003); 
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_UDATA, 'h78563412);
+    acc_wrc.write(`BASE_WRC_CPU_REGS + `WRC_CPU_RESET, 0);
     
     $display("");$display("");$display("");$display("");
     $display("====================================================");
@@ -404,27 +427,27 @@ module main;
     tx_sth = 0; //after having received all the frames, indicate that no frames 
                 //are being transmitted, i.e. betweeen tx and rx
     #100us;
-    $finish; //finish 
+    //$stop; //finish 
   end
 
   initial begin /// receive frames from WRPC (looped back or sent by LM32), loopback frames
                 /// sent from LM32
     EthPacket pkt;
-    mac_addr_t PTP_MAC='{'h01,'h1b,'h19,'h00,'h00,'h00};
-    mac_addr_t SELF_MAC='{'h22,'h33,'h44,'h44,'h55,'h66};
+    automatic mac_addr_t PTP_MAC='{'h01,'h1b,'h19,'h00,'h00,'h00};
+    automatic mac_addr_t SELF_MAC='{'h22,'h33,'h44,'h44,'h55,'h66};
     string codes [integer];
-    int i = 0, correct = 0, j;
-    int drop_first = 1;
+    automatic int i = 0, correct = 0, j;
+    automatic int drop_first = 1;
     int size_pos;
     CSimDrv_Minic minic;
     EthPacket rxp;
-    int prev_size=0;
+    automatic int prev_size=0;
     uint64_t val64;
-    uint32_t seqID=0;
-    int cnt = 0, stat = 0, ret = 0;
-    int total_cnt=0;
-    int self_seqID_reg=0, self_seqID_rx=0; //registered/expected and received seqID from simulation
-    int lm32_seqID_reg=0, lm32_seqID_rx=0; //registered/expected and received seqID from LM32
+    automatic uint32_t seqID=0;
+    automatic int cnt = 0, stat = 0, ret = 0;
+    automatic int total_cnt=0;
+    automatic int self_seqID_reg=0, self_seqID_rx=0; //registered/expected and received seqID from simulation
+    automatic int lm32_seqID_reg=0, lm32_seqID_rx=0; //registered/expected and received seqID from LM32
 
     codes['hAA]="Frame OK - first";
     codes['hBB]="Frame OK";
@@ -485,6 +508,9 @@ module main;
         if(self_seqID_reg != self_seqID_rx)
           $warning("simulation-generated ERROR: wrong seqID");
         self_seqID_reg = self_seqID_rx +1;
+        // reset self_seqID_reg when send_frames is called again
+        if (self_seqID_reg == frame_number)
+          self_seqID_reg = 0;
       end
       /// ///////////////////////////////////////////////////////////////////////////////////
       /// received something else, probably corrupted frame
@@ -515,7 +541,7 @@ module main;
       #0.5us;
       if (wait_cnt > 2000) begin // this is too much waiting, error
          $warning("ERROR: RX TIMEOUT, no frame was received within expected timeout");
-         $finish;
+         $stop;
       end
       else if(rx_sth==0 & tx_sth == 1) // if transmission ongoing and nothing received, count
         wait_cnt++;
