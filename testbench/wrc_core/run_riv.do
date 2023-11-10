@@ -1,4 +1,4 @@
-# Riviera run script for continuous integration (with return code)
+# Riviera run script 
 # execute: vsim -c -do "run_riv.do"
 vsim -L unisim -t 10fs work.main +access +r -ieee_nowarn
 # for ModelSim (for Riviera this is already done with -ieee_nowarn)

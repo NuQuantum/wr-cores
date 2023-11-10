@@ -1,7 +1,5 @@
-#vlog -dpiheader dpi/minic_dpi.h -sv main.sv +incdir+"." +incdir+../../sim
-vlog -sv main.sv +incdir+"." +incdir+../../sim
-#make -f Makefile
-#vsim -sv_lib dpi/minic -L unisim -t 10fs work.main -voptargs="+acc"
+# Modelsim run script 
+# execute: vsim -c -do "run.do"
 vsim -L unisim -t 10fs work.main -voptargs="+acc"
 set StdArithNoWarnings 1
 set NumericStdNoWarnings 1
