@@ -33,6 +33,7 @@ add wave  -radix hexadecimal /main/SPEC_B/cmp_xwrc_board_spec/cmp_board_common/p
 add wave  -radix hexadecimal /main/SPEC_B/cmp_xwrc_board_spec/cmp_board_common/phy8_o.tx_k
 add wave  -radix hexadecimal /main/SPEC_B/cmp_xwrc_board_spec/cmp_board_common/phy8_i.tx_enc_err
 add wave  -divider {SPEC B - WR timing}
+add wave  -radix hexadecimal /main/SPEC_B/dio_p_o(2) 
 add wave  /main/SPEC_B/U_Pulse_Stamper/tm_time_valid_i
 add wave  /main/SPEC_B/U_Pulse_Stamper/tm_tai_i
 add wave  /main/SPEC_B/U_Pulse_Stamper/tm_cycles_i

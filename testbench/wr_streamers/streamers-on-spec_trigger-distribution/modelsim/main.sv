@@ -41,7 +41,8 @@ module main;
    spec_top
      #(
        .g_simulation (1),
-       .g_dpram_initf("../../../bin/wrpc/wrc_phy8_sim.bram")
+       .g_dpram_initf("../../../../bin/wrpc/wrc.bram"),
+       .g_dpram_size(196608/4)
     ) SPEC_A (
            .clk_125m_pllref_p_i (clk_ref),
            .clk_125m_pllref_n_i (~clk_ref),
@@ -66,7 +67,8 @@ module main;
    spec_top
      #(
        .g_simulation (1),
-       .g_dpram_initf("../../../bin/wrpc/wrc_phy8_sim.bram")
+       .g_dpram_initf("../../../../bin/wrpc/wrc.bram"),
+       .g_dpram_size(196608/4)
     ) SPEC_B (
            .clk_125m_pllref_p_i (clk_ref),
            .clk_125m_pllref_n_i (~clk_ref),
@@ -85,14 +87,14 @@ module main;
            .sfp_rxn_i(a_to_b_n),
 
            .dio_p_o ( dio_out_b )
-    );
+          );
 
    assign pulse_out = dio_out_b[2];
    
 
    // observe the link LEDs on both sides, and tell us when the link is ready.
-   wire link_up_a = $signal_agent("SPEC_A.cmp_xwrc_board_spec.led_link_o","led_link_o",1);
-   wire link_up_b = $signal_agent("SPEC_B.cmp_xwrc_board_spec.led_link_o","lend_link_o",1);
+   wire link_up_a = SPEC_A.cmp_xwrc_board_spec.led_link_o;
+   wire link_up_b = SPEC_B.cmp_xwrc_board_spec.led_link_o;
 
   initial begin
       // wait until both SPECs see the Ethernet link. Otherwise the packet we're going 

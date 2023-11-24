@@ -160,7 +160,7 @@ module main;
   wire wrc_snk_stall;
   wire wrc_snk_err;
   wire link_up;
-  // globa variables for "tiemout" in case the transmitted frames are not received
+  // globa variables for "timeout" in case the transmitted frames are not received
   int rx_sth   = 0;
   int tx_sth   = 0;
   int wait_cnt = 0;
@@ -173,7 +173,7 @@ module main;
     .g_address_granularity      (BYTE),
     .g_tx_runt_padding          (1),
     .g_with_external_clock_input(1),
-    .g_dpram_initf              ("../../bin/wrpc/wrc.bram"),
+    .g_dpram_initf              ("../../../bin/wrpc/wrc.bram"),
     .g_dpram_size               (196608/4),
     .g_diag_id                  (1),
     .g_diag_ver                 (2),

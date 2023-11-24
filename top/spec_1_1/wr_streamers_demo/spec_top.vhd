@@ -80,7 +80,8 @@ entity spec_top is
     -- Simulation-mode enable parameter. Set by default (synthesis) to 0, and
     -- changed to non-zero in the instantiation of the top level DUT in the testbench.
     -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
-    g_simulation : integer := 0
+    g_simulation : integer := 0;
+    g_dpram_size : integer := (144*1024/4)
     );
   port (
     ---------------------------------------------------------------------------
@@ -260,7 +261,7 @@ architecture top of spec_top is
   -----------------------------------------------------------------------------
   -- Trigger-to-output value, in 8 ns ticks. Set by default to 20us to work
   -- for 10km+ fibers.
-  constant c_PULSE_DELAY : integer := 30000/8;
+  constant c_PULSE_DELAY : integer := 20000/8;
 
   constant tx_streamer_params : t_tx_streamer_params := (
       -- We send each timestamp (40 TAI bits + 28
@@ -443,11 +444,12 @@ begin  -- architecture top
   -- The WR PTP core board package
   -----------------------------------------------------------------------------
 
-  cmp_xwrc_board_spec : xwrc_board_spec
+  cmp_xwrc_board_spec : entity work.xwrc_board_spec
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => TRUE,
       g_dpram_initf               => g_dpram_initf,
+      g_dpram_size                => g_dpram_size,
       g_fabric_iface              => STREAMERS,
       g_tx_streamer_params        => tx_streamer_params,
       g_rx_streamer_params        => rx_streamer_params)
