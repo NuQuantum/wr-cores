@@ -35,6 +35,7 @@ use ieee.std_logic_1164.all;
 
 library work;
 use work.endpoint_pkg.all;
+use work.wishbone_pkg.all;
 
 package wr_xilinx_pkg is
 
@@ -238,12 +239,13 @@ package wr_xilinx_pkg is
   component wr_gtx_phy_family7_lp is
   generic (
     -- set to non-zero value to speed up the simulation by reducing some delays
-    g_simulation     : integer := 0;
-    g_id             : integer := 0);
+    g_simulation     : integer := 0);
   port (
     clk_gtx_i        : in std_logic;
     clk_dmtd_i       : in std_logic;
     clk_ref_i        : in std_logic;
+    clk_sys_i        : in std_logic;
+    rst_sys_n_i      : in std_logic;
     tx_out_clk_o     : out std_logic;
     tx_locked_o      : out std_logic;
     tx_data_i        : in std_logic_vector(15 downto 0);
@@ -264,8 +266,8 @@ package wr_xilinx_pkg is
     pad_rxn_i        : in std_logic := '0';
     pad_rxp_i        : in std_logic := '0';
     rdy_o            : out std_logic;
-    lpc_ctrl_i       : in  std_logic_vector(15 downto 0) := x"0000";
-    lpc_stat_o       : out std_logic_vector(15 downto 0);
+    mdio_slave_i     : in  t_wishbone_slave_in;
+    mdio_slave_o     : out t_wishbone_slave_out;
     fmon_clk_tx_o    : out std_logic;
     fmon_clk_tx2_o   : out std_logic;
     fmon_clk_rx_o    : out std_logic);
@@ -335,6 +337,8 @@ package wr_xilinx_pkg is
   port (
     clk_gth_i            : in std_logic;
     clk_dmtd_i           : in std_logic;
+    clk_sys_i            : in std_logic;
+    rst_sys_n_i          : in std_logic;
     tx_out_clk_o         : out std_logic;
     tx_locked_o          : out std_logic;
     tx_data_i            : in std_logic_vector(15 downto 0);
@@ -350,13 +354,13 @@ package wr_xilinx_pkg is
     rst_i                : in std_logic;
     loopen_i             : in std_logic;
     tx_prbs_sel_i        : in std_logic_vector(2 downto 0);
-    lpc_ctrl_i           : in  std_logic_vector(15 downto 0) := x"0000";
-    lpc_stat_o           : out std_logic_vector(15 downto 0);
     pad_txn_o            : out std_logic;
     pad_txp_o            : out std_logic;
     pad_rxn_i            : in std_logic := '0';
     pad_rxp_i            : in std_logic := '0';
-    rdy_o                : out std_logic
+    rdy_o                : out std_logic;
+    mdio_slave_i         : in  t_wishbone_slave_in;
+    mdio_slave_o         : out t_wishbone_slave_out
     );
   end component;
 

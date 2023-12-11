@@ -6,7 +6,7 @@
 -- Author     : Peter Jansweijer, Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2013-04-08
--- Last update: 2023-01-27
+-- Last update: 2023-06-06
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -37,6 +37,7 @@
 -- Revisions  :
 -- Date        Version  Author    Description
 -- 2013-04-08  0.1      PeterJ    Initial release based on "wr_gtx_phy_virtex6.vhd" and "wr_gtx_phy_family7_lp.vhd"
+-- 2013-06-06  0.2      PeterJ    use WB bus for LPDC regs
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -48,6 +49,8 @@ use unisim.vcomponents.all;
 
 use work.gencores_pkg.all;
 use work.disparity_gen_pkg.all;
+use work.wishbone_pkg.all;
+use work.lpdc_mdio_regs_pkg.all;
 
 entity wr_gthe4_phy_family7_lp is
 
@@ -64,6 +67,10 @@ entity wr_gthe4_phy_family7_lp is
     -- multiplex between several GTH clock outputs)
     -- Note: DMTD clock is also used as free running clock
     clk_dmtd_i           : in std_logic;
+
+    -- systemc clock for MDIO registers
+    clk_sys_i            : in std_logic;
+    rst_sys_n_i          : in std_logic;
 
     -- TX path, synchronous to tx_out_clk_o (62.5 MHz):
     tx_out_clk_o         : out std_logic;
@@ -113,16 +120,16 @@ entity wr_gthe4_phy_family7_lp is
     loopen_i             : in std_logic;
     tx_prbs_sel_i        : in std_logic_vector(2 downto 0);
     
-    lpc_ctrl_i           : in  std_logic_vector(15 downto 0);
-    lpc_stat_o           : out std_logic_vector(15 downto 0);
-
     pad_txn_o            : out std_logic;
     pad_txp_o            : out std_logic;
 
     pad_rxn_i            : in std_logic := '0';
     pad_rxp_i            : in std_logic := '0';
 
-    rdy_o                : out std_logic
+    rdy_o                : out std_logic;
+
+    mdio_slave_i         : in  t_wishbone_slave_in;
+    mdio_slave_o         : out t_wishbone_slave_out
     );
 end wr_gthe4_phy_family7_lp;
 
@@ -229,7 +236,7 @@ architecture rtl of wr_gthe4_phy_family7_lp is
   signal tx_out_clk                    : std_logic;
   signal tx_out_clk_sampled            : std_logic;
   signal rx_rec_clk                    : std_logic;
-  signal rx_rec_clk_sampled : std_logic;
+  signal rx_rec_clk_sampled            : std_logic;
 
   signal serdes_ready_a                : std_logic;
   signal serdes_ready_txclk            : std_logic;
@@ -253,42 +260,38 @@ architecture rtl of wr_gthe4_phy_family7_lp is
   signal cur_disp                      : t_8b10b_disparity;
 
   signal tx_data_8b10b                 : std_logic_vector(19 downto 0);
-  
-  signal tx_sw_reset        : std_logic;
-  signal tx_enable          : std_logic;
+
   signal tx_enable_txclk    : std_logic;
-  signal rx_enable          : std_logic;
-  signal rx_sw_reset        : std_logic;
-  signal cpll_sw_reset      : std_logic;
-  signal cd_reset           : std_logic;
 
   signal gth_tx_reset_a     : std_logic;
   signal gth_rx_reset_a     : std_logic;
   
   signal gth_loopback       : std_logic_vector(2 downto 0) := "000";
-  signal comma_target_pos   : std_logic_vector(4 downto 0);
-  signal comma_current_pos  : std_logic_vector(4 downto 0);
   signal rx_data_raw        : std_logic_vector(19 downto 0);
   signal rx_data_decode     : std_logic_vector(19 downto 0);
   signal rx_code_err        : std_logic_vector(1 downto 0);
 
-  signal link_up            : std_logic;
-  signal link_aligned       : std_logic;
   signal tx_rst_done        : std_logic;
   signal txusrpll_locked    : std_logic;
   signal rx_rst_done        : std_logic;
-  signal comma_pos_valid    : std_logic;
-  signal txresetdone        : std_logic;
-  signal rxresetdone        : std_logic;
+
+  signal lpdc_regs_out      : t_lpdc_regs_master_out;
+  signal lpdc_regs_in       : t_lpdc_regs_master_in;
+  signal drp_regs_in        : t_wishbone_slave_out;
+  signal drp_regs_out       : t_wishbone_slave_in;
 
 begin
 
-  tx_sw_reset    <= lpc_ctrl_i(0);
-  tx_enable      <= lpc_ctrl_i(1); -- Not used. Tx enabled after tx_out_clk synced rst_n
-  rx_enable      <= lpc_ctrl_i(2); -- Not used. Rx enables after serdes_ready_rxclk
-  rx_sw_reset    <= lpc_ctrl_i(3);
-  cpll_sw_reset  <= lpc_ctrl_i(4); -- Not used. cpll reset already incorporated in tx_sw_reset
-  cd_reset       <= lpc_ctrl_i(5);
+  U_LPDC_regs : entity work.lpdc_mdio_regs
+    port map (
+      rst_n_i     => rst_sys_n_i,
+      clk_i       => clk_sys_i,
+      wb_i        => mdio_slave_i,
+      wb_o        => mdio_slave_o,
+      lpdc_regs_i => lpdc_regs_in,
+      lpdc_regs_o => lpdc_regs_out,
+      drp_regs_i  => drp_regs_in,
+      drp_regs_o  => drp_regs_out);
 
   -- Near-end PMA loopback if loopen_i active
   gth_loopback <= "010" when loopen_i = '1' else "000";
@@ -298,7 +301,7 @@ begin
     (
       clk_i    => clk_dmtd_i,
       rst_n_i  => '1',
-      data_i   => tx_sw_reset,
+      data_i   => lpdc_regs_out.CTRL_tx_sw_reset,
       synced_o => gth_tx_reset_a
       );
 
@@ -307,7 +310,7 @@ begin
     (
       clk_i    => tx_out_clk,
       rst_n_i  => '1',
-      data_i   => tx_enable,
+      data_i   => lpdc_regs_out.CTRL_tx_enable,
       synced_o => tx_enable_txclk
       );
 
@@ -316,7 +319,7 @@ begin
     (
       clk_i    => clk_dmtd_i,
       rst_n_i  => '1',
-      data_i   => rx_sw_reset,
+      data_i   => lpdc_regs_out.CTRL_rx_sw_reset,
       synced_o => gth_rx_reset_a
       );
 
@@ -340,11 +343,9 @@ begin
       clk_dmtd_i    => clk_dmtd_i,
       clk_sampled_o => tx_out_clk_sampled);
 
-  comma_target_pos <= lpc_ctrl_i(13 downto 13 - 4);
-
-  process(rx_rec_clk_sampled, tx_out_clk_sampled, lpc_ctrl_i)
+  process(rx_rec_clk_sampled, tx_out_clk_sampled, lpdc_regs_out)
   begin
-    case lpc_ctrl_i(15 downto 14) is
+    case lpdc_regs_out.CTRL_dmtd_clk_sel is
       when "00" =>
         clk_sampled_o <= rx_rec_clk_sampled;
       when "01" =>
@@ -353,8 +354,6 @@ begin
         clk_sampled_o <= '0';
     end case;
   end process;
-
-  tx_enc_err_o <= '0';
 
   U_SyncReset : gc_sync_ffs
     port map
@@ -512,21 +511,21 @@ begin
       rst_n_i  => '1',
       data_i   => serdes_ready_a,
       synced_o => serdes_ready_txclk);
-  
+
   U_Comma_Detect : gtx_comma_detect_lp
     generic map(
       g_id => 0
       )
     port map (
       clk_rx_i            => rx_rec_clk,
-      rst_i               => cd_reset,
+      rst_i               => lpdc_regs_out.CTRL_aux_reset,
       rx_data_raw_i       => rx_data_raw,
       rx_data_raw_o       => rx_data_decode,
-      comma_target_pos_i  => comma_target_pos,
-      comma_current_pos_o => comma_current_pos,
-      comma_pos_valid_o   => comma_pos_valid,
-      link_up_o           => link_up,
-      aligned_o           => link_aligned);
+      comma_target_pos_i  => lpdc_regs_out.CTRL_comma_target_pos(4 downto 0),
+      comma_current_pos_o => lpdc_regs_in.STAT_comma_current_pos(4 downto 0),
+      comma_pos_valid_o   => lpdc_regs_in.STAT_comma_pos_valid,
+      link_up_o           => lpdc_regs_in.STAT_link_up,
+      aligned_o           => lpdc_regs_in.STAT_link_aligned);
 
   U_Sync_RxReset : gc_sync_ffs
     port map (
@@ -555,19 +554,10 @@ begin
       rdisp_err_o => open,
       out_8b_o    => rx_data_int(7 downto 0));
 
-  lpc_stat_o(0)           <= '1';               -- Not used. Signal cpll_locked
-  lpc_stat_o(1)           <= link_up;
-  lpc_stat_o(2)           <= link_aligned;
-  lpc_stat_o(3)           <= tx_rst_done;
-  lpc_stat_o(4)           <= '1';               -- Not used. Signal txusrpll_locked
-  lpc_stat_o(5)           <= rx_rst_done;
-  
-  lpc_stat_o(13 downto 9) <= comma_current_pos;
-  lpc_stat_o(14)          <= comma_pos_valid;
-
-  -- Debug not used:
-  lpc_stat_o(6)           <= '0';
-  lpc_stat_o(15)          <= '0';
+  lpdc_regs_in.STAT_pll_locked  <= '1';         -- Not used. Signal pll_locked
+  lpdc_regs_in.STAT_txusrpll_locked <= '1';     -- Not used. Signal pll_locked
+  lpdc_regs_in.STAT_tx_rst_done <= tx_rst_done;
+  lpdc_regs_in.STAT_rx_rst_done <= rx_rst_done;
 
   p_gen_rx_outputs : process(rx_rec_clk, rst_rxclk_n)
   begin
