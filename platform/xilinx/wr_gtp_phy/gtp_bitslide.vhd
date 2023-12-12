@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2020-07-08
+-- Last update: 2023-12-11
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -39,6 +39,7 @@
 -- 2010-11-18  0.4      twlostow  Ported EASE design to VHDL 
 -- 2011-02-07  0.5      twlostow  Verified on Spartan6 GTP
 -- 2011-09-12  0.6      twlostow  Virtex6 port
+-- 2023-12-11  0.7      peterj    Artix7 gtp depends on rx_byte_is_aligned
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -49,8 +50,9 @@ entity gtp_bitslide is
   
   generic (
 -- set to non-zero value to enable some simulation speedups (reduce delays)
-    g_simulation : integer;
-    g_target     : string := "spartan6");
+    g_simulation             : integer;
+    g_target                 : string  := "spartan6";
+    g_use_rx_byte_is_aligned : boolean := false);
 
   port (
     gtp_rst_i : in std_logic;
@@ -240,13 +242,16 @@ begin  -- behavioral
           else
             counter <= counter + 1;
           end if;
-          
-          -- gtp_rx_byte_is_aligned_i = '0' or serdes_ready_i = '0' or 
-          if(counter = f_eval_link_down_threshold) then
+
+          if(g_use_rx_byte_is_aligned = true and (gtp_rx_byte_is_aligned_i = '0' or serdes_ready_i = '0')) then
+            gtp_rx_cdr_rst_o <= '1';
+            state            <= S_SYNC_LOST;
+          elsif (g_use_rx_byte_is_aligned = false and counter = f_eval_link_down_threshold) then
             report "serdes: link down" severity error;
             gtp_rx_cdr_rst_o <= '1';
             state            <= S_SYNC_LOST;
           end if;
+
         when others => null;
       end case;
     end if;

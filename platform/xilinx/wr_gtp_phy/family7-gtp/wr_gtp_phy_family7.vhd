@@ -256,7 +256,8 @@ architecture structure of wr_gtp_phy_family7 is
   component gtp_bitslide is
   generic (
     g_simulation             :    integer;
-    g_target                 :    string := "artix7"
+    g_target                 :    string := "artix7";
+    g_use_rx_byte_is_aligned :    boolean := false
   );
   port (
     gtp_rst_i                : in  std_logic;
@@ -465,7 +466,8 @@ begin
   U_Bitslide : gtp_bitslide
   generic map (
     g_simulation             =>  g_simulation,
-    g_target                 =>  ("artix7")
+    g_target                 =>  ("artix7"),
+    g_use_rx_byte_is_aligned =>  true
   )
   port map (
     gtp_rst_i                =>  rst_done_n,
