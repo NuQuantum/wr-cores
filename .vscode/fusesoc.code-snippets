@@ -1,0 +1,27 @@
+{
+    "CAPI": {
+        "prefix": "capi",
+        "description": "A FuseSoC Core file",
+        "body": [
+            "CAPI=2:",
+            "name: ohwr:wrpc:$1",
+            "description: $2",
+            "",
+            "filesets:",
+            "  rtl:",
+            "    depend:",
+            "      - ohwr:wrpc:$3",
+            "    files:",
+            "      - rtl/${4:toplevel}.vhd",
+            "    file_type: ${5:vhdlSource}",
+            "",
+            "targets:",
+            "  default: &default",
+            "    filesets:",
+            "      - rtl",
+            "    toplevel: $4",
+            "",
+            "",
+        ]
+    }
+}

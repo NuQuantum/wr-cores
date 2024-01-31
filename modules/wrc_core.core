@@ -1,0 +1,53 @@
+CAPI=2:
+name: ohwr:wrpc:wrc_core
+description: WRPC Top Level
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:wrpc:wr_endpoint
+      - ohwr:wrpc:wr_softpll
+      - ohwr:wrpc:wr_mini_nic
+      - ohwr:wrpc:wr_dacs
+      - ohwr:wrpc:wr_streamers
+      - ohwr:wrpc:timing
+      - ohwr:wrpc:fabric
+      - ohwr:wrpc:wr_pps_gen
+      - ohwr:urv:xurv_core
+      - ohwr:general-cores:wb_clock_monitor
+      - ohwr:general-cores:wb_crossbar
+      - ohwr:general-cores:wbgen2
+      - ohwr:general-cores:wb_onewire_master
+      - ohwr:general-cores:wb_simple_uart
+    files:
+      - wrc_core/wrc_cpu_csr_wbgen2_pkg.vhd
+      - wrc_core/wrc_syscon_pkg.vhd
+      - wrc_core/wrc_syscon_wb.vhd
+      - wrc_core/wrcore_pkg.vhd
+      - wrc_core/wrc_diags_dpram.vhd
+      - wrc_core/wrc_cpu_csr_wb.vhd
+      - wrc_core/wrc_periph.vhd
+      - wrc_core/wrc_urv_wrapper.vhd
+      - wrc_core/wr_core.vhd
+      - wrc_core/xwr_core.vhd
+    file_type: vhdlSource
+    
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: xwr_core
+
+  synth:
+    <<: *default
+    default_tool: vivado
+    tools:
+      ise:
+        family: spartan6
+        device: xc6slx45t
+        package: fgg484
+        speed: -3
+      vivado:
+        part: xc7z030ffg676-3
+

@@ -1,0 +1,15 @@
+CAPI=2:
+name: ohwr:wr:spec_ref_design
+description: SPEC Reference Design
+
+filesets:
+  rtl:
+    files:
+      - wr_spec_pkg.vhd
+      - xwrc_board_spec.vhd
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+

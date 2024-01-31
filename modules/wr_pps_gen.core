@@ -1,0 +1,17 @@
+CAPI=2:
+name: ohwr:wrpc:wr_pps_gen
+description: PPS Generator
+
+filesets:
+  rtl:
+    files:
+      - wr_pps_gen/pps_gen_wb.vhd
+      - wr_pps_gen/wr_pps_gen.vhd
+      - wr_pps_gen/xwr_pps_gen.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+      
