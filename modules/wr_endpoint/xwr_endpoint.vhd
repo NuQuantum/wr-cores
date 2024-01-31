@@ -55,19 +55,19 @@ entity xwr_endpoint is
     g_records_for_phy       : boolean                        := false;
     g_rx_buffer_size        : integer                        := 1024;
     g_with_rx_buffer        : boolean                        := true;
-    g_with_flow_control     : boolean                        := true;
+    g_with_flow_control     : boolean                        := false;
     g_with_timestamper      : boolean                        := true;
     g_with_dpi_classifier   : boolean                        := true;
     g_with_vlans            : boolean                        := true;
-    g_with_rtu              : boolean                        := true;
+    g_with_rtu              : boolean                        := false;
     g_with_leds             : boolean                        := true;
-    g_with_dmtd             : boolean                        := true;
+    g_with_dmtd             : boolean                        := false;
     g_with_packet_injection : boolean                        := false;
-    g_use_new_rxcrc         : boolean                        := false;
+    g_use_new_rxcrc         : boolean                        := true;
     g_use_new_txcrc         : boolean                        := false;
     g_with_stop_traffic     : boolean                        := false;
     g_phy_lpcalib           : boolean                        := false;
-    g_ep_idx                : integer
+    g_ep_idx                : integer                        := 0
     );
   port (
 

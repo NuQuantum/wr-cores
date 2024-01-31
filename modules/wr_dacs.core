@@ -1,0 +1,18 @@
+CAPI=2:
+name: ohwr:wrpc:wr_dacs
+description: WRPC DAC Control
+
+filesets:
+  rtl:
+    files:
+      # - wr_dacs/spec_serial_dac.vhd
+      # - wr_dacs/spec_serial_dac_arb.vhd
+      - wr_dacs/serial_dac856x.vhd
+      - wr_dacs/wrc_dac_dithering.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
