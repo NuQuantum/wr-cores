@@ -1,0 +1,121 @@
+memory-map:
+  name: si549_if_wb
+  description: silabs interface
+  bus: wb-32-be
+  schema-version:
+    core: 2.0.0
+    x-conversions: 1.0.0
+    x-driver-edge: 1.0.0
+    x-enums: 1.0.0
+    x-fesa: 2.0.0
+    x-gena: 2.0.0
+    x-hdl: 1.0.0
+    x-map-info: 1.0.0
+    x-wbgen: 1.0.0
+  x-hdl:
+    iogroup: si549_regs
+  children:
+  - reg:
+      name: CR
+      comment: Control Register
+      description: Control Register
+      width: 32
+      access: rw
+      children:
+      - field:
+          name: I2C_ADDR
+          comment: Si549 I2C address
+          description: Si54x Address
+          range: 7-0          
+      - field:
+          name: ENABLE
+          comment: Si549 SPLL input enable
+          description: Si549 SPLL input enable
+          range: 8          
+      - field:
+          name: GAIN
+          comment: ADPLL_DELTA scaling factor 
+          description: RFREQ gain/scalefactor
+          range: 16-9          
+      - field:
+          name: CLK_DIV
+          comment: I2C clock divider
+          description: I2C Clock Divider
+          range: 24-17          
+      - field:
+          name: BUSY
+          comment: Si549 interface busy
+          description: Si549 interface busy
+          range: 25
+          x-hdl:
+            type: wire        
+  - reg:
+      name: GAIN
+      comment: DAC value gain (signed Q3.13)
+      description: DAC value gain (signed Q3.13)
+      width: 32
+      access: rw
+      children:
+      - field:
+          name: GAIN_VALUE
+          comment: DAC value gain (signed Q3.13)
+          description: DAC value gain (signed Q3.13)
+          range: 15-0
+  - reg:
+      name: GPSR
+      description: GPIO Set/Readback Register
+      width: 32
+      access: rw
+      x-hdl:
+        write-strobe: True
+      children:
+      - field:
+          name: scl
+          description: SIlabs I2C bitbanged SCL
+          comment: 'write 1: Set FMC SCL line to 1 (pullup)\n                        read : returns the current status of the SCL line.'
+          range: 0
+          x-hdl:
+            type: wire
+      - field:
+          name: sda
+          description: SIlabs I2C bitbanged SDA
+          comment: 'write 1: Set FMC SDA line to 1 (pullup)\n                        read : returns the current status of the SCL line.'
+          range: 1
+          x-hdl:
+            type: wire
+
+  - reg:
+      name: GPCR
+      description: GPIO Clear Register
+      width: 32
+      access: wo
+      children:
+      - field:
+          name: scl
+          description: SILabs I2C bitbanged SCL
+          comment: 'write 1: Set SCL line to 0\n                        read : returns the current status of the SCL line.'
+          range: 0
+          x-hdl:
+            type: autoclear
+      - field:
+          name: sda
+          description: SIlabs I2C bitbanged SDA
+          comment: 'write 1: Set SDA line to 0\n                        read : returns the current status of the SCL line.'
+          range: 1
+          x-hdl:
+            type: autoclear
+  - reg:
+      name: DEBUG
+      description: Debug register, manually set DAC value
+      width: 32
+      access: rw
+      x-hdl:
+        write-strobe: True
+      children:
+      - field:
+          name: DAC_VAL
+          description: Manual DAC value 
+          comment: Manual DAC value
+          range: 15-0
+          
+
