@@ -1,0 +1,78 @@
+memory-map:
+  name: sfp_ctrl_if_wb
+  description: sfp control interface
+  bus: wb-32-be
+  schema-version:
+    core: 2.0.0
+    x-conversions: 1.0.0
+    x-driver-edge: 1.0.0
+    x-enums: 1.0.0
+    x-fesa: 2.0.0
+    x-gena: 2.0.0
+    x-hdl: 1.0.0
+    x-map-info: 1.0.0
+  x-hdl:
+    iogroup: sfp_if_regs
+  children:
+  - reg:
+      name: gpo0
+      description: general purpose output register 0 (ports 0 to 7).  nibbles [(N*4)-1:(N*4)] = x & led_synced_N & led_mode_N & tx_disable_N
+      address: 32
+      width: 32
+      access: rw
+      children:
+      - field:
+          name: gpo0_word
+          comment: gpo settings for ports 0 to 7
+          range: 31-0
+  - reg:
+      name: gpi0
+      description: general purpose input register 0 (ports 0 to 7).  nibbles [(N*4)-1:(N*4)] = x & los_N & detect_N & tx_fault_N
+      width: 32
+      access: ro
+      children:
+      - field:
+          name: gpi0_word
+          comment: gpi settings for ports 0 to 7
+          range: 31-0          
+  - reg:
+      name: gpo1
+      description: general purpose output register 1 (ports 8 to 15).  nibbles [(N*4)-1:(N*4)] = x & led_synced_N & led_mode_N & tx_disable_N
+      width: 32
+      access: rw
+      children:
+      - field:
+          name: gpo1_word
+          comment: gpo settings for ports 8 to 15
+          range: 31-0  
+  - reg:
+      name: gpi1
+      description: general purpose input register 1 (ports 8 to 15).  nibbles [(N*4)-1:(N*4)] = x & los_N & detect_N & tx_fault_N
+      width: 32
+      access: ro
+      children:
+      - field:
+          name: gpi1_word
+          comment: gpi settings for ports 8 to 15
+          range: 31-0          
+  - reg:
+      name: gpo2
+      description: general purpose output register 1 (ports 16 to 23).  nibbles [(N*4)-1:(N*4)] = x & led_synced_N & led_mode_N & tx_disable_N
+      width: 32
+      access: rw
+      children:
+      - field:
+          name: gpo2_word
+          comment: gpo settings for ports 16 to 23
+          range: 31-0            
+  - reg:
+      name: gpi2
+      description: general purpose input register 0 (ports 16 to 23).  nibbles [(N*4)-1:(N*4)] = x & los_N & detect_N & tx_fault_N
+      width: 32
+      access: ro
+      children:
+      - field:
+          name: gpi2_word
+          comment: gpi settings for ports 16 to 23
+          range: 31-0          
+
