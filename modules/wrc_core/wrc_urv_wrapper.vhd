@@ -36,7 +36,8 @@ entity wrc_urv_wrapper is
   generic(
     g_IRAM_SIZE : integer;
     g_IRAM_INIT : string;
-    g_CPU_ID    : integer);
+    g_CPU_ID    : integer;
+    g_SWAP_HOST_ENDIAN : boolean := true);
   port(
     clk_sys_i : in  std_logic;
     rst_n_i   : in  std_logic;
@@ -185,26 +186,51 @@ begin
       db_i    => dm_data_s,
       qb_o    => dm_mem_rdata);
 
-  --  Host access to the CPU memory (through instruction port)
-  p_iram_host_access : process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
-        ha_im_write <= '0';
-      else
-        if regs_in.udata_load_o = '1' then
-          ha_im_wdata <= f_swap_endian_32(regs_in.udata_o);
-          ha_im_write <= '1';
-        else
+  gen_host_access_swap_endian: if g_SWAP_HOST_ENDIAN = true generate
+    --  Host access to the CPU memory (through instruction port)
+    p_iram_host_access : process(clk_sys_i)
+    begin
+      if rising_edge(clk_sys_i) then
+        if rst_n_i = '0' then
           ha_im_write <= '0';
-        end if;
+        else
+          if regs_in.udata_load_o = '1' then
+            ha_im_wdata <= f_swap_endian_32(regs_in.udata_o);
+            ha_im_write <= '1';
+          else
+            ha_im_write <= '0';
+          end if;
 
-        ha_im_addr(21 downto 0)  <= regs_in.uaddr_addr_o & "00";
-        ha_im_addr(31 downto 22) <= (others => '0');
-        regs_out.udata_i        <= f_swap_endian_32(im_data);
+          ha_im_addr(21 downto 0)  <= regs_in.uaddr_addr_o & "00";
+          ha_im_addr(31 downto 22) <= (others => '0');
+          regs_out.udata_i        <= f_swap_endian_32(im_data);
+        end if;
       end if;
-    end if;
-  end process p_iram_host_access;
+    end process p_iram_host_access;
+  end generate;
+
+  gen_host_access: if g_SWAP_HOST_ENDIAN = false generate
+    --  Host access to the CPU memory (through instruction port)
+    p_iram_host_access : process(clk_sys_i)
+    begin
+      if rising_edge(clk_sys_i) then
+        if rst_n_i = '0' then
+          ha_im_write <= '0';
+        else
+          if regs_in.udata_load_o = '1' then
+            ha_im_wdata <= regs_in.udata_o;
+            ha_im_write <= '1';
+          else
+            ha_im_write <= '0';
+          end if;
+
+          ha_im_addr(21 downto 0)  <= regs_in.uaddr_addr_o & "00";
+          ha_im_addr(31 downto 22) <= (others => '0');
+          regs_out.udata_i        <= im_data;
+        end if;
+      end if;
+    end process p_iram_host_access;
+  end generate;  
 
   -- Wishbone bus arbitration / internal RAM access
   p_wishbone_master : process(clk_sys_i)
