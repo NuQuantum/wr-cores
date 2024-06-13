@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-08-02
--- Last update: 2017-09-07
+-- Last update: 2024-05-08
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -70,7 +70,7 @@ entity wrc_board_fasec is
     --g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
     --g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- memory initialisation file for embedded CPU
-    g_dpram_initf               : string  := "../../../../bin/wrpc/wrc_phy16.bram";
+    g_dpram_initf               : string  := "wrc_phy16.bram";
     -- identification (id and ver) of the layout of words in the generic diag interface
     g_diag_id                   : integer := 0;
     g_diag_ver                  : integer := 0;
@@ -442,9 +442,9 @@ begin  -- architecture struct
   --wrs_rx_cfg_in.filter_remote     <= wrs_rx_cfg_flt_r_i;
   --wrs_rx_cfg_in.fixed_latency     <= wrs_rx_cfg_fix_l_i;
 
-  -- axi supports word-addressing only, i.e. per 4 bytes; shift for wb-bridge
-  s_axi_araddr  <= "00" & s00_axi_araddr(31 downto 2);
-  s_axi_awaddr  <= "00" & s00_axi_awaddr(31 downto 2);
+  -- axi supports word-addressing only, i.e. per 4 bytes; not shift needed though
+  s_axi_araddr <= s00_axi_araddr(31 downto 0);
+  s_axi_awaddr <= s00_axi_awaddr(31 downto 0);
   -- Instantiate the records-based module
   cmp_xwrc_board_fasec : xwrc_board_fasec
     generic map (
