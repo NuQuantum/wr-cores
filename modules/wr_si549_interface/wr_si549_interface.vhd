@@ -224,7 +224,7 @@ architecture rtl of wr_si549_interface is
 	        
 	        if(tm_dac_value_wr_i = '1') then
 
-	        	delta_scaled_long <= (signed('0' & tm_dac_value_i(15 downto 0)) - to_signed(32768, 17)) * signed('0' & regs_out.GAIN_GAIN_VALUE); --GAIN_GAIN_VALUE 3.13 format.  2.62179... should be correct scaling for wrsv4
+	        	delta_scaled_long <= (signed('0' & tm_dac_value_i(15 downto 0)) - to_signed(32768, 17)) * signed('0' & regs_out.GAIN_GAIN_VALUE); --GAIN_GAIN_VALUE 8.8 format.
 	        	delta_new   			<= (others => '0');
 	        elsif(regs_out.DEBUG_wr = '1') then
 	        	delta_scaled_long <= (signed('0' & regs_out.DEBUG_DAC_VAL(15 downto 0)) - to_signed(32768, 17)) * signed('0' & regs_out.GAIN_GAIN_VALUE);
@@ -232,7 +232,7 @@ architecture rtl of wr_si549_interface is
 	        end if;
 
 	        if(tm_dac_value_wr_d = '1') then
-	          delta_new <= std_logic_vector(f_sign_extend(delta_scaled_long(31 downto 13), delta_new'length));
+	          delta_new <= std_logic_vector(f_sign_extend(delta_scaled_long(31 downto 8), delta_new'length));
 	        end if;	        
 
 	       	delta_new_p <= tm_dac_value_wr_d and regs_out.CR_ENABLE;	      
