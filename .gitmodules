@@ -12,4 +12,4 @@
 	url = https://ohwr.org/project/vme64x-core.git
 [submodule "ip_cores/urv-core"]
 	path = ip_cores/urv-core
-	url = https://github.com/nuquantum/urv-core.git
+	url = https://ohwr.org/project/urv-core.git
