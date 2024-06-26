@@ -1,0 +1,57 @@
+CAPI=2:
+name: ohwr:wrpc:fasec
+description: fasec Top Level
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:wrpc:wrc_board_fasec
+    files:
+      - fasec_ref_design_wrapper.v
+    file_type: VerilogSource
+
+  bd:
+    files:
+      - fasec_ref_design.bd: {file_type: bd}
+
+  hooks:
+    depend:
+      - nq:vivado:common
+      - nq:vivado:hooks
+
+  constraints:
+    files:
+      - fasec_ref_design.xdc
+    file_type: xdc
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+      - bd
+      - debug ? (debug_files)
+      - tool_verilator ? (verilator_waivers)
+    toplevel: fasec_ref_design_wrapper
+
+  lint:
+    <<: *default
+    description: Perform linting on all the source files
+    default_tool: modelsim
+    tools:
+      modelsim:
+        mode: lint-only
+        verilator_options:
+          - -Wall
+      modelsim:
+        mode: lint-only
+
+  synth:
+    <<: *default
+    description: Synthesise the design for a fasec board
+    filesets_append: [constraints]
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xc7z030ffg676-2
+
+
