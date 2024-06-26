@@ -1,0 +1,33 @@
+CAPI=2:
+name: ohwr:wrpc:xwrf_loopback
+description: white rabbit fabric loopback
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:wrpc:wb_slave_adaptor
+    files:
+      - fabric/lbk_pkg.vhd
+      - fabric/lbk_wishbone_controller.vhd
+      - wr_endpoint/ep_rx_wb_master.vhd
+      - fabric/xwrf_loopback/wrf_loopback.vhd
+      - fabric/xwrf_loopback/xwrf_loopback.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: xwrf_loopback
+
+  synth:
+    <<: *default
+    default_tool: vivado
+    tools:
+      ise:
+        family: spartan6
+        device: xc6slx45t
+        package: fgg484
+        speed: -3
+      vivado:
+        part: xc7z030ffg676-3

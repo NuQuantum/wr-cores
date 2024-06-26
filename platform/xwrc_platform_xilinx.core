@@ -1,0 +1,28 @@
+CAPI=2:
+name: ohwr:wrpc:xwrc_platform_xilinx
+description: this is the whitre rabbit xilinx bits
+
+filesets:
+  rtl:
+    files:
+      - xilinx/wr_xilinx_pkg.vhd
+      - xilinx/xwrc_platform_xilinx.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+      toplevel: xwrc_platform_xilinx
+
+  synth:
+    <<: *default
+    default_tool: vivado
+    tools:
+      ise:
+        family: spartan6
+        device: xc6slx45t
+        package: fgg484
+        speed: -3
+      vivado:
+        part: xc7z030ffg676-3
