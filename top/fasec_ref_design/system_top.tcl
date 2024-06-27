@@ -18,19 +18,6 @@ variable script_folder
 set script_folder [_tcl::get_script_folder]
 
 ################################################################
-# Check if script is running in correct Vivado version.
-################################################################
-set scripts_vivado_version 2016.4
-set current_vivado_version [version -short]
-
-if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
-   puts ""
-   catch {common::send_msg_id "BD_TCL-109" "ERROR" "This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Please run the script in Vivado <$scripts_vivado_version> then open the design in Vivado <$current_vivado_version>. Upgrade the design by running \"Tools => Report => Report IP Status...\", then run write_bd_tcl to create an updated script."}
-
-   return 1
-}
-
-################################################################
 # START
 ################################################################
 
@@ -48,7 +35,7 @@ if { $list_projs eq "" } {
 
 
 # CHANGE DESIGN NAME HERE
-set design_name design_1
+set design_name fasec_ref_design
 
 # If you do not already have an existing IP Integrator design open,
 # you can create a design using the following command:
@@ -114,6 +101,19 @@ if { $nRet != 0 } {
    catch {common::send_msg_id "BD_TCL-114" "ERROR" $errMsg}
    return $nRet
 }
+
+# Set the directory path for the new project
+set proj_dir [get_property directory [current_project]]
+cd $proj_dir
+
+# Set IP repository paths
+set ip_cores_dir "../../../board/fasec/"
+set_property "ip_repo_paths" "[file normalize "$ip_cores_dir"]" [current_project]
+update_ip_catalog -rebuild
+
+# Add constraints
+add_files -fileset constrs_1 -norecurse "[file normalize ../fasec_ref_design.xdc]"
+set_property used_in_synthesis false [get_files "*fasec_ref_design.xdc"]
 
 ##################################################################
 # DESIGN PROCs
@@ -370,171 +370,171 @@ CONFIG.PCW_MIO_15_IOTYPE {LVCMOS 3.3V} \
 CONFIG.PCW_MIO_15_PULLUP {enabled} \
 CONFIG.PCW_MIO_15_SLEW {slow} \
 CONFIG.PCW_MIO_16_DIRECTION {out} \
-CONFIG.PCW_MIO_16_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_16_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_16_PULLUP {disabled} \
 CONFIG.PCW_MIO_16_SLEW {fast} \
 CONFIG.PCW_MIO_17_DIRECTION {out} \
-CONFIG.PCW_MIO_17_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_17_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_17_PULLUP {disabled} \
 CONFIG.PCW_MIO_17_SLEW {fast} \
 CONFIG.PCW_MIO_18_DIRECTION {out} \
-CONFIG.PCW_MIO_18_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_18_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_18_PULLUP {disabled} \
 CONFIG.PCW_MIO_18_SLEW {fast} \
 CONFIG.PCW_MIO_19_DIRECTION {out} \
-CONFIG.PCW_MIO_19_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_19_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_19_PULLUP {disabled} \
 CONFIG.PCW_MIO_19_SLEW {fast} \
 CONFIG.PCW_MIO_1_DIRECTION {out} \
-CONFIG.PCW_MIO_1_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_1_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_1_PULLUP {enabled} \
 CONFIG.PCW_MIO_1_SLEW {slow} \
 CONFIG.PCW_MIO_20_DIRECTION {out} \
-CONFIG.PCW_MIO_20_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_20_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_20_PULLUP {disabled} \
 CONFIG.PCW_MIO_20_SLEW {fast} \
 CONFIG.PCW_MIO_21_DIRECTION {out} \
-CONFIG.PCW_MIO_21_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_21_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_21_PULLUP {disabled} \
 CONFIG.PCW_MIO_21_SLEW {fast} \
 CONFIG.PCW_MIO_22_DIRECTION {in} \
-CONFIG.PCW_MIO_22_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_22_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_22_PULLUP {disabled} \
 CONFIG.PCW_MIO_22_SLEW {fast} \
 CONFIG.PCW_MIO_23_DIRECTION {in} \
-CONFIG.PCW_MIO_23_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_23_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_23_PULLUP {disabled} \
 CONFIG.PCW_MIO_23_SLEW {fast} \
 CONFIG.PCW_MIO_24_DIRECTION {in} \
-CONFIG.PCW_MIO_24_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_24_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_24_PULLUP {disabled} \
 CONFIG.PCW_MIO_24_SLEW {fast} \
 CONFIG.PCW_MIO_25_DIRECTION {in} \
-CONFIG.PCW_MIO_25_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_25_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_25_PULLUP {disabled} \
 CONFIG.PCW_MIO_25_SLEW {fast} \
 CONFIG.PCW_MIO_26_DIRECTION {in} \
-CONFIG.PCW_MIO_26_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_26_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_26_PULLUP {disabled} \
 CONFIG.PCW_MIO_26_SLEW {fast} \
 CONFIG.PCW_MIO_27_DIRECTION {in} \
-CONFIG.PCW_MIO_27_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_27_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_27_PULLUP {disabled} \
 CONFIG.PCW_MIO_27_SLEW {fast} \
 CONFIG.PCW_MIO_28_DIRECTION {inout} \
-CONFIG.PCW_MIO_28_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_28_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_28_PULLUP {enabled} \
 CONFIG.PCW_MIO_28_SLEW {slow} \
 CONFIG.PCW_MIO_29_DIRECTION {inout} \
-CONFIG.PCW_MIO_29_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_29_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_29_PULLUP {enabled} \
 CONFIG.PCW_MIO_29_SLEW {slow} \
 CONFIG.PCW_MIO_2_DIRECTION {inout} \
-CONFIG.PCW_MIO_2_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_2_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_2_PULLUP {disabled} \
 CONFIG.PCW_MIO_2_SLEW {slow} \
 CONFIG.PCW_MIO_30_DIRECTION {inout} \
-CONFIG.PCW_MIO_30_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_30_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_30_PULLUP {enabled} \
 CONFIG.PCW_MIO_30_SLEW {slow} \
 CONFIG.PCW_MIO_31_DIRECTION {inout} \
-CONFIG.PCW_MIO_31_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_31_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_31_PULLUP {enabled} \
 CONFIG.PCW_MIO_31_SLEW {slow} \
 CONFIG.PCW_MIO_32_DIRECTION {inout} \
-CONFIG.PCW_MIO_32_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_32_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_32_PULLUP {enabled} \
 CONFIG.PCW_MIO_32_SLEW {slow} \
 CONFIG.PCW_MIO_33_DIRECTION {inout} \
-CONFIG.PCW_MIO_33_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_33_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_33_PULLUP {enabled} \
 CONFIG.PCW_MIO_33_SLEW {slow} \
 CONFIG.PCW_MIO_34_DIRECTION {inout} \
-CONFIG.PCW_MIO_34_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_34_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_34_PULLUP {enabled} \
 CONFIG.PCW_MIO_34_SLEW {slow} \
 CONFIG.PCW_MIO_35_DIRECTION {inout} \
-CONFIG.PCW_MIO_35_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_35_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_35_PULLUP {enabled} \
 CONFIG.PCW_MIO_35_SLEW {slow} \
 CONFIG.PCW_MIO_36_DIRECTION {inout} \
-CONFIG.PCW_MIO_36_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_36_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_36_PULLUP {enabled} \
 CONFIG.PCW_MIO_36_SLEW {slow} \
 CONFIG.PCW_MIO_37_DIRECTION {inout} \
-CONFIG.PCW_MIO_37_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_37_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_37_PULLUP {enabled} \
 CONFIG.PCW_MIO_37_SLEW {slow} \
 CONFIG.PCW_MIO_38_DIRECTION {inout} \
-CONFIG.PCW_MIO_38_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_38_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_38_PULLUP {enabled} \
 CONFIG.PCW_MIO_38_SLEW {slow} \
 CONFIG.PCW_MIO_39_DIRECTION {inout} \
-CONFIG.PCW_MIO_39_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_39_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_39_PULLUP {enabled} \
 CONFIG.PCW_MIO_39_SLEW {slow} \
 CONFIG.PCW_MIO_3_DIRECTION {inout} \
-CONFIG.PCW_MIO_3_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_3_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_3_PULLUP {disabled} \
 CONFIG.PCW_MIO_3_SLEW {slow} \
 CONFIG.PCW_MIO_40_DIRECTION {inout} \
-CONFIG.PCW_MIO_40_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_40_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_40_PULLUP {enabled} \
 CONFIG.PCW_MIO_40_SLEW {slow} \
 CONFIG.PCW_MIO_41_DIRECTION {inout} \
-CONFIG.PCW_MIO_41_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_41_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_41_PULLUP {enabled} \
 CONFIG.PCW_MIO_41_SLEW {slow} \
 CONFIG.PCW_MIO_42_DIRECTION {inout} \
-CONFIG.PCW_MIO_42_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_42_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_42_PULLUP {enabled} \
 CONFIG.PCW_MIO_42_SLEW {slow} \
 CONFIG.PCW_MIO_43_DIRECTION {inout} \
-CONFIG.PCW_MIO_43_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_43_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_43_PULLUP {enabled} \
 CONFIG.PCW_MIO_43_SLEW {slow} \
 CONFIG.PCW_MIO_44_DIRECTION {inout} \
-CONFIG.PCW_MIO_44_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_44_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_44_PULLUP {enabled} \
 CONFIG.PCW_MIO_44_SLEW {slow} \
 CONFIG.PCW_MIO_45_DIRECTION {inout} \
-CONFIG.PCW_MIO_45_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_45_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_45_PULLUP {enabled} \
 CONFIG.PCW_MIO_45_SLEW {slow} \
 CONFIG.PCW_MIO_46_DIRECTION {inout} \
-CONFIG.PCW_MIO_46_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_46_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_46_PULLUP {enabled} \
 CONFIG.PCW_MIO_46_SLEW {slow} \
 CONFIG.PCW_MIO_47_DIRECTION {inout} \
-CONFIG.PCW_MIO_47_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_47_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_47_PULLUP {enabled} \
 CONFIG.PCW_MIO_47_SLEW {slow} \
 CONFIG.PCW_MIO_48_DIRECTION {out} \
-CONFIG.PCW_MIO_48_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_48_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_48_PULLUP {enabled} \
 CONFIG.PCW_MIO_48_SLEW {slow} \
 CONFIG.PCW_MIO_49_DIRECTION {in} \
-CONFIG.PCW_MIO_49_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_49_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_49_PULLUP {enabled} \
 CONFIG.PCW_MIO_49_SLEW {slow} \
 CONFIG.PCW_MIO_4_DIRECTION {inout} \
-CONFIG.PCW_MIO_4_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_4_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_4_PULLUP {disabled} \
 CONFIG.PCW_MIO_4_SLEW {slow} \
 CONFIG.PCW_MIO_50_DIRECTION {inout} \
-CONFIG.PCW_MIO_50_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_50_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_50_PULLUP {enabled} \
 CONFIG.PCW_MIO_50_SLEW {slow} \
 CONFIG.PCW_MIO_51_DIRECTION {inout} \
-CONFIG.PCW_MIO_51_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_51_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_51_PULLUP {enabled} \
 CONFIG.PCW_MIO_51_SLEW {slow} \
 CONFIG.PCW_MIO_52_DIRECTION {out} \
-CONFIG.PCW_MIO_52_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_52_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_52_PULLUP {enabled} \
 CONFIG.PCW_MIO_52_SLEW {slow} \
 CONFIG.PCW_MIO_53_DIRECTION {inout} \
-CONFIG.PCW_MIO_53_IOTYPE {LVCMOS 3.3V} \
+CONFIG.PCW_MIO_53_IOTYPE {LVCMOS 1.8V} \
 CONFIG.PCW_MIO_53_PULLUP {enabled} \
 CONFIG.PCW_MIO_53_SLEW {slow} \
 CONFIG.PCW_MIO_5_DIRECTION {inout} \
@@ -629,7 +629,7 @@ CONFIG.PCW_PJTAG_PERIPHERAL_ENABLE {0} \
 CONFIG.PCW_PJTAG_PJTAG_IO {<Select>} \
 CONFIG.PCW_PLL_BYPASSMODE_ENABLE {0} \
 CONFIG.PCW_PRESET_BANK0_VOLTAGE {LVCMOS 3.3V} \
-CONFIG.PCW_PRESET_BANK1_VOLTAGE {LVCMOS 3.3V} \
+CONFIG.PCW_PRESET_BANK1_VOLTAGE {LVCMOS 1.8V} \
 CONFIG.PCW_QSPI_GRP_FBCLK_ENABLE {0} \
 CONFIG.PCW_QSPI_GRP_FBCLK_IO {<Select>} \
 CONFIG.PCW_QSPI_GRP_IO1_ENABLE {0} \
@@ -1196,43 +1196,43 @@ CONFIG.PCW_WDT_WDT_IO.VALUE_SRC {DEFAULT} \
  ] $processing_system7_0
 
   # Create instance: ps7_0_axi_periph, and set properties
-  set ps7_0_axi_periph [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 ps7_0_axi_periph ]
+  set ps7_0_axi_periph [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:* ps7_0_axi_periph ]
   set_property -dict [ list \
 CONFIG.NUM_MI {1} \
  ] $ps7_0_axi_periph
 
   # Create instance: ps7_0_axi_periph_1, and set properties
-  set ps7_0_axi_periph_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 ps7_0_axi_periph_1 ]
+  set ps7_0_axi_periph_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:* ps7_0_axi_periph_1 ]
   set_property -dict [ list \
 CONFIG.NUM_MI {1} \
  ] $ps7_0_axi_periph_1
 
   # Create instance: rst_ps7_0_100M, and set properties
-  set rst_ps7_0_100M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_ps7_0_100M ]
+  set rst_ps7_0_100M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:* rst_ps7_0_100M ]
 
   # Create instance: rst_wrc_board_fasec_0_62M, and set properties
-  set rst_wrc_board_fasec_0_62M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_wrc_board_fasec_0_62M ]
+  set rst_wrc_board_fasec_0_62M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:* rst_wrc_board_fasec_0_62M ]
 
   # Create instance: util_ds_buf_0, and set properties
-  set util_ds_buf_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_0 ]
+  set util_ds_buf_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:* util_ds_buf_0 ]
   set_property -dict [ list \
 CONFIG.C_BUF_TYPE {OBUFDS} \
  ] $util_ds_buf_0
 
   # Create instance: util_ds_buf_1, and set properties
-  set util_ds_buf_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_1 ]
+  set util_ds_buf_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:* util_ds_buf_1 ]
   set_property -dict [ list \
 CONFIG.C_BUF_TYPE {OBUFDS} \
  ] $util_ds_buf_1
 
   # Create instance: util_ds_buf_2, and set properties
-  set util_ds_buf_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_2 ]
+  set util_ds_buf_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:* util_ds_buf_2 ]
   set_property -dict [ list \
 CONFIG.C_BUF_TYPE {OBUFDS} \
  ] $util_ds_buf_2
 
   # Create instance: wrc_board_fasec_0, and set properties
-  set wrc_board_fasec_0 [ create_bd_cell -type ip -vlnv CERN:white_rabbit:wrc_board_fasec:4.2 wrc_board_fasec_0 ]
+  set wrc_board_fasec_0 [ create_bd_cell -type ip -vlnv CERN:white_rabbit:wrc_board_fasec:5.0 wrc_board_fasec_0 ]
 
   set_property -dict [ list \
 CONFIG.NUM_READ_OUTSTANDING {1} \
@@ -1240,28 +1240,28 @@ CONFIG.NUM_WRITE_OUTSTANDING {1} \
  ] [get_bd_intf_pins /wrc_board_fasec_0/s00_axi]
 
   # Create instance: xlconcat_0, and set properties
-  set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
+  set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:* xlconcat_0 ]
   set_property -dict [ list \
 CONFIG.IN0_WIDTH {4} \
 CONFIG.NUM_PORTS {2} \
  ] $xlconcat_0
 
   # Create instance: xlconstant_0, and set properties
-  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:* xlconstant_0 ]
   set_property -dict [ list \
 CONFIG.CONST_VAL {000} \
 CONFIG.CONST_WIDTH {3} \
  ] $xlconstant_0
 
   # Create instance: xlconstant_1, and set properties
-  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:* xlconstant_1 ]
   set_property -dict [ list \
 CONFIG.CONST_VAL {000} \
 CONFIG.CONST_WIDTH {3} \
  ] $xlconstant_1
 
   # Create instance: xlconstant_2, and set properties
-  set xlconstant_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_2 ]
+  set xlconstant_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:* xlconstant_2 ]
   set_property -dict [ list \
 CONFIG.CONST_VAL {0000} \
 CONFIG.CONST_WIDTH {4} \

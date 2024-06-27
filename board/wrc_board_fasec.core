@@ -39,3 +39,7 @@ targets:
         speed: -3
       vivado:
         part: xc7z030ffg676-3
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2c0ac34c9c4fd42f858808a5247c80fffb3736d5
