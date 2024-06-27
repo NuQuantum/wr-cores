@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------
 `timescale 1 ps / 1 ps
 
-module fasec_ref_design_wrapper
+module fasec
    (DDR_addr,
     DDR_ba,
     DDR_cas_n,
@@ -155,7 +155,7 @@ module fasec_ref_design_wrapper
   wire [0:0]clk_ref_125m_o;
   wire [0:0]clk_ref_125m_n;
   wire [0:0]clk_ref_125m_p;
-  wire [0:0]clk_sys_62m5_o
+  wire [0:0]clk_sys_62m5_o;
   wire [0:0]clk_sys_62m5_n;
   wire [0:0]clk_sys_62m5_p;
   wire [2:0]dio_oe_n;
@@ -239,16 +239,16 @@ fasec_ref_design fasec_ref_design_i
          .wr_axi_rdata(wr_axi_rdata),
          .wr_axi_rready(wr_axi_rready),
          .wr_axi_rresp(wr_axi_rresp),
-         .wr_axi_rstn(wr_axi_rstn),
+         .wr_axi_resetn(wr_axi_rstn),
          .wr_axi_rvalid(wr_axi_rvalid),
          .wr_axi_wdata(wr_axi_wdata),
          .wr_axi_wready(wr_axi_wready),
          .wr_axi_wstrb(wr_axi_wstrb),
          .wr_axi_wvalid(wr_axi_wvalid));
-         
+
 
 wrc_board_fasec wr_core_1
-       .areset_n_i(areset_n_i),
+       (.areset_n_i(areset_n_i),
        .clk_125m_gtp_n_i(clk_125m_gtp_n_i),
        .clk_125m_gtp_p_i(clk_125m_gtp_p_i),
        .clk_125m_pllref_n_i(clk_125m_pllref_n_i),
@@ -260,20 +260,20 @@ wrc_board_fasec wr_core_1
        .clk_ref_125m_o(clk_ref_125m_o),
        .rst_sys_62m5_n_o(),
        .rst_ref_125m_n_o(),
-   
+
        .pll20dac_cs_n_o(pll20dac_cs_n_o),
        .pll25dac_cs_n_o(pll25dac_cs_n_o),
        .plldac_din_o(plldac_din_o),
        .plldac_sclk_o(plldac_sclk_o),
-   
-       .SFP_mod_abs(SFP_mod_abs),
-       .SFP_rx_los(SFP_rx_los),
-       .SFP_rxn(SFP_rxn),
-       .SFP_rxp(SFP_rxp),
-       .SFP_tx_disable(SFP_tx_disable),
-       .SFP_tx_fault(SFP_tx_fault),
-       .SFP_txn(SFP_txn),
-       .SFP_txp(SFP_txp),
+
+//       .SFP_mod_abs(SFP_mod_abs),
+//       .SFP_rx_los(SFP_rx_los),
+//       .SFP_rxn(SFP_rxn),
+//       .SFP_rxp(SFP_rxp),
+//       .SFP_tx_disable(SFP_tx_disable),
+//       .SFP_tx_fault(SFP_tx_fault),
+//       .SFP_txn(SFP_txn),
+//       .SFP_txp(SFP_txp),
 
        .sfp_tx_p_o(SFP_txp),
        .sfp_tx_n_o(SFP_txn),
@@ -290,7 +290,7 @@ wrc_board_fasec wr_core_1
        .sfp_tx_fault_i(SFP_tx_fault),
        .sfp_tx_disable_o(SFP_tx_disable),
        .sfp_los_i(SFP_rx_los),
-   
+
 
        .eeprom_sda_i(eeprom_i2c_sda_i),
        .eeprom_sda_o(eeprom_i2c_sda_o),
@@ -298,14 +298,14 @@ wrc_board_fasec wr_core_1
        .eeprom_scl_i(eeprom_i2c_scl_i),
        .eeprom_scl_o(eeprom_i2c_scl_o),
        .eeprom_scl_t(eeprom_i2c_scl_t),
-   
+
        .thermo_id_i(thermo_id_tri_i),
        .thermo_id_o(thermo_id_tri_o),
        .thermo_id_t(thermo_id_tri_t),
-   
+
        .uart_rxd_i(UART_0_txd),
        .uart_txd_o(UART_0_rxd),
-   
+
        .s00_axi_aclk_o(wr_axi_clk),
        .s00_axi_aresetn(wr_axi_rstn),
        .s00_axi_awaddr(wr_axi_awaddr),
@@ -336,7 +336,7 @@ wrc_board_fasec wr_core_1
        .pps_led_o(),
        .link_ok_o()
        );
-           
+
   IOBUF sfp_i2c_scl_iobuf
        (.I(sfp_i2c_scl_o),
         .IO(sfp_i2c_scl_io),
@@ -367,7 +367,7 @@ wrc_board_fasec wr_core_1
          (.I(pps_o),
           .O(pps_p),
           .OB(pps_n));
-          
+
   assign dio_oe_n = 0;
   assign dio_term = 0;
 

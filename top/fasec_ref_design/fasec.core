@@ -7,12 +7,13 @@ filesets:
     depend:
       - ohwr:wrpc:wrc_board_fasec
     files:
-      - fasec_ref_design_wrapper.v
-    file_type: VerilogSource
+      - fasec.v
+    file_type: verilogSource
 
   bd:
     files:
-      - fasec_ref_design.bd: {file_type: bd}
+      - fasec_bd.tcl
+    file_type: Tcl
 
   hooks:
     depend:
@@ -31,7 +32,7 @@ targets:
       - bd
       - debug ? (debug_files)
       - tool_verilator ? (verilator_waivers)
-    toplevel: fasec_ref_design_wrapper
+    toplevel: fasec
 
   lint:
     <<: *default

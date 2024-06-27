@@ -9,6 +9,7 @@ filesets:
       - ohwr:wrpc:xwrc_board_common
       - ohwr:general-cores:wb_axi4lite_bridge
       - ohwr:wrpc:spec_serial_dac_arb
+      - ohwr:etherbone:etherbone_pkg
     files:
       - fasec/wr_fasec_pkg.vhd
       - fasec/xwrc_board_fasec.vhd
@@ -38,4 +39,3 @@ targets:
         speed: -3
       vivado:
         part: xc7z030ffg676-3
-    

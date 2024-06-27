@@ -5,10 +5,10 @@ description: white rabbit fabric loopback
 filesets:
   rtl:
     depend:
-      - ohwr:wrpc:wb_slave_adaptor
+      - ohwr:general-cores:wb_slave_adapter
     files:
-      - fabric/lbk_pkg.vhd
-      - fabric/lbk_wishbone_controller.vhd
+      - fabric/xwrf_loopback/lbk_pkg.vhd
+      - fabric/xwrf_loopback/lbk_wishbone_controller.vhd
       - wr_endpoint/ep_rx_wb_master.vhd
       - fabric/xwrf_loopback/wrf_loopback.vhd
       - fabric/xwrf_loopback/xwrf_loopback.vhd

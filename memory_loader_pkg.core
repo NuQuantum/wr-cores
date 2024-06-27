@@ -1,0 +1,16 @@
+CAPI=2:
+name: ohwr:general-cores:memory_loader_pkg
+description: GenRAM VHDL Package
+
+filesets:
+  rtl:
+    files:
+      - ip_cores/general-cores/modules/genrams/memory_loader_pkg.vhd
+      - bin/wrpc/wrc_phy16.bram [file_type=user]
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+

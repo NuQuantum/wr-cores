@@ -1,11 +1,11 @@
 CAPI=2:
-name: ohwr:wrpc:wrc_board_common
+name: ohwr:wrpc:xwrc_board_common
 description: this is the white rabbit core + interfaces for the fasec design
 
 filesets:
   rtl:
     depend:
-      - ohwr:wrpc:xwrc_core
+      - ohwr:wrpc:wrc_core
       - ohwr:wrpc:wr_streamers
       - ohwr:wrpc:xwrf_loopback
     files:
