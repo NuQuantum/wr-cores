@@ -10,9 +10,9 @@ filesets:
 
   mif:
     files:
-      - bin/wrpc/wrc_phy16.bram
+      - bin/wrpc/wrc_phy16.bram: {copyto: src/ohwr_general-cores_memory_loader_pkg_0/ip_cores/general-cores/modules/genrams/wrc_phy16.bram}
 #      - bin/wrpc/wrc_phy16.bram
-    file_type: mem
+    file_type: user
 #    copyto: "../../ip_cores/general-cores/modules/genrams/wrc_phy16.bram"
 
 targets:
