@@ -6,11 +6,18 @@ filesets:
   rtl:
     files:
       - ip_cores/general-cores/modules/genrams/memory_loader_pkg.vhd
-      - bin/wrpc/wrc_phy16.bram [file_type=user]
     file_type: vhdlSource
+
+  mif:
+    files:
+      - bin/wrpc/wrc_phy16.bram
+#      - bin/wrpc/wrc_phy16.bram
+    file_type: mem
+#    copyto: "../../ip_cores/general-cores/modules/genrams/wrc_phy16.bram"
 
 targets:
   default: &default
     filesets:
       - rtl
+      - mif
 

@@ -1,0 +1,16 @@
+CAPI=2:
+name: ohwr:vivado:auto_pc
+description: ip core
+
+filesets:
+  cores:
+    files:
+      - fasec_ref_design_auto_pc_0.xci
+    file_type: xci
+
+
+targets:
+  default: &default
+    filesets:
+      - cores
+

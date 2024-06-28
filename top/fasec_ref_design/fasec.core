@@ -6,23 +6,19 @@ filesets:
   rtl:
     depend:
       - ohwr:wrpc:wrc_board_fasec
+      - ohwr:vivado:auto_pc
+      - ohwr:vivado:axi_uartlite
+      - ohwr:vivado:processing_system
+      - ohwr:vivado:axi_periph_0
+      - ohwr:vivado:axi_periph_1
+      - ohwr:vivado:rst_ps7
+      - ohwr:vivado:rst_wrc_board_fasec
+      - ohwr:vivado:xlconcat
+      - ohwr:vivado:xlconstant_2
     files:
-<<<<<<< HEAD
+      - fasec_ref_design.v
       - fasec.v
     file_type: verilogSource
-
-  bd:
-    files:
-      - fasec_bd.tcl
-    file_type: Tcl
-=======
-      - fasec_ref_design_wrapper.v
-    file_type: VerilogSource
-
-  bd:
-    files:
-      - fasec_ref_design.bd: {file_type: bd}
->>>>>>> 2c0ac34c9c4fd42f858808a5247c80fffb3736d5
 
   hooks:
     depend:
@@ -38,14 +34,9 @@ targets:
   default: &default
     filesets:
       - rtl
-      - bd
       - debug ? (debug_files)
       - tool_verilator ? (verilator_waivers)
-<<<<<<< HEAD
     toplevel: fasec
-=======
-    toplevel: fasec_ref_design_wrapper
->>>>>>> 2c0ac34c9c4fd42f858808a5247c80fffb3736d5
 
   lint:
     <<: *default
@@ -67,5 +58,6 @@ targets:
     tools:
       vivado:
         part: xc7z030ffg676-2
+
 
 

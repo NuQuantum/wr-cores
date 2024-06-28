@@ -1,0 +1,14 @@
+CAPI=2:
+name: ohwr:vivado:xlconcat
+description: ip core
+
+filesets:
+  cores:
+    files:
+      - fasec_ref_design_xlconcat_0_0.xci
+    file_type: xci
+
+targets:
+  default: &default
+    filesets:
+      - cores

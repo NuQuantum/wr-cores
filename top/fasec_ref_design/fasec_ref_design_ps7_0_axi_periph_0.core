@@ -1,0 +1,15 @@
+CAPI=2:
+name: ohwr:vivado:axi_periph_0
+description: ip core
+
+filesets:
+  cores:
+    files:
+      - fasec_ref_design_ps7_0_axi_periph_0.xci
+    file_type: xci
+
+
+targets:
+  default: &default
+    filesets:
+      - cores

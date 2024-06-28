@@ -1,0 +1,14 @@
+CAPI=2:
+name: ohwr:vivado:rst_wrc_board_fasec
+description: ip core
+
+filesets:
+  cores:
+    files:
+      - fasec_ref_design_rst_wrc_board_fasec_0_62M_0.xci
+    file_type: xci
+
+targets:
+  default: &default
+    filesets:
+      - cores

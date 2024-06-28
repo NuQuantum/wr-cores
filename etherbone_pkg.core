@@ -1,0 +1,15 @@
+CAPI=2:
+name: ohwr:etherbone:etherbone_pkg
+description: Etherbone base VHDL Package
+
+filesets:
+  rtl:
+    files:
+      - ip_cores/etherbone-core/hdl/eb_slave_core/etherbone_pkg.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+

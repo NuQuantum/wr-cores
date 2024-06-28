@@ -1,0 +1,15 @@
+CAPI=2:
+name: ohwr:vivado:axi_uartlite
+description: ip core
+
+filesets:
+  cores:
+    files:
+      - fasec_ref_design_axi_uartlite_0_0.xci
+    file_type: xci
+
+
+targets:
+  default: &default
+    filesets:
+      - cores
