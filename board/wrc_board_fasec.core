@@ -30,6 +30,7 @@ targets:
 
   synth:
     <<: *default
+    filesets_append: [constraints]
     default_tool: vivado
     tools:
       ise:

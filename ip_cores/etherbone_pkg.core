@@ -1,0 +1,15 @@
+CAPI=2:
+name: ohwr:etherbone:etherbone_pkg
+description: WRPC Ethernbone VHDL Package
+
+filesets:
+  rtl:
+    files:
+      - etherbone-core/hdl/eb_slave_core/etherbone_pkg.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
