@@ -12,22 +12,22 @@
 --
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
--- 
+--
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -42,7 +42,7 @@ use work.streamers_pkg.all;
 
 package wr_board_pkg is
 
-  type t_board_fabric_iface is (PLAIN, STREAMERS, ETHERBONE, LOOPBACK, always_last_invalid);
+  type t_board_fabric_iface is (PLAIN, STREAMERS, ETHERBONE, LOOPBACK, GMII, always_last_invalid);
 
   -- TODO: using these default paths requires absolute path. If relative path is used,
   --       they work only for reference designs by chance. Once we figure out how to
@@ -242,7 +242,7 @@ package wr_board_pkg is
       master_o    : out t_wishbone_master_out;
       master_i    : in  t_wishbone_master_in);
   end component eb_ethernet_slave;
-  
+
 end wr_board_pkg;
 
 package body wr_board_pkg is
@@ -276,6 +276,7 @@ package body wr_board_pkg is
   begin
     case iface_str is
       when "PLAINFBRC" => result := PLAIN;
+      when "     GMII" => result := PLAIN;
       when "STREAMERS" => result := STREAMERS;
       when "ETHERBONE" => result := ETHERBONE;
       when others      => result := always_last_invalid;

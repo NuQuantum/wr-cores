@@ -21,9 +21,17 @@ filesets:
       - fasec/wr_board_fasec_ip.xdc
     file_type: xdc
 
+parameters:
+  g_dpram_initf:
+    datatype: str
+    description: redirecting the base memory load file
+    default: "../wrc_phy16.bram"
+    paramtype: generic
 
 targets:
   default: &default
+    parameters:
+      - g_dpram_initf
     filesets:
       - rtl
     toplevel: wrc_board_fasec

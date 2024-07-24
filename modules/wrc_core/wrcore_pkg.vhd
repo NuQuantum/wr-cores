@@ -44,12 +44,14 @@ use work.softpll_pkg.all;
 package wrcore_pkg is
 
   constant c_WR_CORE_SYSTEM_CLOCK_FREQ_HZ : integer := 62500000;
-  
+
   function f_refclk_rate(pcs_16 : boolean) return integer;
 
   type t_generic_word_array is array (natural range <>) of std_logic_vector(31 downto 0);
+  function convert(a: t_generic_word_array) return std_logic_vector;
+  function convert(a: std_logic_vector) return t_generic_word_array;
 
-  ----------------------------------------------------------------------------- 
+  -----------------------------------------------------------------------------
   --PPS generator
   -----------------------------------------------------------------------------
   constant c_xwr_pps_gen_sdb : t_sdb_device := (
@@ -154,7 +156,7 @@ package wrcore_pkg is
         version   => x"00000001",
         date      => x"20120305",
         name      => "WR-urv-cpu-csr     ")));
-  
+
 
   -----------------------------------------------------------------------------
   -- PERIPHERIALS
@@ -272,6 +274,15 @@ package wrcore_pkg is
         date      => x"20230426",
         name      => "WR-Periph-CLOCK-MON")));
 
+type a_sdb_device is array(natural range <>) of t_sdb_device;
+constant lookup_periph_sdb : a_sdb_device(0 to 6) := (0 => c_wrc_periph0_sdb,
+                                                      1 => c_wrc_periph1_sdb,
+                                                      2 => c_wrc_periph2_sdb,
+                                                      3 => c_wrc_periph3_sdb,
+                                                      4 => c_wrc_periph4_sdb,
+                                                      5 => c_wrc_periph5_sdb,
+                                                      6 => c_wrc_periph6_sdb);
+
   component wrc_periph is
     generic(
       g_board_name      : string  := "NA  ";
@@ -388,7 +399,7 @@ package wrcore_pkg is
       debug_o         : out std_logic_vector(5 downto 0);
       dbg_fifo_irq_o  : out std_logic);
   end component;
-  
+
   constant cc_unused_master_in : t_wishbone_master_in :=
     ('1', '0', '0', '0', cc_dummy_data);
 
@@ -471,8 +482,8 @@ package wrcore_pkg is
       phy_sfp_tx_disable_o : out std_logic;
       phy_rx_rbclk_sampled_i : in std_logic := '0';
       phy_mdio_master_o : out t_wishbone_master_out;
-      phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out; 
-    
+      phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out;
+
       -----------------------------------------
       -- PHY I/f - record-based
       -- selection done with g_records_for_phy
@@ -552,7 +563,7 @@ package wrcore_pkg is
 
   component wr_core is
     generic(
-      --if set to 1, then blocks in PCS use smaller calibration counter to speed 
+      --if set to 1, then blocks in PCS use smaller calibration counter to speed
       --up simulation
       g_simulation                : integer                        := 0;
       g_verbose                   : boolean                        := true;
@@ -818,7 +829,7 @@ package wrcore_pkg is
   component spec_serial_dac_arb
     generic(
       g_invert_sclk    : boolean;
-      g_num_extra_bits : integer);        
+      g_num_extra_bits : integer);
     port (
       clk_i       : in  std_logic;
       rst_n_i     : in  std_logic;
@@ -845,7 +856,7 @@ package wrcore_pkg is
       slave2_i  : in  t_wishbone_slave_in;
       slave2_o  : out t_wishbone_slave_out);
   end component wrc_platform_dpram;
-  
+
 end wrcore_pkg;
 
 package body wrcore_pkg is
@@ -858,6 +869,27 @@ package body wrcore_pkg is
     else
       return 125000000;
     end if;
+  end function;
+
+  function convert(a: t_generic_word_array) return std_logic_vector is
+  variable len : integer := 32;
+  constant alow : integer := a'low;
+  variable rtn : std_logic_vector((a'length*len) -1 downto 0);
+  begin
+     for i in 0 to a'length-1 loop
+         rtn((i*len)+len-1 downto (i*len)) := a(i+alow);
+     end loop;
+     return rtn;
+  end function;
+
+  function convert(a: std_logic_vector) return t_generic_word_array is
+  constant len : integer := 32;
+  variable rtn : t_generic_word_array(a'length/len -1 downto 0);
+  begin
+     for i in 0 to (a'length/len)-1 loop
+        rtn(i)   := a(i*len+len+a'low-1 downto i*len+a'low);
+     end loop;
+     return rtn;
   end function;
 
 end package body wrcore_pkg;

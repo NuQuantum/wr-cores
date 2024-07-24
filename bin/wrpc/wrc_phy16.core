@@ -1,0 +1,16 @@
+CAPI=2:
+name: ohwr:bin:wrc_phy16
+description: riscV compiled code base
+
+filesets:
+  mif:
+    files:
+      - wrc_phy16.bram: {copyto: src}
+    file_type: user
+
+targets:
+  default: &default
+    filesets:
+      - mif
+
+#ohwr_general-cores_memory_loader_pkg_0/wrc_phy16.bram

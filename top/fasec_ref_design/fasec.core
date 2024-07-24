@@ -16,9 +16,9 @@ filesets:
       - ohwr:vivado:xlconcat
       - ohwr:vivado:xlconstant_2
     files:
-      - fasec_ref_design.v
-      - fasec.v
-    file_type: verilogSource
+      - fasec_ref_design.vhd
+      - fasec.vhd
+    file_type: vhdlSource
 
   hooks:
     depend:
@@ -30,11 +30,19 @@ filesets:
       - fasec_ref_design.xdc
     file_type: xdc
 
+parameters:
+  g_dpram_initf:
+    datatype: str
+    description: redirecting the base memory load file
+    default: "../wrc_phy16.bram"
+    paramtype: generic
+
 targets:
   default: &default
+    parameters:
+      - g_dpram_initf
     filesets:
       - rtl
-      - debug ? (debug_files)
       - tool_verilator ? (verilator_waivers)
     toplevel: fasec
 

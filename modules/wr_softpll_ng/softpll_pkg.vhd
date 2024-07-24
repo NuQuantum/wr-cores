@@ -15,7 +15,7 @@ package softpll_pkg is
   constant c_softpll_default_channel_config : t_softpll_channel_config :=
     ( oversample => false,
       divider => 1 );
-
+  function convert(a:std_logic_vector) return t_softpll_channel_config; 
   type t_softpll_channels_config_array is array(0 to c_softpll_max_aux_clocks-1) of t_softpll_channel_config;
 
   constant c_softpll_default_channels_config : t_softpll_channels_config_array := (others => c_softpll_default_channel_config);
@@ -57,5 +57,13 @@ package body softpll_pkg is
       return 1;
     end if;
   end function;
+
+  function convert(a:std_logic_vector) return t_softpll_channel_config is
+  variable rtn : t_softpll_channel_config;
+  begin
+     rtn.oversample := a(32) = '1';
+     rtn.divider    := to_integer(signed(a(31 downto 0)));
+     return rtn;
+  end function; 
 
 end softpll_pkg;

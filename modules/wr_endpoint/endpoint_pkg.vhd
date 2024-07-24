@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 -- Title      : 1000base-X MAC/Endpoint
--- Project    : White Rabbit 
+-- Project    : White Rabbit
 -------------------------------------------------------------------------------
 -- File       : endpoint_pkg.vhd
 -- Author     : Tomasz Wlostowski
@@ -16,20 +16,20 @@
 --
 -- Copyright (c) 2011-2017 CERN / BE-CO-HT
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
@@ -91,6 +91,10 @@ package endpoint_pkg is
     sfp_tx_fault   : std_logic;
     sfp_los        : std_logic;
   end record;
+  constant t_phy_8bits_to_wrc_bits : integer := 22;
+  function to_slv(a:t_phy_8bits_to_wrc) return std_logic_vector;
+  function to_rec(a:std_logic_vector) return t_phy_8bits_to_wrc;
+
   type t_phy_8bits_from_wrc is record
     rst            : std_logic;
     loopen         : std_logic;
@@ -100,6 +104,9 @@ package endpoint_pkg is
     tx_prbs_sel    : std_logic_vector(2 downto 0);
     sfp_tx_disable : std_logic;
   end record;
+  constant t_phy_8bits_from_wrc_bits : integer := 18;
+  function to_slv(a:t_phy_8bits_from_wrc) return std_logic_vector;
+  function to_rec(a:std_logic_vector) return t_phy_8bits_from_wrc;
 
   constant c_dummy_phy8_to_wrc : t_phy_8bits_to_wrc :=
     ('0', '0', '0', (others=>'0'), '0', '0', (others=>'0'), '0',
@@ -123,6 +130,9 @@ package endpoint_pkg is
     sfp_tx_fault   : std_logic;
     sfp_los        : std_logic;
   end record;
+  constant t_phy_16bits_to_wrc_bits : integer := 32;
+  function to_slv(a:t_phy_16bits_to_wrc) return std_logic_vector;
+  function to_rec(a:std_logic_vector) return t_phy_16bits_to_wrc;
 
   type t_phy_16bits_from_wrc is record
     rst            : std_logic;
@@ -133,6 +143,9 @@ package endpoint_pkg is
     tx_prbs_sel    : std_logic_vector(2 downto 0);
     sfp_tx_disable : std_logic;
   end record;
+  constant t_phy_16bits_from_wrc_bits : integer := 28;
+  function to_slv(a:t_phy_16bits_from_wrc) return std_logic_vector;
+  function to_rec(a:std_logic_vector) return t_phy_16bits_from_wrc;
 
   constant c_dummy_phy16_to_wrc : t_phy_16bits_to_wrc :=
     ('0', '0', '0', (others=>'0'), '0', '0', (others=>'0'), '0',
@@ -222,7 +235,7 @@ package endpoint_pkg is
       phy_rdy_i            : in  std_logic;
 
       phy_mdio_master_o : out t_wishbone_master_out;
-      phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out; 
+      phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out;
 
       phy_ref_clk_i        : in  std_logic                     := '0';
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
@@ -276,7 +289,7 @@ package endpoint_pkg is
       fc_tx_pause_ready_o  : out std_logic;
       fc_rx_pause_start_p_o     : out std_logic;
       fc_rx_pause_quanta_o      : out std_logic_vector(15 downto 0);
-      fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);      
+      fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
       fc_rx_buffer_occupation_o : out std_logic_vector(7 downto 0);
       inject_req_i         : in  std_logic                     := '0';
       inject_ready_o       : out std_logic;
@@ -337,7 +350,7 @@ package endpoint_pkg is
       phy_sfp_los_i        : in  std_logic                     := '0';
       phy_sfp_tx_disable_o : out std_logic;
       phy_rdy_i            : in  std_logic;
-      
+
       phy_ref_clk_i        : in  std_logic;
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
       phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
@@ -420,7 +433,7 @@ package endpoint_pkg is
       fc_tx_pause_ready_o  : out std_logic;
       fc_rx_pause_start_p_o     : out std_logic;
       fc_rx_pause_quanta_o      : out std_logic_vector(15 downto 0);
-      fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);     
+      fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
       fc_rx_buffer_occupation_o : out std_logic_vector(7 downto 0);
       inject_req_i         : in  std_logic                     := '0';
       inject_ready_o       : out std_logic;
@@ -435,10 +448,10 @@ package endpoint_pkg is
       link_up_o            : out std_logic;
       stop_traffic_i       : in std_logic := '0';
       dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-      dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
-      nice_dbg_o           : out t_dbg_ep);
+      dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0));
+      --nice_dbg_o           : out t_dbg_ep);
   end component;
-  
+
   constant c_xwr_endpoint_sdb : t_sdb_device := (
     abi_class     => x"0000",              -- undocumented device
     abi_ver_major => x"01",
@@ -497,6 +510,133 @@ package body endpoint_pkg is
     else
       return 125000000;
     end if;
+  end function;
+
+  function to_slv(a:t_phy_8bits_to_wrc) return std_logic_vector is
+    variable rtn : std_logic_vector(t_phy_8bits_to_wrc_bits-1 downto 0);
+  begin
+      rtn := a.ref_clk        &
+             a.tx_disparity   &
+             a.tx_enc_err     &
+             a.rx_data        &
+             a.rx_clk         &
+             a.rx_sampled_clk &
+             a.rx_k           &
+             a.rx_enc_err     &
+             a.rx_bitslide    &
+             a.rdy            &
+             a.sfp_tx_fault   &
+             a.sfp_los;
+      return rtn;
+  end function;
+
+  function to_rec(a:std_logic_vector) return t_phy_8bits_to_wrc is
+     variable rtn : t_phy_8bits_to_wrc;
+  begin
+      rtn.ref_clk        := a(21);
+      rtn.tx_disparity   := a(20);
+      rtn.tx_enc_err     := a(19);
+      rtn.rx_data        := a(18 downto 11);
+      rtn.rx_clk         := a(10);
+      rtn.rx_sampled_clk := a(9);
+      rtn.rx_k(0)        := a(8);
+      rtn.rx_enc_err     := a(7);
+      rtn.rx_bitslide    := a(6 downto 3);
+      rtn.rdy            := a(2);
+      rtn.sfp_tx_fault   := a(1);
+      rtn.sfp_los        := a(0);
+
+      return rtn;
+  end function;
+
+
+  function to_slv(a:t_phy_8bits_from_wrc) return std_logic_vector is
+    variable  rtn : std_logic_vector(t_phy_8bits_from_wrc_bits-1 downto 0);
+  begin
+      rtn := a.rst            &
+             a.loopen         &
+             a.tx_data        &
+             a.tx_k           &
+             a.loopen_vec     &
+             a.tx_prbs_sel    &
+             a.sfp_tx_disable;
+      return rtn;
+  end function;
+
+  function to_rec(a:std_logic_vector) return t_phy_8bits_from_wrc is
+     variable rtn : t_phy_8bits_from_wrc;
+  begin
+      rtn.rst            := a(17);
+      rtn.loopen         := a(16);
+      rtn.tx_data        := a(15 downto 8);
+      rtn.tx_k(7)        := a(7);
+      rtn.loopen_vec     := a(6 downto 4);
+      rtn.tx_prbs_sel    := a(3 downto 1);
+      rtn.sfp_tx_disable := a(0);
+      return rtn;
+  end function;
+
+  function to_slv(a:t_phy_16bits_to_wrc) return std_logic_vector is
+    variable  rtn : std_logic_vector(t_phy_16bits_to_wrc_bits-1 downto 0);
+  begin
+      rtn := a.ref_clk        &
+             a.tx_disparity   &
+             a.tx_enc_err     &
+             a.rx_data        &
+             a.rx_clk         &
+             a.rx_sampled_clk &
+             a.rx_k           &
+             a.rx_enc_err     &
+             a.rx_bitslide    &
+             a.rdy            &
+             a.sfp_tx_fault   &
+             a.sfp_los;
+      return rtn;
+  end function;
+
+  function to_rec(a:std_logic_vector) return t_phy_16bits_to_wrc is
+     variable rtn : t_phy_16bits_to_wrc;
+  begin
+      rtn.ref_clk        := a(31);
+      rtn.tx_disparity   := a(30);
+      rtn.tx_enc_err     := a(29);
+      rtn.rx_data        := a(28 downto 13);
+      rtn.rx_clk         := a(12);
+      rtn.rx_sampled_clk := a(11);
+      rtn.rx_k           := a(10 downto 9);
+      rtn.rx_enc_err     := a(8);
+      rtn.rx_bitslide    := a(7 downto 3);
+      rtn.rdy            := a(2);
+      rtn.sfp_tx_fault   := a(1);
+      rtn.sfp_los        := a(0);
+      return rtn;
+  end function;
+
+  function to_slv(a:t_phy_16bits_from_wrc) return std_logic_vector is
+    variable  rtn : std_logic_vector(t_phy_16bits_from_wrc_bits-1 downto 0);
+  begin
+      rtn := a.rst            &
+             a.loopen         &
+             a.tx_data        &
+             a.tx_k           &
+             a.loopen_vec     &
+             a.tx_prbs_sel    &
+             a.sfp_tx_disable;
+      return rtn;
+  end function;
+
+
+  function to_rec(a:std_logic_vector) return t_phy_16bits_from_wrc is
+     variable rtn : t_phy_16bits_from_wrc;
+  begin
+      rtn.rst            := a(27);
+      rtn.loopen         := a(26);
+      rtn.tx_data        := a(25 downto 9);
+      rtn.tx_k           := a(8 downto 7);
+      rtn.loopen_vec     := a(6 downto 4);
+      rtn.tx_prbs_sel    := a(3 downto 1);
+      rtn.sfp_tx_disable := a(0);
+      return rtn;
   end function;
 
 end package body endpoint_pkg;
