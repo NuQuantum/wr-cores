@@ -1,6 +1,6 @@
 
 ################################################################
-# This is a generated script based on design: design_1
+# This is a generated script based on design: kasli_ref_design
 #
 # Though there are limitations about the generated script,
 # the main purpose of this utility is to make learning
@@ -18,11 +18,24 @@ variable script_folder
 set script_folder [_tcl::get_script_folder]
 
 ################################################################
+# Check if script is running in correct Vivado version.
+################################################################
+set scripts_vivado_version 2022.2
+set current_vivado_version [version -short]
+
+if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
+   puts ""
+   catch {common::send_gid_msg -ssname BD::TCL -id 2041 -severity "ERROR" "This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Please run the script in Vivado <$scripts_vivado_version> then open the design in Vivado <$current_vivado_version>. Upgrade the design by running \"Tools => Report => Report IP Status...\", then run write_bd_tcl to create an updated script."}
+
+   return 1
+}
+
+################################################################
 # START
 ################################################################
 
 # To test this script, run the following commands from Vivado Tcl console:
-# source design_1_script.tcl
+# source kasli_ref_design_script.tcl
 
 # If there is no project opened, this script will create a
 # project, but make sure you do not have an existing project
@@ -75,7 +88,7 @@ if { ${design_name} eq "" } {
    set errMsg "Design <$design_name> already exists in your project, please set the variable <design_name> to another value."
    set nRet 1
 } elseif { [get_files -quiet ${design_name}.bd] ne "" } {
-   # USE CASES:
+   # USE CASES: 
    #    6) Current opened design, has components, but diff names, design_name exists in project.
    #    7) No opened design, design_name exists in project.
 
@@ -104,6 +117,41 @@ if { $nRet != 0 } {
 }
 
 set bCheckIPsPassed 1
+##################################################################
+# CHECK IPs
+##################################################################
+set bCheckIPs 1
+if { $bCheckIPs == 1 } {
+   set list_check_ips "\ 
+xilinx.com:ip:axi_uartlite:2.0\
+xilinx.com:ip:processing_system7:5.5\
+xilinx.com:ip:proc_sys_reset:5.0\
+xilinx.com:ip:xlconcat:2.1\
+xilinx.com:ip:xlconstant:1.1\
+"
+
+   set list_ips_missing ""
+   common::send_gid_msg -ssname BD::TCL -id 2011 -severity "INFO" "Checking if the following IPs exist in the project's IP catalog: $list_check_ips ."
+
+   foreach ip_vlnv $list_check_ips {
+      set ip_obj [get_ipdefs -all $ip_vlnv]
+      if { $ip_obj eq "" } {
+         lappend list_ips_missing $ip_vlnv
+      }
+   }
+
+   if { $list_ips_missing ne "" } {
+      catch {common::send_gid_msg -ssname BD::TCL -id 2012 -severity "ERROR" "The following IPs are not found in the IP Catalog:\n  $list_ips_missing\n\nResolution: Please add the repository containing the IP(s) to the project." }
+      set bCheckIPsPassed 0
+   }
+
+}
+
+if { $bCheckIPsPassed != 1 } {
+  common::send_gid_msg -ssname BD::TCL -id 2023 -severity "WARNING" "Will not continue with creation of design due to the error(s) above."
+  return 3
+}
+
 ##################################################################
 # DESIGN PROCs
 ##################################################################
@@ -220,6 +268,8 @@ proc create_root_design { parentCell } {
 
   set UART_0 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:uart_rtl:1.0 UART_0 ]
 
+  set ZYNQ7_GMII [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:gmii_rtl:1.0 ZYNQ7_GMII ]
+
   set wr_axi [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 wr_axi ]
   set_property -dict [ list \
    CONFIG.ADDR_WIDTH {32} \
@@ -255,7 +305,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_CAN_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_DCI_PERIPHERAL_FREQMHZ {10.158730} \
     CONFIG.PCW_ACT_ENET0_PERIPHERAL_FREQMHZ {125.000000} \
-    CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {10.000000} \
+    CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {125.000000} \
     CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {100.000000} \
     CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {10.000000} \
@@ -302,14 +352,18 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ENET0_PERIPHERAL_ENABLE {1} \
     CONFIG.PCW_ENET0_PERIPHERAL_FREQMHZ {1000 Mbps} \
     CONFIG.PCW_ENET0_RESET_ENABLE {0} \
-    CONFIG.PCW_ENET1_PERIPHERAL_CLKSRC {IO PLL} \
-    CONFIG.PCW_ENET1_PERIPHERAL_ENABLE {0} \
+    CONFIG.PCW_ENET1_ENET1_IO {EMIO} \
+    CONFIG.PCW_ENET1_GRP_MDIO_ENABLE {0} \
+    CONFIG.PCW_ENET1_PERIPHERAL_ENABLE {1} \
+    CONFIG.PCW_ENET1_PERIPHERAL_FREQMHZ {1000 Mbps} \
     CONFIG.PCW_ENET_RESET_ENABLE {1} \
     CONFIG.PCW_ENET_RESET_POLARITY {Active Low} \
     CONFIG.PCW_ENET_RESET_SELECT {Share reset pin} \
     CONFIG.PCW_EN_4K_TIMER {0} \
+    CONFIG.PCW_EN_EMIO_ENET1 {1} \
     CONFIG.PCW_EN_EMIO_TTC0 {1} \
     CONFIG.PCW_EN_ENET0 {1} \
+    CONFIG.PCW_EN_ENET1 {1} \
     CONFIG.PCW_EN_GPIO {1} \
     CONFIG.PCW_EN_I2C0 {1} \
     CONFIG.PCW_EN_QSPI {1} \
@@ -716,6 +770,7 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net axi_uartlite_0_UART [get_bd_intf_ports UART_0] [get_bd_intf_pins axi_uartlite_0/UART]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
+  connect_bd_intf_net -intf_net processing_system7_0_GMII_ETHERNET_1 [get_bd_intf_ports ZYNQ7_GMII] [get_bd_intf_pins processing_system7_0/GMII_ETHERNET_1]
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins processing_system7_0/M_AXI_GP0] [get_bd_intf_pins ps7_0_axi_periph/S00_AXI]
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP1 [get_bd_intf_pins processing_system7_0/M_AXI_GP1] [get_bd_intf_pins ps7_0_axi_periph_1/S00_AXI]
   connect_bd_intf_net -intf_net ps7_0_axi_periph_1_M00_AXI [get_bd_intf_ports wr_axi] [get_bd_intf_pins ps7_0_axi_periph_1/M00_AXI]
@@ -747,7 +802,6 @@ proc create_root_design { parentCell } {
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -759,4 +813,6 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
+
+common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 

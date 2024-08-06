@@ -36,7 +36,7 @@ if { $list_projs eq "" } {
 
 
 # CHANGE DESIGN NAME HERE
-set design_name design_1
+set design_name kasli_soc
 
 # If you do not already have an existing IP Integrator design open,
 # you can create a design using the following command:

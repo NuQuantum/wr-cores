@@ -1,0 +1,14 @@
+CAPI=2:
+name: ohwr:vivado:kasli_xlconstant_2
+description: ip core
+
+filesets:
+  cores:
+    files:
+      - kasli_ref_design_xlconstant_2_0.xci
+    file_type: xci
+
+targets:
+  default: &default
+    filesets:
+      - cores

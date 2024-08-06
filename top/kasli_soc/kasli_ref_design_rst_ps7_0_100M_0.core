@@ -1,0 +1,16 @@
+CAPI=2:
+name: ohwr:vivado:kasli_rst_ps7
+description: ip core
+
+filesets:
+  cores:
+    files:
+      - kasli_ref_design_rst_ps7_0_100M_0.xci
+    file_type: xci
+
+
+targets:
+  default: &default
+    filesets:
+      - cores
+

@@ -189,6 +189,11 @@ architecture sim of kasli_testbench is
   constant slave_uart : uart_slave_t := new_uart_slave(data_length => 8);
   constant slave_stream : stream_slave_t := as_stream(slave_uart);
 
+  constant wb_ethernet_rx : wishbone_slave_t := new_wishbone_slave;
+  constant wb_ethernet_tx : bus_master_t := new_bus(data_length => wrf_src_o_dat'length, address_length => wrf_src_o_adr'length, logger => get_logger("wb_bus"));
+
+  constant sgmii_rx : sgmii_slave_t := new_sgmii_slave;
+  constant sgmii_tx : sgmii_master_t := new_sgmii_master;
 
 begin
 
@@ -433,16 +438,63 @@ axi_master : entity vunit_lib.axi_lite_master
     generic map (uart => slave_uart)
     port map (rx => uart_txd_o);
 
+
+----------------------------------------
+-- wishbone ethernet interface        --
+----------------------------------------
+U_wb_rx : entity vunit_lib.wishbone_slave
+  generic map(
+    wishbone_slave : wishbone_slave_t
+  );
+  port map(
+    clk   => ,
+    adr   => wrf_src_o_adr,
+    dat_i => wrf_src_o_dat,
+    dat_o => open,
+    sel   => wrf_src_o_sel,
+    cyc   => wrf_src_o_cyc,
+    stb   => wrf_src_o_stb,
+    we    => wrf_src_o_we,
+    stall => wrf_src_i_stall,
+    ack   => wrf_src_i_ack
+    );
+--    wrf_src_i_err       => wrf_src_i_err  ,
+--    wrf_src_i_rty       => wrf_src_i_rty  ,
+
+
+U_wb_tx : entity vunit_lib.wishbone_master
+  generic map(
+    bus_handle : bus_master_t;
+    strobe_high_probability : real range 0.0 to 1.0 := 1.0
+    );
+  port map(
+    clk   => ,
+    adr   => wrf_snk_i_adr,
+    dat_i => (others=>'0'),
+    dat_o => wrf_snk_i_dat,
+    sel   => wrf_snk_i_sel,
+    cyc   => wrf_snk_i_cyc,
+    stb   => wrf_snk_i_stb,
+    we    => wrf_snk_i_we,
+    stall => wrf_snk_o_stall,
+    ack   => wrf_snk_o_ack
+    );
+
+--    wrf_snk_o_err       => wrf_snk_o_err  ,
+--    wrf_snk_o_rty       => wrf_snk_o_rty  ,
 ----------------------------------------
 -- WR SFP                              --
 ----------------------------------------
---    sfp_tx_p_o          => sfp_tx_p_o       ,
---    sfp_tx_n_o          => sfp_tx_n_o       ,
---    sfp_rx_p_i          => sfp_rx_p_i       ,
---    sfp_rx_n_i          => sfp_rx_n_i       ,
 
-    sfp_rx_p_i          <= sfp_tx_p_o       ;
-    sfp_rx_n_i          <= sfp_tx_n_o       ;
+u_sgmii_master entity work.sgmii_master
+  generic map(sgmii => sgmii_tx);
+  port map(tx_p => sfp_rx_p_i,
+           tx_n => sfp_rx_n_i);
+
+u_sgmii_slave entity work.sgmii_slave
+  generic map(sgmii => sgmii_rx);
+  port map(rx_p => sfp_tx_p_o,
+           rx_n => sfp_tx_n_o);
 
 --    sfp_det_i           => sfp_det_i        ,
 --    sfp_rate_select_o   => sfp_rate_select_o,
