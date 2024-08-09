@@ -3,6 +3,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 library work;
+use work.sgmii_pkg.all;
 
 library vunit_lib;
 context vunit_lib.vunit_context;
@@ -133,11 +134,13 @@ architecture sim of kasli_testbench is
     signal wrf_src_i_stall : std_logic := '0';
     signal wrf_src_i_err   : std_logic := '0';
     signal wrf_src_i_rty   : std_logic := '0';
+    signal wrf_src_i_dat   : std_logic_vector(15 downto 0) := (others=>'0');
 
     signal wrf_snk_o_ack   : std_logic := '0';
     signal wrf_snk_o_stall : std_logic := '0';
     signal wrf_snk_o_err   : std_logic := '0';
     signal wrf_snk_o_rty   : std_logic := '0';
+    signal wrf_snk_o_dat   : std_logic_vector(15 downto 0) := (others=>'0');
 
     signal wrf_snk_i_adr : std_logic_vector(1 downto 0) := (others=>'0');
     signal wrf_snk_i_dat : std_logic_vector(15 downto 0) := (others=>'0');
@@ -182,6 +185,8 @@ architecture sim of kasli_testbench is
     -- Link ok indication
     signal link_ok_o  :  std_logic;
 
+   constant wrf_src_o_gnd : std_logic_vector(15 downto 0) := (others=>'0');
+
   constant axi_bus      : bus_master_t := new_bus(data_length => s00_axi_wdata'length, address_length => s00_axi_awaddr'length, logger => get_logger("axi_bus"));
   constant master_uart : uart_master_t := new_uart_master;
   constant master_stream : stream_master_t := as_stream(master_uart);
@@ -189,15 +194,16 @@ architecture sim of kasli_testbench is
   constant slave_uart : uart_slave_t := new_uart_slave(data_length => 8);
   constant slave_stream : stream_slave_t := as_stream(slave_uart);
 
-  constant wb_ethernet_rx : wishbone_slave_t := new_wishbone_slave;
-  constant wb_ethernet_tx : bus_master_t := new_bus(data_length => wrf_src_o_dat'length, address_length => wrf_src_o_adr'length, logger => get_logger("wb_bus"));
+  constant memory : memory_t := new_memory;
+  constant wb_ethernet_rx : wishbone_slave_t := new_wishbone_slave(memory => memory);
+  constant wb_ethernet_tx : bus_master_t := new_bus(data_length => wrf_src_o_dat'length, address_length => wrf_src_o_adr'length, logger => get_logger("wb_bus_tx"));
 
   constant sgmii_rx : sgmii_slave_t := new_sgmii_slave;
   constant sgmii_tx : sgmii_master_t := new_sgmii_master;
 
 begin
 
-U_DUT : entity work.wrc_board_kasli
+U_kasli_board : entity work.wrc_board_kasli
   generic map(
     g_simulation                => 1,
     g_with_external_clock_input => 0,
@@ -345,8 +351,8 @@ U_DUT : entity work.wrc_board_kasli
     areset_n_i          <= '1' after 100 ns;
 
     clk_20m_vcxo_i      <= not clk_20m_vcxo_i after 25 ns;
-    clk_125m_pllref_p_i <= not clk_125m_pllref_p_i after 4 ns;
-    clk_125m_pllref_n_i <= not clk_125m_pllref_n_i after 4 ns;
+    clk_125m_pllref_p_i <= not clk_125m_pllref_p_i after 399 ps;
+    clk_125m_pllref_n_i <= not clk_125m_pllref_n_i after 399 ps;
     clk_125m_gtp_n_i    <= not clk_125m_gtp_n_i after 4 ns;
     clk_125m_gtp_p_i    <= not clk_125m_gtp_p_i after 4 ns;
     clk_10m_ext_i       <= not clk_10m_ext_i after 50 ns;
@@ -444,13 +450,13 @@ axi_master : entity vunit_lib.axi_lite_master
 ----------------------------------------
 U_wb_rx : entity vunit_lib.wishbone_slave
   generic map(
-    wishbone_slave : wishbone_slave_t
-  );
+    wishbone_slave => wb_ethernet_rx
+  )
   port map(
-    clk   => ,
+    clk   => clk_sys_62m5_o,
     adr   => wrf_src_o_adr,
     dat_i => wrf_src_o_dat,
-    dat_o => open,
+    dat_o => wrf_src_i_dat,
     sel   => wrf_src_o_sel,
     cyc   => wrf_src_o_cyc,
     stb   => wrf_src_o_stb,
@@ -464,13 +470,12 @@ U_wb_rx : entity vunit_lib.wishbone_slave
 
 U_wb_tx : entity vunit_lib.wishbone_master
   generic map(
-    bus_handle : bus_master_t;
-    strobe_high_probability : real range 0.0 to 1.0 := 1.0
-    );
+    bus_handle => wb_ethernet_tx
+    )
   port map(
-    clk   => ,
+    clk   => clk_sys_62m5_o,
     adr   => wrf_snk_i_adr,
-    dat_i => (others=>'0'),
+    dat_i => wrf_snk_o_dat,
     dat_o => wrf_snk_i_dat,
     sel   => wrf_snk_i_sel,
     cyc   => wrf_snk_i_cyc,
@@ -486,13 +491,13 @@ U_wb_tx : entity vunit_lib.wishbone_master
 -- WR SFP                              --
 ----------------------------------------
 
-u_sgmii_master entity work.sgmii_master
-  generic map(sgmii => sgmii_tx);
+u_sgmii_master : entity work.sgmii_master
+  generic map(sgmii => sgmii_tx)
   port map(tx_p => sfp_rx_p_i,
            tx_n => sfp_rx_n_i);
 
-u_sgmii_slave entity work.sgmii_slave
-  generic map(sgmii => sgmii_rx);
+u_sgmii_slave : entity work.sgmii_slave
+  generic map(sgmii => sgmii_rx)
   port map(rx_p => sfp_tx_p_o,
            rx_n => sfp_tx_n_o);
 

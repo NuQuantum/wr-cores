@@ -11,9 +11,10 @@ library vunit_lib;
 context vunit_lib.vunit_context;
 context vunit_lib.com_context;
 use vunit_lib.stream_master_pkg.all;
-use vunit_lib.sgmii_pkg.all;
 use vunit_lib.queue_pkg.all;
 use vunit_lib.sync_pkg.all;
+
+use work.sgmii_pkg.all;
 
 entity sgmii_master is
   generic (
@@ -24,9 +25,9 @@ entity sgmii_master is
 end entity;
 
 architecture a of sgmii_master is
-signal data              : std_logic_vector(7 downto 0) := '0';
+signal data              : std_logic_vector(7 downto 0) := (others=>'0');
 signal k                 : std_logic := '0';
-signal time_per_bit      : time := (10**12 / 1250000000) * 1 ps;
+signal time_per_bit      : time := (10**9 / 1250000) * 1 ps;
 signal clock_half_period : time := 4 ns;
 signal clock             : std_logic := '0';
 signal running_disparity : boolean := false;
@@ -75,13 +76,15 @@ clock <= not clock after clock_half_period;
         elsif msg_type = sgmii_set_baud_rate_msg then
         ------------------------------------------
             baud_rate := pop(msg);
-            time_per_bit <= (10**12 / baud_rate) * 1 ps ;
-            clock_half_period <= (10**11 / baud_rate) * 1 ps ;
+            time_per_bit <= (10**9 / (baud_rate / 1000)) * 1 ps ;
+            clock_half_period <= (10**8 / (baud_rate / 1000)) * 1 ps ;
         ------------------------------------------
         else
         ------------------------------------------
             unexpected_msg_type(msg_type);
         end if;
+    else
+        send_Idle2(clock, data, k);
     end if;
   end process;
 
@@ -94,8 +97,8 @@ begin
       encode_8b10b(k, disparity, data, d10);
       running_disparity <= disparity;
       for i in 0 to 9 loop
-          tx_p <= value(i);
-          tx_n <= not value(i);
+          tx_p <= d10(i);
+          tx_n <= not d10(i);
           wait for time_per_bit;
       end loop;
    end loop;

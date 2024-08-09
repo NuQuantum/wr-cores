@@ -60,15 +60,17 @@ entity kasli_soc is
     SFP_txn : out std_logic;
     SFP_txp : out std_logic;
 
-    clk_125m_gtp_n_i : in std_logic;
-    clk_125m_gtp_p_i : in std_logic;
-    clk_125m_pllref_n_i : in std_logic;
-    clk_125m_pllref_p_i : in std_logic;
+    clk_125m_gtp_n : in std_logic;
+    clk_125m_gtp_p : in std_logic;
+    clk_125m_pllref_n : in std_logic;
+    clk_125m_pllref_p : in std_logic;
+    clk_10m_ref_p       : in std_logic;
+    clk_10m_ref_n       : in std_logic;
 
     clk_ref_125m_n : out std_logic_vector(0 downto 0);
     clk_ref_125m_p : out std_logic_vector(0 downto 0);
-    ddmtd_helper_clk_n : out std_logic;
-    ddmtd_helper_clk_p : out std_logic;
+    ddmtd_helper_clk_n : in std_logic;
+    ddmtd_helper_clk_p : in std_logic;
     eeprom_i2c_scl_io : inout std_logic;
     eeprom_i2c_sda_io : inout std_logic;
 
@@ -906,7 +908,7 @@ signal ZYNQ7_GMII_tx_en  : STD_LOGIC_VECTOR ( 0 to 0 );
 signal ZYNQ7_GMII_tx_er  : STD_LOGIC_VECTOR ( 0 to 0 );
 signal ZYNQ7_GMII_txd    : STD_LOGIC_VECTOR ( 7 downto 0 );
 
-
+signal clk_10m_ext_i    :  STD_LOGIC := '0';
 signal clk_ref_125m_o   :  STD_LOGIC_VECTOR(0 downto 0) := (others=>'0');
 signal clk_sys_62m5_o   :  STD_LOGIC_VECTOR(0 downto 0) := (others=>'0');
 
@@ -1283,12 +1285,12 @@ generic map (
     g_diag_ro_vector_width      => g_diag_ro_vector_width,
     g_diag_rw_vector_width      => g_diag_rw_vector_width)
 port map (areset_n_i => areset_n_i,
-       clk_125m_gtp_n_i => clk_125m_gtp_n_i,
-       clk_125m_gtp_p_i => clk_125m_gtp_p_i,
-       clk_125m_pllref_n_i => clk_125m_pllref_n_i,
-       clk_125m_pllref_p_i => clk_125m_pllref_p_i,
+       clk_125m_gtp_n_i => clk_125m_gtp_n,
+       clk_125m_gtp_p_i => clk_125m_gtp_p,
+       clk_125m_pllref_n_i => ddmtd_helper_clk_n,
+       clk_125m_pllref_p_i => ddmtd_helper_clk_p,
        clk_20m_vcxo_i => clk_20m_vcxo_i,
---       clk_10m_ext_i => ,
+       clk_10m_ext_i => clk_10m_ext_i,
 --       pps_ext_i => ,
        clk_sys_62m5_o => clk_sys_62m5_o(0),
        clk_ref_125m_o => clk_ref_125m_o(0),
@@ -1299,15 +1301,6 @@ port map (areset_n_i => areset_n_i,
        pll25dac_cs_n_o => pll25dac_cs_n_o,
        plldac_din_o => plldac_din_o,
        plldac_sclk_o => plldac_sclk_o,
-
---       SFP_mod_abs => SFP_mod_abs,
---       SFP_rx_los => SFP_rx_los,
---       SFP_rxn => SFP_rxn,
---       SFP_rxp => SFP_rxp,
---       SFP_tx_disable => SFP_tx_disable,
---       SFP_tx_fault => SFP_tx_fault,
---       SFP_txn => SFP_txn,
---       SFP_txp => SFP_txp,
 
        sfp_tx_p_o => SFP_txp,
        sfp_tx_n_o => SFP_txn,
@@ -1320,6 +1313,8 @@ port map (areset_n_i => areset_n_i,
        sfp_scl_i => sfp_i2c_scl_i,
        sfp_scl_o => sfp_i2c_scl_o,
        sfp_scl_t => sfp_i2c_scl_t,
+
+--       SFP_mod_abs => SFP_mod_abs,
        sfp_rate_select_o => sfp_rate_select_o,
        sfp_tx_fault_i => SFP_tx_fault,
        sfp_tx_disable_o => SFP_tx_disable,
@@ -1434,38 +1429,43 @@ port map (
 );
 
 
-  sfp_i2c_scl_iobuf : IOBUF
-  port map(I => sfp_i2c_scl_o,
-        IO => sfp_i2c_scl_io,
-        O => sfp_i2c_scl_i,
-        T => sfp_i2c_scl_t);
+  clk_in_10m : IBUFDS
+  port map(O => clk_10m_ext_i,
+         I => clk_10m_ref_p,
+         IB => clk_10m_ref_n);
 
-  sfp_i2c_sda_iobuf : IOBUF
-  port map(I => sfp_i2c_sda_o,
-        IO => sfp_i2c_sda_io,
-        O => sfp_i2c_sda_i,
-        T => sfp_i2c_sda_t);
+--  sfp_i2c_scl_iobuf : IOBUF
+--  port map(I => sfp_i2c_scl_o,
+--        IO => sfp_i2c_scl_io,
+--        O => sfp_i2c_scl_i,
+--        T => sfp_i2c_scl_t);
 
-  thermo_id_tri_iobuf : IOBUF
-  port map(I => thermo_id_tri_o,
-        IO => thermo_id_tri_io,
-        O => thermo_id_tri_i,
-        T => thermo_id_tri_t);
+--  sfp_i2c_sda_iobuf : IOBUF
+--  port map(I => sfp_i2c_sda_o,
+--        IO => sfp_i2c_sda_io,
+--        O => sfp_i2c_sda_i,
+--        T => sfp_i2c_sda_t);
 
-  clk_out_62_5 : OBUFDS
-  port map(I => clk_sys_62m5_o(0),
-         O => ddmtd_helper_clk_p,
-         OB => ddmtd_helper_clk_n);
+  --thermo_id_tri_iobuf : IOBUF
+  --port map(I => thermo_id_tri_o,
+  --      IO => thermo_id_tri_io,
+  --      O => thermo_id_tri_i,
+  --      T => thermo_id_tri_t);
 
-  clk_out_125 : OBUFDS
-  port map(I => clk_ref_125m_o(0),
-         O => clk_ref_125m_p(0),
-         OB => clk_ref_125m_n(0));
+  --clk_out_62_5 : OBUFDS
+  --port map(I => clk_sys_62m5_o(0),
+  --       O => ddmtd_helper_clk_p,
+  --       OB => ddmtd_helper_clk_n);
 
-  pps_out : OBUFDS
-  port map(I => pps_o(0),
-          O => pps_p(0),
-          OB => pps_n(0));
+  --clk_out_125 : OBUFDS
+  --port map(I => clk_ref_125m_o(0),
+  --       O => clk_ref_125m_p(0),
+  --       OB => clk_ref_125m_n(0));
+
+  --pps_out : OBUFDS
+  --port map(I => pps_o(0),
+  --        O => pps_p(0),
+  --        OB => pps_n(0));
 
    dio_oe_n <= (others=>'0');
    dio_term <= (others=>'0');

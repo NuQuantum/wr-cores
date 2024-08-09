@@ -11,14 +11,17 @@ library vunit_lib;
 context vunit_lib.vunit_context;
 context vunit_lib.com_context;
 use vunit_lib.stream_slave_pkg.all;
-use vunit_lib.sgmii_pkg.all;
 use vunit_lib.queue_pkg.all;
+
+use work.sgmii_pkg.all;
+
 
 entity sgmii_slave is
   generic (
     sgmii : sgmii_slave_t);
   port (
-    rx : in std_logic);
+    rx_p : in std_logic;
+    rx_n : in std_logic);
 end entity;
 
 architecture a of sgmii_slave is
@@ -53,33 +56,61 @@ begin
   end process;
 
   recv : process
+      variable time_per_bit : time := (10**9 / baud_rate) * 1 ns;
+      variable time_per_half_bit : time := (10**9 / (2*baud_rate)) * 1 ns;
+
     procedure sgmii_recv(variable data : out std_logic_vector;
                         signal rx : in std_logic;
                         baud_rate : integer) is
-      constant time_per_bit : time := (10**9 / baud_rate) * 1 ns;
-      constant time_per_half_bit : time := (10**9 / (2*baud_rate)) * 1 ns;
     begin
+      assert time_per_bit /= 0 ps report "time base too small for the sgmii core" severity FAILURE;
+      wait until rx_p'event;
       wait for time_per_half_bit; -- middle of start bit
-      assert rx = not sgmii.p_idle_state;
-      wait for time_per_bit; -- skip start bit
 
       for i in 0 to data'length-1 loop
-        data(i) := rx;
+        data(i) := rx_p;
         wait for time_per_bit;
       end loop;
 
-      assert rx = sgmii.p_idle_state;
     end procedure;
 
-    variable data : std_logic_vector(sgmii.p_data_length-1 downto 0);
+    variable d8  : std_logic_vector(7 downto 0);
+    variable k   : std_logic;
+    variable data : std_logic_vector(9 downto 0);
   begin
-    wait on rx until rx = not sgmii.p_idle_state;
-    sgmii_recv(data, rx, baud_rate);
-    push_std_ulogic_vector(data_queue, data);
-    local_event <= '1';
-    wait for 0 ns;
-    local_event <= '0';
-    wait for 0 ns;
+    wait on rx_p;
+    -----------------------------------
+    -- get bit alignment
+    ----------------------------------
+    bit_align : loop
+        sgmii_recv(data, rx_p, baud_rate);
+        decode_8b10b(data, d8, k);
+        if k = '1' and d8 = x"50" then
+            exit; -- loop bit_align;
+        else
+            wait for time_per_bit;
+        end if;
+    end loop;
+    -----------------------------------
+    -- wait for a start of frame
+    ----------------------------------
+    loop
+       while not(k = '1' and d8 = x"5D") loop  -- Start of frame delimiter
+          sgmii_recv(data, rx_p, baud_rate);
+          decode_8b10b(data, d8, k);
+       end loop;
+       -- then grab the data
+       while not(k = '1' and d8 = x"FD") loop -- end of frame delimiter
+          sgmii_recv(data, rx_p, baud_rate);
+          decode_8b10b(data, d8, k);
+          push_std_ulogic_vector(data_queue, data);
+       end loop;
+
+       local_event <= '1';
+       wait for 0 ns;
+       local_event <= '0';
+       wait for 0 ns;
+    end loop;
   end process;
 
 end architecture;

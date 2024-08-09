@@ -68,7 +68,7 @@ entity xwrc_platform_xilinx is
       g_use_default_plls          : boolean := TRUE;
       -- Config for the auxiliary PLL output (for now only used in Spartan-6
       g_aux_pll_cfg               : t_auxpll_cfg_array := c_AUXPLL_CFG_ARRAY_DEFAULT;
-      -- Select GTP channel to use 
+      -- Select GTP channel to use
       g_gtp_enable_ch0            : integer := 0;
       g_gtp_enable_ch1            : integer := 1;
       -- Select PHY reference clock
@@ -129,7 +129,7 @@ entity xwrc_platform_xilinx is
     sfp_los_i             : in  std_logic             := '0';
     sfp_tx_disable_o      : out std_logic;
     ---------------------------------------------------------------------------
-    -- if both SFP channels are enabled and sfp_mux is enabled, 
+    -- if both SFP channels are enabled and sfp_mux is enabled,
     -- this is the bit to switch between them
     -- '0' - enable  SFP (channel 0) and disable SFP1 (channel 1)
     -- '1' - disable SFP (channel 0) and enable  SFP1 (channel 1)
@@ -205,21 +205,21 @@ begin  -- architecture rtl
       severity ERROR;
   end generate gen_no_gtp_channel;
 
-  gen_mux_when_single_ch: if ((g_gtp_enable_ch0 = 0 or g_gtp_enable_ch1 = 0) 
-                          and g_gtp_mux_enable =  TRUE) 
+  gen_mux_when_single_ch: if ((g_gtp_enable_ch0 = 0 or g_gtp_enable_ch1 = 0)
+                          and g_gtp_mux_enable =  TRUE)
   generate
     assert FALSE
       report "GTP/SFP mux is allowed only when both channels are enabled"
       severity ERROR;
   end generate gen_mux_when_single_ch;
 
-  gen_mux_support: if (g_gtp_mux_enable =  TRUE and g_fpga_family /= "virtex5") 
+  gen_mux_support: if (g_gtp_mux_enable =  TRUE and g_fpga_family /= "virtex5")
   generate
     assert FALSE
       report "GTP/SFP mux is supported only on virtex5"
       severity ERROR;
   end generate gen_mux_support;
-  
+
   gen_dual_SFP_support: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0 and
                     g_gtp_mux_enable =  FALSE)
   generate
@@ -634,7 +634,7 @@ begin  -- architecture rtl
           CLKIN1       => clk_125m_pllref_buf,
           CLKIN2       => '0',
           -- Tied to always select the primary input clock
-          CLKINSEL     => '1',
+          CLKINSEL     => '0',
           -- Ports for dynamic reconfiguration
           DADDR        => (others => '0'),
           DCLK         => '0',
@@ -700,7 +700,7 @@ begin  -- architecture rtl
           CLKIN1       => clk_20m_vcxo_buf,
           CLKIN2       => '0',
           -- Tied to always select the primary input clock
-          CLKINSEL     => '1',
+          CLKINSEL     => '0',
           -- Ports for dynamic reconfiguration
           DADDR        => (others => '0'),
           DCLK         => '0',
@@ -739,7 +739,7 @@ begin  -- architecture rtl
             clk_dmtd <= not clk_dmtd;
           end if;
         end process;
-        
+
         pll_dmtd_locked <= '1';
       end generate gen_kintex7_artix7_direct_dmtd;
 
@@ -751,7 +751,7 @@ begin  -- architecture rtl
 
       -- External 10MHz reference PLL for Kintex7
       gen_kintex7_artix7_ext_ref_pll : if (g_with_external_clock_input = TRUE) generate
-        
+
         signal clk_ext_fbi : std_logic;
         signal clk_ext_fbo : std_logic;
         signal clk_ext_buf : std_logic;
@@ -856,7 +856,7 @@ begin  -- architecture rtl
 
 
     ---------------------------------------------------------------------------
-    
+
     gen_no_ext_ref_pll : if (g_with_external_clock_input = FALSE) generate
       clk_10m_ext_o         <= '0';
       ext_ref_mul_o         <= '0';
@@ -999,7 +999,7 @@ begin  -- architecture rtl
     phy16_o <= c_dummy_phy16_to_wrc;
 
     gen_gtp_ch_dual: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
-    generate 
+    generate
       assert FALSE
         report "Cannot enable both GTP channels simultaneously on SPARTAN 6"
         severity ERROR;
@@ -1232,7 +1232,7 @@ begin  -- architecture rtl
     phy8_o <= c_dummy_phy8_to_wrc;
 
     gen_gtp_ch_dual: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
-    generate 
+    generate
       assert FALSE
         report "Cannot enable both GTP channels simultaneously on Kintex 7"
         severity ERROR;
@@ -1308,7 +1308,7 @@ begin  -- architecture rtl
     phy8_o <= c_dummy_phy8_to_wrc;
 
     gen_gtp_ch_dual : if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
-    generate 
+    generate
       assert FALSE
         report "Cannot enable both GTP channels simultaneously on ARTIX 7"
         severity ERROR;
