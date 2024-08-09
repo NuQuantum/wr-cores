@@ -55,7 +55,7 @@ targets:
     description: Perform linting on all the source files
     default_tool: modelsim
     tools:
-      verilator:
+      modelsim:
         mode: lint-only
         verilator_options:
           - -Wall
@@ -70,3 +70,6 @@ targets:
     tools:
       vivado:
         part: xc7z030ffg676-2
+
+
+
