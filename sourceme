@@ -11,3 +11,5 @@ else
 fi
 
 export FUSESOC_CORES=$CWD:$FUSESOC_CORES
+
+git submodule update --init --recursive --remote

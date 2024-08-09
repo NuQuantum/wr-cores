@@ -5,7 +5,7 @@
 [submodule "ip_cores/etherbone-core"]
 	path = ip_cores/etherbone-core
 	url = https://github.com/nuquantum/etherbone-core.git
-	branch = master
+	branch = fusesoc
 [submodule "ip_cores/gn4124-core"]
 	path = ip_cores/gn4124-core
 	url = https://ohwr.org/project/gn4124-core.git
