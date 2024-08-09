@@ -1,15 +1,20 @@
 [submodule "ip_cores/general-cores"]
 	path = ip_cores/general-cores
 	url = https://github.com/nuquantum/general-cores.git
+	branch = fusesoc
 [submodule "ip_cores/etherbone-core"]
 	path = ip_cores/etherbone-core
-	url = https://ohwr.org/project/etherbone-core.git
+	url = https://github.com/nuquantum/etherbone-core.git
+	branch = master
 [submodule "ip_cores/gn4124-core"]
 	path = ip_cores/gn4124-core
 	url = https://ohwr.org/project/gn4124-core.git
+	branch = master
 [submodule "ip_cores/vme64x-core"]
 	path = ip_cores/vme64x-core
 	url = https://ohwr.org/project/vme64x-core.git
+	branch = master
 [submodule "ip_cores/urv-core"]
 	path = ip_cores/urv-core
 	url = https://github.com/nuquantum/urv-core.git
+	branch = fusesoc
