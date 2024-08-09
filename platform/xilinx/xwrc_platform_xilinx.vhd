@@ -634,7 +634,7 @@ begin  -- architecture rtl
           CLKIN1       => clk_125m_pllref_buf,
           CLKIN2       => '0',
           -- Tied to always select the primary input clock
-          CLKINSEL     => '0',
+          CLKINSEL     => '1',
           -- Ports for dynamic reconfiguration
           DADDR        => (others => '0'),
           DCLK         => '0',
@@ -700,7 +700,7 @@ begin  -- architecture rtl
           CLKIN1       => clk_20m_vcxo_buf,
           CLKIN2       => '0',
           -- Tied to always select the primary input clock
-          CLKINSEL     => '0',
+          CLKINSEL     => '1',
           -- Ports for dynamic reconfiguration
           DADDR        => (others => '0'),
           DCLK         => '0',
