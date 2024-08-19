@@ -1,0 +1,16 @@
+CAPI=2:
+name: ohwr:wrpc:spec_serial_dac_arb
+description: WRPC DAC Control
+
+filesets:
+  rtl:
+    files:
+      - wr_dacs/spec_serial_dac.vhd
+      - wr_dacs/spec_serial_dac_arb.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: spec_serial_dac_arb

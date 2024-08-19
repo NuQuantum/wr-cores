@@ -1,0 +1,20 @@
+CAPI=2:
+name: ohwr:wrpc:xwr_core
+description: WRPC Top Level using VHDL records
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:wrpc:wr_core
+    files:
+      - wrc_core/xwr_core.vhd
+    file_type: vhdlSource
+    
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: xwr_core
+
+

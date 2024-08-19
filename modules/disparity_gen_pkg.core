@@ -1,0 +1,15 @@
+CAPI=2:
+name: ohwr:wrpc:disparity_gen_pkg
+description: WRPC disparity generator package
+
+filesets:
+  rtl:
+    files:
+      - wr_tbi_phy/disparity_gen_pkg.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+

@@ -1,0 +1,22 @@
+CAPI=2:
+name: ohwr:wrpc:xwrf_loopback
+description: WR Fabric Loopback interface
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:general-cores:wb_slave_adapter
+      - ohwr:wrpc:wr_endpoint
+    files:
+      - fabric/xwrf_loopback/lbk_pkg.vhd
+      - fabric/xwrf_loopback/lbk_wishbone_controller.vhd
+      - fabric/xwrf_loopback/wrf_loopback.vhd
+      - fabric/xwrf_loopback/xwrf_loopback.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: xwrf_loopback
+

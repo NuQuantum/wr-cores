@@ -1,0 +1,63 @@
+CAPI=2:
+name: ohwr:wrpc:wr_endpoint
+description: Endpoint
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:wrpc:wr_fabric_pkg
+      - ohwr:general-cores:wishbone_pkg
+      - ohwr:general-cores:genram_pkg
+      - ohwr:general-cores:gencores_pkg
+      - ohwr:general-cores:common
+      - ohwr:general-cores:wb_slave_adapter
+      - ohwr:general-cores:genram
+      - ohwr:timing:dmtd_phase_meas
+    files:
+      - wr_endpoint/endpoint_private_pkg.vhd
+      - wr_endpoint/ep_rx_pcs_8bit.vhd
+      - wr_endpoint/ep_tx_pcs_8bit.vhd
+      - wr_endpoint/ep_tx_pcs_16bit.vhd
+      - wr_endpoint/ep_rx_pcs_16bit.vhd
+      - wr_endpoint/ep_autonegotiation.vhd
+      - wr_endpoint/ep_mdio_regs.vhd
+      - wr_endpoint/ep_1000basex_pcs.vhd
+      - wr_endpoint/ep_rx_crc_size_check.vhd
+      - wr_endpoint/ep_rx_bypass_queue.vhd
+      - wr_endpoint/ep_rx_path.vhd
+      - wr_endpoint/ep_rx_wb_master.vhd
+      - wr_endpoint/ep_rx_oob_insert.vhd
+      - wr_endpoint/ep_rx_early_address_match.vhd
+      - wr_endpoint/ep_clock_alignment_fifo.vhd
+      - wr_endpoint/ep_tx_path.vhd
+      - wr_endpoint/ep_tx_crc_inserter.vhd
+      - wr_endpoint/ep_tx_header_processor.vhd
+      - wr_endpoint/ep_tx_vlan_unit.vhd
+      - wr_endpoint/ep_tx_packet_injection.vhd
+      - wr_endpoint/ep_packet_filter.vhd
+      - wr_endpoint/ep_rx_vlan_unit.vhd
+      - wr_endpoint/ep_ts_counter.vhd
+      - wr_endpoint/ep_rx_status_reg_insert.vhd
+      - wr_endpoint/ep_timestamping_unit.vhd
+      - wr_endpoint/ep_leds_controller.vhd
+      - wr_endpoint/ep_rtu_header_extract.vhd
+      - wr_endpoint/ep_rx_buffer.vhd
+      - wr_endpoint/ep_sync_detect.vhd
+      - wr_endpoint/ep_sync_detect_16bit.vhd
+      - wr_endpoint/ep_wishbone_controller.vhd
+      - wr_endpoint/ep_registers_pkg.vhd
+      - wr_endpoint/ep_crc32_pkg.vhd
+      - wr_endpoint/ep_tx_inject_ctrl.vhd
+      - wr_endpoint/endpoint_pkg.vhd
+      - wr_endpoint/wr_endpoint.vhd
+      - wr_endpoint/xwr_endpoint.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: xwr_endpoint
+
+
+

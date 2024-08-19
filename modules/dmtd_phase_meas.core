@@ -1,0 +1,15 @@
+CAPI=2:
+name: ohwr:timing:dmtd_phase_meas
+description: DDMTD phase measure
+
+filesets:
+  rtl:
+    files:
+      - timing/dmtd_phase_meas.vhd
+      - timing/dmtd_with_deglitcher.vhd
+    file_type: vhdlSource
+
+targets:
+  default:
+    filesets:
+      - rtl

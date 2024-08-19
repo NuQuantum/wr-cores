@@ -1,0 +1,19 @@
+CAPI=2:
+name: ohwr:wrpc:fabric
+description: WRPC Fabric
+
+filesets:
+  rtl:
+    files:
+      - fabric/wr_fabric_pkg.vhd
+      - fabric/xwb_fabric_sink.vhd
+      - fabric/xwb_fabric_source.vhd
+      - fabric/xwrf_mux.vhd
+      - fabric/xwrf_reg.vhd
+    file_type: vhdlSource
+    
+targets:
+  default: &default
+    filesets:
+      - rtl
+

@@ -1,0 +1,22 @@
+CAPI=2:
+name: ohwr:wrpc:wr_softpll 
+description: WRPC Soft PLL
+
+filesets:
+  rtl:
+    files:
+      - wr_softpll_ng/softpll_pkg.vhd
+      - wr_softpll_ng/spll_aligner.vhd
+      - wr_softpll_ng/spll_wb_slave.vhd
+      - wr_softpll_ng/spll_wbgen2_pkg.vhd
+      - wr_softpll_ng/wr_softpll_ng.vhd
+      - wr_softpll_ng/xwr_softpll_ng.vhd
+    file_type: vhdlSource
+
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: xwr_softpll_ng
+

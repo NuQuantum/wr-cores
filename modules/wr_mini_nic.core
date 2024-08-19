@@ -1,0 +1,22 @@
+CAPI=2:
+name: ohwr:wrpc:wr_mini_nic
+description: WRPC Mini-NIC
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:general-cores:wbgen2_pkg
+    files:
+      - wr_mini_nic/minic_wbgen2_pkg.vhd
+      - wr_mini_nic/minic_packet_buffer.vhd
+      - wr_mini_nic/minic_wb_slave.vhd
+      - wr_mini_nic/wr_mini_nic.vhd
+      - wr_mini_nic/xwr_mini_nic.vhd
+    file_type: vhdlSource
+
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
