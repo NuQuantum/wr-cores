@@ -1,0 +1,21 @@
+CAPI=2:
+name: ohwr:wrpc:xwrc_board_common
+description: WRPC common 
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:wrpc:xwr_core
+      - ohwr:wrpc:wr_streamers
+      - ohwr:wrpc:xwrf_loopback
+    files:
+      - common/wr_board_pkg.vhd
+      - common/xwrc_board_common.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: xwrc_board_common
+

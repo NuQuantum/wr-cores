@@ -1,0 +1,15 @@
+CAPI=2:
+name: ohwr:wrpc:wr_fabric_pkg
+description: WRPC Fabric VHDL Package
+
+filesets:
+  rtl:
+    files:
+      - fabric/wr_fabric_pkg.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+

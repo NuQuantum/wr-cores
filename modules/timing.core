@@ -1,0 +1,22 @@
+CAPI=2:
+name: ohwr:wrpc:timing  
+description: WRPC DMTD
+
+filesets:
+  rtl:
+    files:
+      - timing/dmtd_phase_meas.vhd
+      - timing/dmtd_with_deglitcher.vhd
+      - timing/dmtd_sampler.vhd
+      - timing/multi_dmtd_with_deglitcher.vhd
+      - timing/hpll_period_detect.vhd
+      - timing/pulse_gen.vhd
+      - timing/pulse_stamper.vhd
+      - timing/pulse_stamper_sync.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
