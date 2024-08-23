@@ -1217,16 +1217,16 @@ begin  -- architecture rtl
         I     => clk_125m_gtp_p_i,
         IB    => clk_125m_gtp_n_i);
 
-      cmp_bootstrap_dedicated_clk : IBUFDS
-        generic map (
-           DIFF_TERM => FALSE,
-           IBUF_LOW_PWR => FALSE, 
-           IOSTANDARD => "DEFAULT")
-        port map (
-           O => clk_125m_gtx_buf, 
-           I => clk_125m_bootstrap_p_i,  
-           IB => clk_125m_bootstrap_n_i
-        );
+    cmp_bootstrap_clk : IBUFDS
+      generic map (
+          DIFF_TERM    => FALSE,
+          IBUF_LOW_PWR => FALSE, 
+          IOSTANDARD   => "DEFAULT")
+      port map (
+          O  => clk_125m_gtx_buf, 
+          I  => clk_125m_bootstrap_p_i,  
+          IB => clk_125m_bootstrap_n_i
+      );
 
     -- System PLL input clock buffers
     cmp_clk_sys_gtp_buf_i : BUFG
