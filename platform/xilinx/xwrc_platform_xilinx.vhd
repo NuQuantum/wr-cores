@@ -593,19 +593,19 @@ begin  -- architecture rtl
       signal pll_sys_locked   : std_logic;
       signal clk_dmtd         : std_logic := '0'; -- initialize for simulation
       signal pll_dmtd_locked  : std_logic;
-      signal clk_pll_aux  : std_logic_vector(3 downto 0);
+      signal clk_pll_aux      : std_logic_vector(3 downto 0);
       signal clk_sys_sel      : std_logic;
 
     begin
       
       -- If the bootstrap clock is unused always select the CLKIN1 as the reference
-      gen_bootstrap_clock_select : if (g_with_bootstrap_clock_input = TRUE) generate
+      gen_bootstrap_clock_enabled : if (g_with_bootstrap_clock_input = TRUE) generate
         clk_sys_sel <= clk_sys_sel_i;
-      end generate gen_bootstrap_clock_select;
+      end generate gen_bootstrap_clock_enabled;
 
-      gen_bootstrap_clock_select : if (g_with_bootstrap_clock_input = FALSE) generate
+      gen_bootstrap_clock_disabled : if (g_with_bootstrap_clock_input = FALSE) generate
         clk_sys_sel <= '1';
-      end generate gen_bootstrap_clock_select;
+      end generate gen_bootstrap_clock_disabled;
 
       -- System PLL (125 MHz -> 62.5 MHz)
       cmp_sys_clk_pll : MMCME2_ADV
