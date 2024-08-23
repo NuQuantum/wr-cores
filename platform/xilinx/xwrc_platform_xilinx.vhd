@@ -1220,7 +1220,7 @@ begin  -- architecture rtl
     cmp_bootstrap_clk : IBUFGDS
       generic map (
           DIFF_TERM    => FALSE,
-          IBUF_LOW_PWR => FALSE, 
+          IBUF_LOW_PWR => TRUE, 
           IOSTANDARD   => "DEFAULT")
       port map (
           O  => clk_125m_gtx_buf, 
@@ -1312,7 +1312,7 @@ begin  -- architecture rtl
     cmp_bootstrap_clk : IBUFGDS
       generic map (
           DIFF_TERM    => FALSE,
-          IBUF_LOW_PWR => FALSE, 
+          IBUF_LOW_PWR => TRUE, 
           IOSTANDARD   => "DEFAULT")
       port map (
           O  => clk_125m_gtx_buf, 
