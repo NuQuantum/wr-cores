@@ -601,7 +601,9 @@ begin  -- architecture rtl
       -- If the bootstrap clock is unused always select the CLKIN1 as the reference
       gen_bootstrap_clock_select : if (g_with_bootstrap_clock_input = TRUE) generate
         clk_sys_sel <= clk_sys_sel_i;
-      else generate 
+      end generate gen_bootstrap_clock_select;
+
+      gen_bootstrap_clock_select : if (g_with_bootstrap_clock_input = FALSE) generate
         clk_sys_sel <= '1';
       end generate gen_bootstrap_clock_select;
 
