@@ -101,7 +101,7 @@ entity xwrc_platform_xilinx is
     ---------------------------------------------------------------------------
     -- 125 MHz Bootstrap clock
     ---------------------------------------------------------------------------
-    clk_sys_sel_i          : in  std_logic;
+    clk_sys_sel_i          : in  std_logic             := '0';
     ---------------------------------------------------------------------------
     -- Clock inputs for default PLLs (g_use_default_plls = TRUE)
     ---------------------------------------------------------------------------
@@ -1223,7 +1223,7 @@ begin  -- architecture rtl
           IBUF_LOW_PWR => TRUE, 
           IOSTANDARD   => "DEFAULT")
       port map (
-          O  => clk_125m_gtx_buf, 
+          O  => clk_125m_bootstrap_buf, 
           I  => clk_125m_bootstrap_p_i,  
           IB => clk_125m_bootstrap_n_i
       );
@@ -1290,9 +1290,10 @@ begin  -- architecture rtl
 
   gen_phy_artix7 : if (g_fpga_family = "artix7") generate
 
-    signal clk_ref          : std_logic;
-    signal clk_125m_gtp_buf : std_logic;
-    signal clk_ref_locked   : std_logic;
+    signal clk_ref                : std_logic;
+    signal clk_125m_gtp_buf       : std_logic;
+    signal clk_125m_bootstrap_buf : std_logic;
+    signal clk_ref_locked         : std_logic;
 
   begin
 
@@ -1315,12 +1316,12 @@ begin  -- architecture rtl
           IBUF_LOW_PWR => TRUE, 
           IOSTANDARD   => "DEFAULT")
       port map (
-          O  => clk_125m_gtx_buf, 
+          O  => clk_125m_bootstrap_buf, 
           I  => clk_125m_bootstrap_p_i,  
           IB => clk_125m_bootstrap_n_i
       );
 
-    -- System PLL input clock buffer
+    -- System PLL input clock buffers
     cmp_clk_sys_buf_i : BUFG
       port map (
         I => clk_125m_gtp_buf,
