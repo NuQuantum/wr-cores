@@ -96,8 +96,8 @@ entity xwrc_platform_xilinx is
     ---------------------------------------------------------------------------
     -- 125 MHz Bootstrap clock (g_with_bootstrap_clock_input = TRUE)
     ---------------------------------------------------------------------------
-    clk_125m_bootstrap_p_i : in  std_logic             := '0';
-    clk_125m_bootstrap_n_i : in  std_logic             := '0';
+    clk_125m_bootstrap_p_i : in  std_logic;            
+    clk_125m_bootstrap_n_i : in  std_logic;            
     ---------------------------------------------------------------------------
     -- 125 MHz Bootstrap clock
     ---------------------------------------------------------------------------
@@ -588,23 +588,44 @@ begin  -- architecture rtl
     ---------------------------------------------------------------------------
     gen_kintex7_artix7_default_plls : if (g_fpga_family = "kintex7" or g_fpga_family = "artix7") generate
 
-      signal clk_sys_out      : std_logic;
-      signal clk_sys_fb       : std_logic;
-      signal pll_sys_locked   : std_logic;
-      signal clk_dmtd         : std_logic := '0'; -- initialize for simulation
-      signal pll_dmtd_locked  : std_logic;
-      signal clk_pll_aux      : std_logic_vector(3 downto 0);
-      signal clk_sys_sel      : std_logic;
+      signal clk_sys_out            : std_logic;
+      signal clk_sys_fb             : std_logic;
+      signal pll_sys_locked         : std_logic;
+      signal clk_dmtd               : std_logic := '0'; -- initialize for simulation
+      signal pll_dmtd_locked        : std_logic;
+      signal clk_pll_aux            : std_logic_vector(3 downto 0);
+      signal clk_sys_sel            : std_logic;
+      signal clk_125m_bootstrap_buf : std_logic;
 
     begin
       
-      -- If the bootstrap clock is unused always select the CLKIN1 as the reference
+      -- When the bootstrap clock is used convert it to single ended
       gen_bootstrap_clock_enabled : if (g_with_bootstrap_clock_input = TRUE) generate
         clk_sys_sel <= clk_sys_sel_i;
-      end generate gen_bootstrap_clock_enabled;
 
+        cmp_bootstrap_clk : IBUFGDS
+        generic map (
+            DIFF_TERM    => FALSE,
+            IBUF_LOW_PWR => TRUE, 
+            IOSTANDARD   => "DEFAULT")
+        port map (
+            O  => clk_125m_bootstrap_buf, 
+            I  => clk_125m_bootstrap_p_i,  
+            IB => clk_125m_bootstrap_n_i
+        );
+        
+        cmp_clk_sys_bootstrap_buf_i : BUFG
+        port map (
+          I => clk_125m_bootstrap_buf,
+          O => clk_125m_pllref_bootstrap_buf
+        );
+      end generate gen_bootstrap_clock_enabled;
+      
+      -- If the bootstrap clock is unused always select the CLKIN1 as the reference and 
+      -- drive the second input to zero
       gen_bootstrap_clock_disabled : if (g_with_bootstrap_clock_input = FALSE) generate
         clk_sys_sel <= '1';
+        clk_125m_pllref_bootstrap_buf <= '0';
       end generate gen_bootstrap_clock_disabled;
 
       -- System PLL (125 MHz -> 62.5 MHz)
@@ -1197,10 +1218,9 @@ begin  -- architecture rtl
 
   gen_phy_kintex7 : if (g_fpga_family = "kintex7") generate
 
-    signal clk_ref                : std_logic;
-    signal clk_125m_gtx_buf       : std_logic;
-    signal clk_125m_bootstrap_buf : std_logic;
-    signal clk_ref_locked         : std_logic;
+    signal clk_ref          : std_logic;
+    signal clk_125m_gtx_buf : std_logic;
+    signal clk_ref_locked   : std_logic;
 
   begin
 
@@ -1217,27 +1237,11 @@ begin  -- architecture rtl
         I     => clk_125m_gtp_p_i,
         IB    => clk_125m_gtp_n_i);
 
-    cmp_bootstrap_clk : IBUFGDS
-      generic map (
-          DIFF_TERM    => FALSE,
-          IBUF_LOW_PWR => TRUE, 
-          IOSTANDARD   => "DEFAULT")
-      port map (
-          O  => clk_125m_bootstrap_buf, 
-          I  => clk_125m_bootstrap_p_i,  
-          IB => clk_125m_bootstrap_n_i
-      );
-
-    -- System PLL input clock buffers
-    cmp_clk_sys_gtp_buf_i : BUFG
+    -- System PLL input clock buffer
+    cmp_clk_sys_buf_i : BUFG
       port map (
         I => clk_125m_gtx_buf,
         O => clk_125m_pllref_buf);
-
-    cmp_clk_sys_bootstrap_buf_i : BUFG
-      port map (
-        I => clk_125m_bootstrap_buf,
-        O => clk_125m_pllref_bootstrap_buf);
 
     cmp_gtx: wr_gtx_phy_family7
       generic map(
@@ -1290,10 +1294,9 @@ begin  -- architecture rtl
 
   gen_phy_artix7 : if (g_fpga_family = "artix7") generate
 
-    signal clk_ref                : std_logic;
-    signal clk_125m_gtp_buf       : std_logic;
-    signal clk_125m_bootstrap_buf : std_logic;
-    signal clk_ref_locked         : std_logic;
+    signal clk_ref          : std_logic;
+    signal clk_125m_gtp_buf : std_logic;
+    signal clk_ref_locked   : std_logic;
 
   begin
 
@@ -1310,27 +1313,11 @@ begin  -- architecture rtl
         I     => clk_125m_gtp_p_i,
         IB    => clk_125m_gtp_n_i);
     
-    cmp_bootstrap_clk : IBUFGDS
-      generic map (
-          DIFF_TERM    => FALSE,
-          IBUF_LOW_PWR => TRUE, 
-          IOSTANDARD   => "DEFAULT")
-      port map (
-          O  => clk_125m_bootstrap_buf, 
-          I  => clk_125m_bootstrap_p_i,  
-          IB => clk_125m_bootstrap_n_i
-      );
-
-    -- System PLL input clock buffers
+    -- System PLL input clock buffer
     cmp_clk_sys_buf_i : BUFG
       port map (
         I => clk_125m_gtp_buf,
         O => clk_125m_pllref_buf);
-
-    cmp_clk_sys_bootstrap_buf_i : BUFG
-      port map (
-        I => clk_125m_bootstrap_buf,
-        O => clk_125m_pllref_bootstrap_buf);
 
     cmp_gtp: wr_gtp_phy_family7
       generic map(
