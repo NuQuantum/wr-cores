@@ -99,9 +99,9 @@ entity xwrc_platform_xilinx is
     clk_125m_bootstrap_p_i : in  std_logic;            
     clk_125m_bootstrap_n_i : in  std_logic;            
     ---------------------------------------------------------------------------
-    -- 125 MHz Bootstrap clock
+    -- 125 MHz Bootstrap clock select (default is GTP/GTX reference clock)
     ---------------------------------------------------------------------------
-    clk_sys_sel_i          : in  std_logic             := '0';
+    clk_sys_sel_i          : in  std_logic             := '1';
     ---------------------------------------------------------------------------
     -- Clock inputs for default PLLs (g_use_default_plls = TRUE)
     ---------------------------------------------------------------------------
@@ -251,7 +251,7 @@ begin  -- architecture rtl
     -- Default PLL setup consists of two PLLs.
     -- One takes a 125MHz clock signal as input and produces the
     -- 62.5MHz WR PTP core main system clock and the 125MHz reference clock. When 
-    -- g_with_bootstrap_clock_input = TRUE A second clock input is taken to the system 
+    -- g_with_bootstrap_clock_input = TRUE, a second clock input is taken to the system 
     -- PLL (on supported boards) that enables a bootstrap clock to be used for initial 
     -- system configuration, with the clock source chosen via clk_sys_sel_i.
     -- The other PLL takes a 20MHz clock signal as input and produces the
@@ -594,15 +594,12 @@ begin  -- architecture rtl
       signal clk_dmtd               : std_logic := '0'; -- initialize for simulation
       signal pll_dmtd_locked        : std_logic;
       signal clk_pll_aux            : std_logic_vector(3 downto 0);
-      signal clk_sys_sel            : std_logic;
       signal clk_125m_bootstrap_buf : std_logic;
 
     begin
       
       -- When the bootstrap clock is used convert it to single ended
       gen_bootstrap_clock_enabled : if (g_with_bootstrap_clock_input = TRUE) generate
-        clk_sys_sel <= clk_sys_sel_i;
-
         cmp_bootstrap_clk : IBUFGDS
         generic map (
             DIFF_TERM    => FALSE,
@@ -621,10 +618,8 @@ begin  -- architecture rtl
         );
       end generate gen_bootstrap_clock_enabled;
       
-      -- If the bootstrap clock is unused always select the CLKIN1 as the reference and 
-      -- drive the second input to zero
+      -- If the bootstrap clock is unused drive the second input to zero
       gen_bootstrap_clock_disabled : if (g_with_bootstrap_clock_input = FALSE) generate
-        clk_sys_sel <= '1';
         clk_125m_pllref_bootstrap_buf <= '0';
       end generate gen_bootstrap_clock_disabled;
 
@@ -682,7 +677,7 @@ begin  -- architecture rtl
           CLKIN1       => clk_125m_pllref_buf,
           CLKIN2       => clk_125m_pllref_bootstrap_buf,
           -- Tied to always select the primary input clock
-          CLKINSEL     => clk_sys_sel,
+          CLKINSEL     => clk_sys_sel_i,
           -- Ports for dynamic reconfiguration
           DADDR        => (others => '0'),
           DCLK         => '0',
