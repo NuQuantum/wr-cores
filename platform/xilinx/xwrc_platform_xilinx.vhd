@@ -252,8 +252,10 @@ begin  -- architecture rtl
     -- One takes a 125MHz clock signal as input and produces the
     -- 62.5MHz WR PTP core main system clock and the 125MHz reference clock. When 
     -- g_with_bootstrap_clock_input = TRUE, a second clock input is taken to the system 
-    -- PLL (on supported boards) that enables a bootstrap clock to be used for initial 
-    -- system configuration, with the clock source chosen via clk_sys_sel_i.
+    -- PLL (on supported devices) that enables a bootstrap clock to be used for initial 
+    -- system configuration, with the clock source chosen via clk_sys_sel_i. The 
+    -- bootstrap clock can be used to drive clk_sys while the system is configured, for 
+    -- example, when using programmable oscillators for the main PLL.
     -- The other PLL takes a 20MHz clock signal as input and produces the
     -- 62.5MHz DMTD clock.
     --
