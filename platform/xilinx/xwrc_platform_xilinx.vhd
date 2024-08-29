@@ -96,8 +96,8 @@ entity xwrc_platform_xilinx is
     ---------------------------------------------------------------------------
     -- 125 MHz Bootstrap clock (g_with_bootstrap_clock_input = TRUE)
     ---------------------------------------------------------------------------
-    clk_125m_bootstrap_p_i : in  std_logic;            
-    clk_125m_bootstrap_n_i : in  std_logic;            
+    clk_125m_bootstrap_p_i : in  std_logic;            := '0';
+    clk_125m_bootstrap_n_i : in  std_logic;            := '0';
     ---------------------------------------------------------------------------
     -- 125 MHz Bootstrap clock select (default is GTP/GTX reference clock)
     ---------------------------------------------------------------------------
