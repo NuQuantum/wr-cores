@@ -706,8 +706,9 @@ begin  -- architecture rtl
         I => clk_sys,
         O => clk_sys_out);
 
-      clk_62m5_sys_o <= clk_sys_out;
-      pll_locked_o   <= pll_dmtd_locked and pll_sys_locked;
+      clk_62m5_sys_o   <= clk_sys_out;
+      pll_locked_o     <= pll_dmtd_locked and pll_sys_locked;
+      pll_aux_locked_o <= pll_sys_locked;
 
       gen_kintex7_artix7_dmtd_pll : if (g_direct_dmtd = FALSE) generate
 
