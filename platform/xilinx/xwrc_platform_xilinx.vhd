@@ -60,119 +60,130 @@ entity xwrc_platform_xilinx is
     (
       -- Define the family/model of Xilinx FPGA
       -- (supported: for now only spartan6)
-      g_fpga_family               : string  := "spartan6";
-      g_direct_dmtd               : boolean := FALSE;
+      g_fpga_family                : string  := "spartan6";
+      g_direct_dmtd                : boolean := FALSE;
       -- Select whether to include external ref clock input
-      g_with_external_clock_input : boolean := FALSE;
+      g_with_external_clock_input  : boolean := FALSE;
+      -- Select whether to use bootstrap clock as a second input to system PLLs
+      g_with_bootstrap_clock_input : boolean := FALSE;
       -- Set to FALSE if you want to instantiate your own PLLs
-      g_use_default_plls          : boolean := TRUE;
+      g_use_default_plls           : boolean := TRUE;
       -- Config for the auxiliary PLL output (for now only used in Spartan-6
-      g_aux_pll_cfg               : t_auxpll_cfg_array := c_AUXPLL_CFG_ARRAY_DEFAULT;
+      g_aux_pll_cfg                : t_auxpll_cfg_array := c_AUXPLL_CFG_ARRAY_DEFAULT;
       -- Select GTP channel to use 
-      g_gtp_enable_ch0            : integer := 0;
-      g_gtp_enable_ch1            : integer := 1;
+      g_gtp_enable_ch0             : integer := 0;
+      g_gtp_enable_ch1             : integer := 1;
       -- Select PHY reference clock
       -- default value of 4 selects CLK10 / CLK11 (see UG386, Fig 2-3, page 41)
-      g_phy_refclk_sel            : integer range 0 to 7 := 4;
-      g_gtp_mux_enable            : boolean := FALSE;
+      g_phy_refclk_sel             : integer range 0 to 7 := 4;
+      g_gtp_mux_enable             : boolean := FALSE;
       -- Set to TRUE will speed up some initialization processes
-      g_simulation                : integer := 0);
+      g_simulation                 : integer := 0);
   port (
     ---------------------------------------------------------------------------
     -- Asynchronous reset (active low)
     ---------------------------------------------------------------------------
-    areset_n_i            : in  std_logic;
+    areset_n_i             : in  std_logic;
     ---------------------------------------------------------------------------
     -- 10MHz ext ref clock input (g_with_external_clock_input = TRUE)
     ---------------------------------------------------------------------------
-    clk_10m_ext_i         : in  std_logic             := '0';
+    clk_10m_ext_i          : in  std_logic             := '0';
     ---------------------------------------------------------------------------
     -- 125 MHz GTP/GTX reference
     ---------------------------------------------------------------------------
-    clk_125m_gtp_p_i      : in  std_logic;
-    clk_125m_gtp_n_i      : in  std_logic;
+    clk_125m_gtp_p_i       : in  std_logic;
+    clk_125m_gtp_n_i       : in  std_logic;
+    ---------------------------------------------------------------------------
+    -- 125 MHz Bootstrap clock (g_with_bootstrap_clock_input = TRUE)
+    ---------------------------------------------------------------------------
+    clk_125m_bootstrap_p_i : in  std_logic;            := '0';
+    clk_125m_bootstrap_n_i : in  std_logic;            := '0';
+    ---------------------------------------------------------------------------
+    -- 125 MHz Bootstrap clock select (default is GTP/GTX reference clock)
+    ---------------------------------------------------------------------------
+    clk_sys_sel_i          : in  std_logic             := '1';
     ---------------------------------------------------------------------------
     -- Clock inputs for default PLLs (g_use_default_plls = TRUE)
     ---------------------------------------------------------------------------
     -- 20MHz VCXO clock
-    clk_20m_vcxo_i        : in  std_logic             := '0';
+    clk_20m_vcxo_i         : in  std_logic             := '0';
     -- 125.000 MHz PLL reference
-    clk_125m_pllref_i     : in  std_logic             := '0';
+    clk_125m_pllref_i      : in  std_logic             := '0';
     -- 124.992 MHz DMTD reference (CLBv3 reference design)
-    clk_125m_dmtd_i       : in  std_logic             := '0';
+    clk_125m_dmtd_i        : in  std_logic             := '0';
     ---------------------------------------------------------------------------
     -- Clock inputs from custom PLLs (g_use_default_plls = FALSE)
     ---------------------------------------------------------------------------
     -- 62.5MHz DMTD offset clock and lock status
-    clk_62m5_dmtd_i       : in  std_logic             := '0';
-    clk_dmtd_locked_i     : in  std_logic             := '1';
+    clk_62m5_dmtd_i        : in  std_logic             := '0';
+    clk_dmtd_locked_i      : in  std_logic             := '1';
     -- 62.5MHz Main system clock and lock status
-    clk_62m5_sys_i        : in  std_logic             := '0';
-    clk_sys_locked_i      : in  std_logic             := '1';
+    clk_62m5_sys_i         : in  std_logic             := '0';
+    clk_sys_locked_i       : in  std_logic             := '1';
     -- 125MHz  Reference clock
-    clk_125m_ref_i        : in  std_logic             := '0';
-    clk_ref_locked_i      : in  std_logic             := '1';
+    clk_125m_ref_i         : in  std_logic             := '0';
+    clk_ref_locked_i       : in  std_logic             := '1';
     -- 125MHz derived from 10MHz external reference and lock status
     -- (when g_with_external_clock_input = TRUE)
-    clk_125m_ext_i        : in  std_logic             := '0';
-    clk_ext_locked_i      : in  std_logic             := '1';
-    clk_ext_stopped_i     : in  std_logic             := '0';
-    clk_ext_rst_o         : out std_logic;
+    clk_125m_ext_i         : in  std_logic             := '0';
+    clk_ext_locked_i       : in  std_logic             := '1';
+    clk_ext_stopped_i      : in  std_logic             := '0';
+    clk_ext_rst_o          : out std_logic;
     ---------------------------------------------------------------------------
     -- SFP - channel 0
     ---------------------------------------------------------------------------
-    sfp_txn_o             : out std_logic;
-    sfp_txp_o             : out std_logic;
-    sfp_rxn_i             : in  std_logic;
-    sfp_rxp_i             : in  std_logic;
-    sfp_tx_fault_i        : in  std_logic             := '0';
-    sfp_los_i             : in  std_logic             := '0';
-    sfp_tx_disable_o      : out std_logic;
+    sfp_txn_o              : out std_logic;
+    sfp_txp_o              : out std_logic;
+    sfp_rxn_i              : in  std_logic;
+    sfp_rxp_i              : in  std_logic;
+    sfp_tx_fault_i         : in  std_logic             := '0';
+    sfp_los_i              : in  std_logic             := '0';
+    sfp_tx_disable_o       : out std_logic;
     ---------------------------------------------------------------------------
     -- if both SFP channels are enabled and sfp_mux is enabled, 
     -- this is the bit to switch between them
     -- '0' - enable  SFP (channel 0) and disable SFP1 (channel 1)
     -- '1' - disable SFP (channel 0) and enable  SFP1 (channel 1)
-    sfp_mux_sel_i         : in  std_logic              := '0';
+    sfp_mux_sel_i          : in  std_logic              := '0';
     ---------------------------------------------------------------------------
     -- SFP - channel 1
     ---------------------------------------------------------------------------
-    sfp1_txn_o            : out std_logic;
-    sfp1_txp_o            : out std_logic;
-    sfp1_rxn_i            : in  std_logic             := '0';
-    sfp1_rxp_i            : in  std_logic             := '0';
-    sfp1_tx_fault_i       : in  std_logic             := '0';
-    sfp1_los_i            : in  std_logic             := '0';
-    sfp1_tx_disable_o     : out std_logic;
+    sfp1_txn_o             : out std_logic;
+    sfp1_txp_o             : out std_logic;
+    sfp1_rxn_i             : in  std_logic             := '0';
+    sfp1_rxp_i             : in  std_logic             := '0';
+    sfp1_tx_fault_i        : in  std_logic             := '0';
+    sfp1_los_i             : in  std_logic             := '0';
+    sfp1_tx_disable_o      : out std_logic;
 
     ---------------------------------------------------------------------------
     --Auxiliary PLL outputs
     ---------------------------------------------------------------------------
-    clk_pll_aux_o         : out std_logic_vector(3 downto 0);
-    pll_aux_locked_o      : out std_logic;
+    clk_pll_aux_o          : out std_logic_vector(3 downto 0);
+    pll_aux_locked_o       : out std_logic;
     ---------------------------------------------------------------------------
     --Interface to WR PTP Core (WRPC)
     ---------------------------------------------------------------------------
     -- PLL outputs
-    clk_62m5_sys_o        : out std_logic;
-    clk_125m_ref_o        : out std_logic;
-    clk_20m_o             : out std_logic;
-    clk_ref_locked_o      : out std_logic;
-    clk_62m5_dmtd_o       : out std_logic;
-    clk_250m_dmtd_over_o       : out std_logic;
-    pll_locked_o          : out std_logic;
-    clk_10m_ext_o         : out std_logic;
+    clk_62m5_sys_o         : out std_logic;
+    clk_125m_ref_o         : out std_logic;
+    clk_20m_o              : out std_logic;
+    clk_ref_locked_o       : out std_logic;
+    clk_62m5_dmtd_o        : out std_logic;
+    clk_250m_dmtd_over_o   : out std_logic;
+    pll_locked_o           : out std_logic;
+    clk_10m_ext_o          : out std_logic;
     -- PHY - CH0
-    phy8_o                : out t_phy_8bits_to_wrc;
-    phy8_i                : in  t_phy_8bits_from_wrc  := c_dummy_phy8_from_wrc;
-    phy16_o               : out t_phy_16bits_to_wrc;
-    phy16_i               : in  t_phy_16bits_from_wrc := c_dummy_phy16_from_wrc;
+    phy8_o                 : out t_phy_8bits_to_wrc;
+    phy8_i                 : in  t_phy_8bits_from_wrc  := c_dummy_phy8_from_wrc;
+    phy16_o                : out t_phy_16bits_to_wrc;
+    phy16_i                : in  t_phy_16bits_from_wrc := c_dummy_phy16_from_wrc;
 
     -- External reference
-    ext_ref_mul_o         : out std_logic;
-    ext_ref_mul_locked_o  : out std_logic;
-    ext_ref_mul_stopped_o : out std_logic;
-    ext_ref_rst_i         : in  std_logic             := '0'
+    ext_ref_mul_o          : out std_logic;
+    ext_ref_mul_locked_o   : out std_logic;
+    ext_ref_mul_stopped_o  : out std_logic;
+    ext_ref_rst_i          : in  std_logic             := '0'
     );
 
 end entity xwrc_platform_xilinx;
@@ -183,9 +194,10 @@ architecture rtl of xwrc_platform_xilinx is
   -- Signals declaration
   -----------------------------------------------------------------------------
 
-  signal pll_arst            : std_logic := '0';
-  signal clk_125m_pllref_buf : std_logic;
-  signal clk_sys             : std_logic;
+  signal pll_arst                      : std_logic := '0';
+  signal clk_125m_pllref_buf           : std_logic;
+  signal clk_125m_pllref_bootstrap_buf : std_logic;
+  signal clk_sys                       : std_logic;
 
 begin  -- architecture rtl
 
@@ -238,7 +250,12 @@ begin  -- architecture rtl
 
     -- Default PLL setup consists of two PLLs.
     -- One takes a 125MHz clock signal as input and produces the
-    -- 62.5MHz WR PTP core main system clock and the 125MHz reference clock.
+    -- 62.5MHz WR PTP core main system clock and the 125MHz reference clock. When 
+    -- g_with_bootstrap_clock_input = TRUE, a second clock input is taken to the system 
+    -- PLL (on supported devices) that enables a bootstrap clock to be used for initial 
+    -- system configuration, with the clock source chosen via clk_sys_sel_i. The 
+    -- bootstrap clock can be used to drive clk_sys while the system is configured, for 
+    -- example, when using programmable oscillators for the main PLL.
     -- The other PLL takes a 20MHz clock signal as input and produces the
     -- 62.5MHz DMTD clock.
     --
@@ -573,14 +590,41 @@ begin  -- architecture rtl
     ---------------------------------------------------------------------------
     gen_kintex7_artix7_default_plls : if (g_fpga_family = "kintex7" or g_fpga_family = "artix7") generate
 
-      signal clk_sys_out      : std_logic;
-      signal clk_sys_fb       : std_logic;
-      signal pll_sys_locked   : std_logic;
-      signal clk_dmtd         : std_logic := '0'; -- initialize for simulation
-      signal pll_dmtd_locked  : std_logic;
-      signal clk_pll_aux  : std_logic_vector(3 downto 0);
+      signal clk_sys_out            : std_logic;
+      signal clk_sys_fb             : std_logic;
+      signal pll_sys_locked         : std_logic;
+      signal clk_dmtd               : std_logic := '0'; -- initialize for simulation
+      signal pll_dmtd_locked        : std_logic;
+      signal clk_pll_aux            : std_logic_vector(3 downto 0);
+      signal clk_125m_bootstrap_buf : std_logic;
 
     begin
+      
+      -- When the bootstrap clock is used convert it to single ended
+      gen_bootstrap_clock_enabled : if (g_with_bootstrap_clock_input = TRUE) generate
+        cmp_bootstrap_clk : IBUFGDS
+        generic map (
+            DIFF_TERM    => FALSE,
+            IBUF_LOW_PWR => TRUE, 
+            IOSTANDARD   => "DEFAULT")
+        port map (
+            O  => clk_125m_bootstrap_buf, 
+            I  => clk_125m_bootstrap_p_i,  
+            IB => clk_125m_bootstrap_n_i
+        );
+        
+        cmp_clk_sys_bootstrap_buf_i : BUFG
+        port map (
+          I => clk_125m_bootstrap_buf,
+          O => clk_125m_pllref_bootstrap_buf
+        );
+      end generate gen_bootstrap_clock_enabled;
+      
+      -- If the bootstrap clock is unused drive the second input to zero
+      gen_bootstrap_clock_disabled : if (g_with_bootstrap_clock_input = FALSE) generate
+        clk_125m_pllref_bootstrap_buf <= '0';
+      end generate gen_bootstrap_clock_disabled;
+
       -- System PLL (125 MHz -> 62.5 MHz)
       cmp_sys_clk_pll : MMCME2_ADV
         generic map (
@@ -594,6 +638,7 @@ begin  -- architecture rtl
           CLKFBOUT_USE_FINE_PS => false,
 
           CLKIN1_PERIOD       => 8.000,            -- 8 ns means 125 MHz
+          CLKIN2_PERIOD       => 8.000,            -- 8 ns means 125 MHz
 
           CLKOUT0_DIVIDE_F    => 16.000,     -- 62.5 MHz sys clock
           CLKOUT0_PHASE       => 0.000,
@@ -632,9 +677,9 @@ begin  -- architecture rtl
           -- Input clock control
           CLKFBIN      => clk_sys_fb,
           CLKIN1       => clk_125m_pllref_buf,
-          CLKIN2       => '0',
+          CLKIN2       => clk_125m_pllref_bootstrap_buf,
           -- Tied to always select the primary input clock
-          CLKINSEL     => '1',
+          CLKINSEL     => clk_sys_sel_i,
           -- Ports for dynamic reconfiguration
           DADDR        => (others => '0'),
           DCLK         => '0',
@@ -1264,7 +1309,7 @@ begin  -- architecture rtl
         CEB   => '0',
         I     => clk_125m_gtp_p_i,
         IB    => clk_125m_gtp_n_i);
-
+    
     -- System PLL input clock buffer
     cmp_clk_sys_buf_i : BUFG
       port map (
