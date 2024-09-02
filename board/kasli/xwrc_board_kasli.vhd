@@ -90,8 +90,12 @@ entity xwrc_board_kasli is
     clk_125m_gtp_n_i       : in  std_logic;
     clk_125m_bootstrap_p_i : in  std_logic;            
     clk_125m_bootstrap_n_i : in  std_logic;
+
     -- Configurable (with g_aux_pll_cfg) clock outputs from the main PLL_BASE
     clk_pll_aux_o          : out std_logic_vector(3 downto 0);
+
+    -- Generated bootstrap reset 
+    rst_bootstrap_n_o      : out std_logic;
 
     ---------------------------------------------------------------------------
     -- I2C SI549s (Main = 0, Helper = 1)
@@ -291,7 +295,7 @@ architecture struct of xwrc_board_kasli is
 
   -- GP1 master port wishbone slave connection
   signal wb_m01_slave_in  : t_wishbone_slave_in;
-  signal wb_m01_slave_ouy : t_wishbone_slave_out;
+  signal wb_m01_slave_out : t_wishbone_slave_out;
 
   -- WB interface (to core)
   signal wb_aux_master_o : t_wishbone_master_out;
@@ -317,9 +321,6 @@ architecture struct of xwrc_board_kasli is
   signal wb_si549_slave_out : t_wishbone_slave_out(1 downto 0);
   signal wb_si549_slave_in  : t_wishbone_slave_in(1 downto 0);
   
-  -- A constant zero signal
-  signal zero : std_logic;
-
 begin  -- architecture struct
 
   -----------------------------------------------------------------------------
@@ -338,66 +339,39 @@ begin  -- architecture struct
     );
 
   -----------------------------------------------------------------------------
-  -- Wishbone -> AXI bridge (GP1 slave -> Interconnect master)
+  -- AXI4-Lite Slave to WB  Master bridge.
   -----------------------------------------------------------------------------
 
-  s01_axi_aclk_o <= clk_pll_62m5;
-  zero <= '0';
+  m01_axi_aclk_o <= clk_pll_62m5;
 
-  cmp_axi4lite_wbm: wb_axi4lite_bridge
-    port map (
-      clk_sys_i => clk_pll_62m5,
-      rst_n_i   => rst_bootstrap_n,
-      -- 
-      AWADDR  => s01_axi_i.AWADDR, 
-      AWVALID => s01_axi_i.AWVALID,
-      AWREADY => s01_axi_o.AWREADY,
-      WDATA   => s01_axi_i.WDATA,
-      WSTRB   => s01_axi_i.WSTRB,
-      WVALID  => s01_axi_i.WVALID,
-      WREADY  => s01_axi_o.WREADY,
-      WLAST   => zero,
-      BRESP   => s01_axi_o.BRESP,
-      BVALID  => s01_axi_o.BVALID,
-      BREADY  => s01_axi_i.BREADY,
-      ARADDR  => s01_axi_i.ARADDR,
-      ARVALID => s01_axi_i.ARVALID,
-      ARREADY => s01_axi_o.ARREADY,
-      RDATA   => s01_axi_o.RDATA,
-      RRESP   => s01_axi_o.RRESP,
-      RVALID  => s01_axi_o.RVALID,
-      RREADY  => s01_axi_i.RREADY,
-      RLAST   => s01_axi_o.RLAST,
-      -- 
-      wb_adr     => wb_slave_in.adr,
-      wb_dat_m2s => wb_slave_in.dat,
-      wb_sel     => wb_slave_in.sel,
-      wb_cyc     => wb_slave_in.cyc,
-      wb_stb     => wb_slave_in.stb,
-      wb_we      => wb_slave_in.we,
-      wb_dat_s2m => wb_slave_out.dat,
-      wb_err     => wb_slave_out.err,
-      wb_rty     => wb_slave_out.rty,
-      wb_ack     => wb_slave_out.ack,
-      wb_stall   => wb_slave_out.stall
+  cmp_axi4lite_wbm : xwb_axi4lite_bridge
+    port (
+      clk_sys_i    => clk_pll_62m5,
+      rst_n_i      => rst_bootstrap_n,
+      -- from AXI lite slave 
+      axi4_slave_i => m01_axi_i,
+      axi4_slave_o => m01_axi_o,
+      -- to WB master
+      wb_master_o  => wb_m01_slave_out,
+      wb_master_i  => wb_m01_slave_in
     );
 
   -----------------------------------------------------------------------------
-  -- AXI -> Wishbone bridge (GP1 master -> Interconnect slave)
+  -- WB Slave Classic to AXI4-Lite Master bridge 
   -----------------------------------------------------------------------------
   
-  n01_axi_aclk_o <= clk_pll_62m5;
+  s01_axi_aclk_o <= clk_pll_62m5;
 
-  cmp_axi4litem_wb :  xaxi4lite_wb_bridge
+  cmp_axi4litem_wb : xaxi4lite_wb_bridge
     port map (
       clk_i         => clk_pll_62m5,
       rst_n_i       => rst_bootstrap_n,
-      -- From GP1 master port
-      axi4_master_o => m01_axi_o,  
-      axi4_master_i => m01_axi_i 
-      -- To Kasli interconnect slave port
-      wb_slave_i    => wb_m01_slave_in,  
-      wb_slave_o    => wb_m01_slave_out, 
+      -- from WB Slave 
+      wb_slave_i    => wb_slave_in,  
+      wb_slave_o    => wb_slave_out, 
+      -- to AXI4-Lite 
+      axi4_master_o => s01_axi_o,  
+      axi4_master_i => s01_axi_i
     );
 
   -----------------------------------------------------------------------------
@@ -420,7 +394,7 @@ begin  -- architecture struct
       slave_i(0) => wb_aux_master_o          
       slave_i(1) => wb_m01_slave_in          
       slave_o(0) => wb_aux_master_i          
-      slave_o(1) => wb_m01_slave_ouy         
+      slave_o(1) => wb_m01_slave_out         
       -- Slave connections (INTERCON is a master)
       master_i   => secbar_master_i,          
       master_o   => secbar_master_o           
@@ -539,7 +513,7 @@ begin  -- architecture struct
       g_logdelay  => 4, -- 16 clock cycles
       g_syncdepth => 3  -- length of sync chains
     ) port map (
-      free_clk_i => clk_125m_bootstrap_buf,
+      free_clk_i => clk_125m_bootstrap_buf, -- REVISIT
       locked_i   => core_rstlogic_arst_n,
       clks_i     => rstlogic_clk_in,
       rstn_o     => core_rstlogic_rst_out
@@ -560,6 +534,9 @@ begin  -- architecture struct
   -- distribution of resets (already synchronized to their clock domains)
   rst_62m5_n <= core_rstlogic_rst_out(0);
   rst_bootstrap_n <= bootstrap_rstlogic_rst_out(0);
+  
+  -- Export the reset for use in higher level startup
+  rst_bootstrap_n_o <= rst_bootstrap_n; 
 
   -----------------------------------------------------------------------------
   -- SI549 Main I2C masters

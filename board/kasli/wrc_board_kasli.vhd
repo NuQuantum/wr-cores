@@ -15,7 +15,7 @@
 -- Version with no VHDL records on the top-level (mainly for Verilog
 -- instantiation).
 -------------------------------------------------------------------------------
--- Copyright (c) 2017 CERN
+-- Copyright (c) 2024 Nu Quantum Ltd.
 -------------------------------------------------------------------------------
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
@@ -51,6 +51,7 @@ use work.streamers_pkg.all;
 use work.wr_xilinx_pkg.all;
 use work.wr_board_pkg.all;
 use work.wr_kasli_pkg.all;
+use work.xwr_gmii_pkg.all;
 
 entity wrc_board_kasli is
   generic(
@@ -61,7 +62,7 @@ entity wrc_board_kasli is
     -- "plainfbrc" = expose WRC fabric interface
     -- "streamers" = attach WRC streamers to fabric interface
     -- "etherbone" = attach Etherbone slave to fabric interface
-    g_fabric_iface              : t_board_fabric_iface  := plain;
+    g_fabric_iface              : string  := "plainfbrc";
     -- parameters configuration when g_fabric_iface = "streamers" (otherwise ignored)
     --g_streamers_op_mode        : t_streamers_op_mode  := TX_AND_RX;
     --g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
@@ -87,8 +88,7 @@ entity wrc_board_kasli is
     clk_125m_gtp_p_i       : in  std_logic;
     clk_125m_bootstrap_p_i : in  std_logic;            
     clk_125m_bootstrap_n_i : in  std_logic;
-
-    -- Configurable (with g_aux_pll_cfg) clock outputs from the main PLL_BASE
+    -- Configurable (with g_aux_pll_cfg) clock outputs from the main MMCE_ADV
     clk_pll_aux_o          : out std_logic_vector(3 downto 0);
 
     ---------------------------------------------------------------------------
@@ -160,18 +160,22 @@ entity wrc_board_kasli is
     s01_axi_awaddr  : in  std_logic_vector(31 downto 0) := (others=>'0');
     --s01_axi_awprot  : in  std_logic_vector(2 downto 0);
     s01_axi_awvalid : in  std_logic := '0';
+
     s01_axi_awready : out std_logic;
     s01_axi_wdata   : in  std_logic_vector(31 downto 0) := (others=>'0');
     s01_axi_wstrb   : in  std_logic_vector(3 downto 0)  := (others=>'0');
     s01_axi_wvalid  : in  std_logic := '0';
+
     s01_axi_wready  : out std_logic;
     s01_axi_bresp   : out std_logic_vector(1 downto 0);
     s01_axi_bvalid  : out std_logic;
     s01_axi_bready  : in  std_logic := '0';
+
     s01_axi_araddr  : in  std_logic_vector(31 downto 0) := (others=>'0');
     --s01_axi_arprot  : in std_logic_vector(2 downto 0);
     s01_axi_arvalid : in  std_logic := '0';
     s01_axi_arready : out std_logic;
+
     s01_axi_rdata   : out std_logic_vector(31 downto 0);
     s01_axi_rresp   : out std_logic_vector(1 downto 0);
     s01_axi_rvalid  : out std_logic;
@@ -181,32 +185,36 @@ entity wrc_board_kasli is
     ------------------------------------------
     -- Axi Master Bus Interface M01_AXI
     ------------------------------------------
-    m01_axi_aclk_o  : in std_logic;
+    m01_axi_aclk_o  : in  std_logic;
     
-    m01_axi_awaddr  : out  std_logic_vector(31 downto 0) := (others=>'0');
+    m01_axi_awaddr  : out std_logic_vector(31 downto 0) := (others=>'0');
     --m01_axi_awprot  : in  std_logic_vector(2 downto 0);
-    m01_axi_awvalid : out  std_logic := '0';
-    m01_axi_awready : in std_logic;
-    m01_axi_wdata   : out  std_logic_vector(31 downto 0) := (others=>'0');
+    m01_axi_awvalid : out std_logic := '0';
+    m01_axi_awready : in  std_logic;
+
+    m01_axi_wdata   : out std_logic_vector(31 downto 0) := (others=>'0');
     m01_axi_wstrb   : out std_logic_vector(3 downto 0)  := (others=>'0');
-    m01_axi_wvalid  : out  std_logic := '0';
-    m01_axi_wready  : in std_logic;
-    m01_axi_bresp   : in std_logic_vector(1 downto 0);
-    m01_axi_bvalid  : in std_logic;
-    m01_axi_bready  : out  std_logic := '0';
-    m01_axi_araddr  : out  std_logic_vector(31 downto 0) := (others=>'0');
+    m01_axi_wvalid  : out std_logic := '0';
+    m01_axi_wready  : in  std_logic;
+
+    m01_axi_bresp   : in  std_logic_vector(1 downto 0);
+    m01_axi_bvalid  : in  std_logic;
+    m01_axi_bready  : out std_logic := '0';
+
+    m01_axi_araddr  : out std_logic_vector(31 downto 0) := (others=>'0');
     --m01_axi_arprot  : in std_logic_vector(2 downto 0);
-    m01_axi_arvalid : out  std_logic := '0';
-    m01_axi_arready : in std_logic;
-    m01_axi_rdata   : in std_logic_vector(31 downto 0);
-    m01_axi_rresp   : in std_logic_vector(1 downto 0);
-    m01_axi_rvalid  : in std_logic;
-    m01_axi_rready  : out  std_logic := '0';
-    m01_axi_rlast   : in std_logic;
+    m01_axi_arvalid : in std_logic := '0';
+    m01_axi_arready : in  std_logic;
+
+    m01_axi_rdata   : in  std_logic_vector(31 downto 0);
+    m01_axi_rresp   : in  std_logic_vector(1 downto 0);
+    m01_axi_rvalid  : in  std_logic;
+    m01_axi_rready  : out std_logic := '0';
+    m01_axi_rlast   : in  std_logic;
 
     ---------------------------------------------------------------------------
     -- WR fabric interface (when g_fabric_iface = "plain")
-    -- -------------------------------------------------------------------------
+    ---------------------------------------------------------------------------
     wrf_src_adr_o   : out std_logic_vector(1 downto 0);
     wrf_src_dat_o   : out std_logic_vector(15 downto 0);
     wrf_src_cyc_o   : out std_logic;
@@ -243,6 +251,7 @@ entity wrc_board_kasli is
     wb_eth_err_i   : in  std_logic                                          := '0';
     wb_eth_rty_i   : in  std_logic                                          := '0';
     wb_eth_stall_i : in  std_logic                                          := '0';
+
 
     ---------------------------------------------------------------------------
     -- Generic diagnostics interface (access from WRPC via SNMP or uart console
@@ -306,7 +315,6 @@ entity wrc_board_kasli is
 
 end entity wrc_board_kasli;
 
-
 architecture std_wrapper of wrc_board_kasli is
 
   -----------------------------------------------------------------------------
@@ -337,8 +345,8 @@ architecture std_wrapper of wrc_board_kasli is
   signal timestamps_out : t_txtsu_timestamp;
 
   -- streamers config
-  signal wrs_tx_cfg_in  : t_tx_streamer_cfg;
-  signal wrs_rx_cfg_in  : t_rx_streamer_cfg;
+  signal wrs_tx_cfg_in : t_tx_streamer_cfg;
+  signal wrs_rx_cfg_in : t_rx_streamer_cfg;
 
   -- axi signals
   signal s01_axi_in  : t_axi4_lite_slave_in_32;
@@ -359,12 +367,7 @@ architecture std_wrapper of wrc_board_kasli is
 
 begin  -- architecture struct
 
-
   -- AXI slave connections
-  -- axi supports word-addressing only, i.e. per 4 bytes; shift for wb-bridge
-  s01_axi_in.awaddr   <= "00" & s01_axi_awaddr(31 downto 2);
-  s01_axi_in.araddr   <= "00" & s01_axi_araddr(31 downto 2);;   
-
   s01_axi_in.awvalid  <= s01_axi_awvalid ;   
   s01_axi_in.wdata    <= s01_axi_wdata;   
   s01_axi_in.wstrb    <= s01_axi_wstrb;   
@@ -372,6 +375,9 @@ begin  -- architecture struct
   s01_axi_in.bready   <= s01_axi_bready;   
   s01_axi_in.arvalid  <= s01_axi_arvalid;   
   s01_axi_in.rready   <= s01_axi_rready;   
+  -- axi supports word-addressing only, i.e. per 4 bytes; shift for wb-bridge
+  s01_axi_in.awaddr   <= "00" & s01_axi_awaddr(31 downto 2);
+  s01_axi_in.araddr   <= "00" & s01_axi_araddr(31 downto 2);
 
   s01_axi_awready     <= s01_axi_out.awready;  
   s01_axi_wready      <= s01_axi_out.wready;  
@@ -384,9 +390,6 @@ begin  -- architecture struct
   s01_axi_rlast       <= s01_axi_out.rlast;  
 
   -- AXI master connections
-  m01_axi_awaddr  <= m01_axi_out.awaddr(29 downto 0) & "00"; 
-  m01_axi_araddr  <= m01_axi_out.araddr(29 downto 0) & "00";
-
   m01_axi_awvalid <= m01_axi_out.awvalid; 
   m01_axi_wdata   <= m01_axi_out.wdata; 
   m01_axi_wstrb   <= m01_axi_out.wstrb; 
@@ -394,6 +397,8 @@ begin  -- architecture struct
   m01_axi_bready  <= m01_axi_out.bready; 
   m01_axi_arvalid <= m01_axi_out.arvalid; 
   m01_axi_rready  <= m01_axi_out.rready; 
+  m01_axi_awaddr  <= m01_axi_out.awaddr(29 downto 0) & "00"; 
+  m01_axi_araddr  <= m01_axi_out.araddr(29 downto 0) & "00";
   
   m01_axi_in.awready <= m01_axi_awready;
   m01_axi_in.wready  <= m01_axi_wready;
@@ -420,6 +425,7 @@ begin  -- architecture struct
   aux_master_in.rty   <= aux_master_rty_i;
   aux_master_in.stall <= aux_master_stall_i;
 
+  -- WR fabric
   wrf_src_adr_o    <= wrf_src_out.adr;
   wrf_src_dat_o    <= wrf_src_out.dat;
   wrf_src_cyc_o    <= wrf_src_out.cyc;
@@ -442,6 +448,7 @@ begin  -- architecture struct
   wrf_snk_err_o   <= wrf_snk_out.err;
   wrf_snk_rty_o   <= wrf_snk_out.rty;
 
+  -- Etherbone
   wb_eth_adr_o <= wb_eth_master_out.adr;
   wb_eth_dat_o <= wb_eth_master_out.dat;
   wb_eth_cyc_o <= wb_eth_master_out.cyc;
@@ -479,7 +486,6 @@ begin  -- architecture struct
   cmp_xwrc_board_kasli : xwrc_board_kasli
     generic map (
       g_simulation                => g_simulation,
-      g_with_external_clock_input => f_int2bool(g_with_external_clock_input),
       g_aux_clks                  => g_aux_clks,
       g_fabric_iface              => f_str2iface_type(g_fabric_iface),
       g_streamers_op_mode         => TX_AND_RX,
@@ -502,94 +508,95 @@ begin  -- architecture struct
       clk_125m_bootstrap_n_i => clk_125m_bootstrap_n_i,
       clk_pll_aux_o          => clk_pll_aux_o,
       --
-      si549_sda_i => si549_sda_i,
-      si549_sda_o => si549_sda_o,
-      si549_sda_t => si549_sda_t,
-      si549_scl_i => si549_scl_i,
-      si549_scl_o => si549_scl_o,
-      si549_scl_t => si549_scl_t,
-      --
-      sfp_txp_o         => sfp_tx_p_o,
-      sfp_txn_o         => sfp_tx_n_o,
-      sfp_rxp_i         => sfp_rx_p_i,
-      sfp_rxn_i         => sfp_rx_n_i,
-      sfp_det_i         => sfp_det_i,
-      sfp_sda_i         => sfp_sda_i,
-      sfp_sda_o         => sfp_sda_o,
-      sfp_sda_t         => sfp_sda_t,
-      sfp_scl_i         => sfp_scl_i,
-      sfp_scl_o         => sfp_scl_o,
-      sfp_scl_t         => sfp_scl_t,
-      sfp_rate_select_o => sfp_rate_select_o,
-      sfp_tx_fault_i    => sfp_tx_fault_i,
-      sfp_tx_disable_o  => sfp_tx_disable_o,
-      sfp_los_i         => sfp_los_i,
-      --
-      eeprom_sda_i => eeprom_sda_i,
-      eeprom_sda_o => eeprom_sda_o,
-      eeprom_sda_t => eeprom_sda_t,
-      eeprom_scl_i => eeprom_scl_i,
-      eeprom_scl_o => eeprom_scl_o,
-      eeprom_scl_t => eeprom_scl_t,
-      --
-      thermo_id_i  => thermo_id_i,
-      thermo_id_o  => thermo_id_o,
-      thermo_id_t  => thermo_id_t,
-      --
-      uart_rxd_i           => uart_rxd_i,
-      uart_txd_o           => uart_txd_o,
-      --
-      flash_sclk_o         => flash_sclk_o,
-      flash_ncs_o          => flash_ncs_o,
-      flash_mosi_o         => flash_mosi_o,
-      flash_miso_i         => flash_miso_i,
-      --
-      s01_axi_i => s01_axi_in,
-      s01_axi_o => s01_axi_out,
-      s01_axi_aclk_o => s01_axi_aclk_o,
-      --
-      m01_axi_o => m01_axi_out,
-      m01_axi_i => m01_axi_in,
-      m01_axi_aclk_o => m01_axi_aclk_o,
-      --
-      wrf_src_o            => wrf_src_out,
-      wrf_src_i            => wrf_src_in,
-      wrf_snk_o            => wrf_snk_out,
-      wrf_snk_i            => wrf_snk_in,
-      --
-      wb_eth_master_o      => wb_eth_master_out,
-      wb_eth_master_i      => wb_eth_master_in,
-      --
-      aux_diag_i           => aux_diag_in,
-      aux_diag_o           => aux_diag_out,
-      --
-      tm_dac_value_o       => tm_dac_value_o,
-      tm_dac_wr_o          => tm_dac_wr_o,
-      tm_clk_aux_lock_en_i => tm_clk_aux_lock_en_i,
-      tm_clk_aux_locked_o  => tm_clk_aux_locked_o,
-      --
-      timestamps_o         => timestamps_out,
-      timestamps_ack_i     => tstamps_ack_i,
-      --
-      abscal_txts_o        => abscal_txts_o,
-      abscal_rxts_o        => abscal_rxts_o,
-      --
-      fc_tx_pause_req_i    => fc_tx_pause_req_i,
-      fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
-      fc_tx_pause_ready_o  => fc_tx_pause_ready_o,
-      --
-      tm_link_up_o         => tm_link_up_o,
-      tm_time_valid_o      => tm_time_valid_o,
-      tm_tai_o             => tm_tai_o,
-      tm_cycles_o          => tm_cycles_o,
-      --
-      led_act_o            => led_act_o,
-      led_link_o           => led_link_o,
-      --
-      pps_p_o              => pps_p_o,
-      pps_led_o            => pps_led_o,
-      --
-      link_ok_o            => link_ok_o
+      si549_sda_i            => si549_sda_i,
+      si549_sda_o            => si549_sda_o,
+      si549_sda_t            => si549_sda_t,
+      si549_scl_i            => si549_scl_i,
+      si549_scl_o            => si549_scl_o,
+      si549_scl_t            => si549_scl_t,
+      --  
+      sfp_txp_o              => sfp_tx_p_o,
+      sfp_txn_o              => sfp_tx_n_o,
+      sfp_rxp_i              => sfp_rx_p_i,
+      sfp_rxn_i              => sfp_rx_n_i,
+      sfp_det_i              => sfp_det_i,
+      sfp_sda_i              => sfp_sda_i,
+      sfp_sda_o              => sfp_sda_o,
+      sfp_sda_t              => sfp_sda_t,
+      sfp_scl_i              => sfp_scl_i,
+      sfp_scl_o              => sfp_scl_o,
+      sfp_scl_t              => sfp_scl_t,
+      sfp_rate_select_o      => sfp_rate_select_o,
+      sfp_tx_fault_i         => sfp_tx_fault_i,
+      sfp_tx_disable_o       => sfp_tx_disable_o,
+      sfp_los_i              => sfp_los_i,
+      --  
+      eeprom_sda_i           => eeprom_sda_i,
+      eeprom_sda_o           => eeprom_sda_o,
+      eeprom_sda_t           => eeprom_sda_t,
+      eeprom_scl_i           => eeprom_scl_i,
+      eeprom_scl_o           => eeprom_scl_o,
+      eeprom_scl_t           => eeprom_scl_t,
+      --  
+      thermo_id_i            => thermo_id_i,
+      thermo_id_o            => thermo_id_o,
+      thermo_id_t            => thermo_id_t,
+      --  
+      uart_rxd_i             => uart_rxd_i,
+      uart_txd_o             => uart_txd_o,
+      --  
+      flash_sclk_o           => flash_sclk_o,
+      flash_ncs_o            => flash_ncs_o,
+      flash_mosi_o           => flash_mosi_o,
+      flash_miso_i           => flash_miso_i,
+      --  
+      s01_axi_i              => s01_axi_in,
+      s01_axi_o              => s01_axi_out,
+      s01_axi_aclk_o         => s01_axi_aclk_o,
+      --        
+      m01_axi_o              => m01_axi_out,
+      m01_axi_i              => m01_axi_in,
+      m01_axi_aclk_o         => m01_axi_aclk_o,
+      --  
+      wrf_src_o              => wrf_src_out,
+      wrf_src_i              => wrf_src_in,
+      wrf_snk_o              => wrf_snk_out,
+      wrf_snk_i              => wrf_snk_in,
+      --  
+      wb_eth_master_o        => wb_eth_master_out,
+      wb_eth_master_i        => wb_eth_master_in,
+      --  
+      aux_diag_i             => aux_diag_in,
+      aux_diag_o             => aux_diag_out,
+      --  
+      tm_dac_value_o         => tm_dac_value_o,
+      tm_dac_wr_o            => tm_dac_wr_o,
+      tm_clk_aux_lock_en_i   => tm_clk_aux_lock_en_i,
+      tm_clk_aux_locked_o    => tm_clk_aux_locked_o,
+      --  
+      timestamps_o           => timestamps_out,
+      timestamps_ack_i       => tstamps_ack_i,
+      --  
+      abscal_txts_o          => abscal_txts_o,
+      abscal_rxts_o          => abscal_rxts_o,
+      --  
+      fc_tx_pause_req_i      => fc_tx_pause_req_i,
+      fc_tx_pause_delay_i    => fc_tx_pause_delay_i,
+      fc_tx_pause_ready_o    => fc_tx_pause_ready_o,
+      --  
+      tm_link_up_o           => tm_link_up_o,
+      tm_time_valid_o        => tm_time_valid_o,
+      tm_tai_o               => tm_tai_o,
+      tm_cycles_o            => tm_cycles_o,
+      --  
+      led_act_o              => led_act_o,
+      led_link_o             => led_link_o,
+      --  
+      pps_p_o                => pps_p_o,
+      pps_led_o              => pps_led_o,
+      --  
+      link_ok_o              => link_ok_o
     );
+  
 
 end architecture std_wrapper;

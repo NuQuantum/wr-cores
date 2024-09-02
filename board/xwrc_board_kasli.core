@@ -1,5 +1,5 @@
 CAPI=2:
-name: nq:kasli:xwrc_board_kasli
+name: ohwr:wrpc:xwrc_board_kasli
 description: This is the white rabbit core + interfaces for the kasli design (record)
 
 filesets:
@@ -27,10 +27,10 @@ parameters:
     paramtype: generic
 
 targets:
+
   default: &default
     parameters:
       - g_dpram_initf
     filesets:
       - rtl
-      - constraints
     toplevel: xwrc_board_kasli

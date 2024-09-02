@@ -1,0 +1,17 @@
+CAPI=2:
+name: ohwr:wrpc:xwr_gmii
+description: GMII to WR fabric bridge
+
+filesets:
+  rtl:
+    files:
+      - wr_gmii/gmii2wrfsrc.vhd
+      - wr_gmii/wrfsnk2gmii.vhd
+      - wr_gmii/xwrf_gmii.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+

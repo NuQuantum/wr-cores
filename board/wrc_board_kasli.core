@@ -1,11 +1,11 @@
 CAPI=2:
-name: nq:kasli:wrc_board_kasli
+name: ohwr:wrpc:wrc_board_kasli
 description: This is the white rabbit core + interfaces for the kasli design (simple)
 
 filesets:
   rtl:
     depend:
-      - nq:kasli:xwrc_board_kasli
+      - ohwr:wrpc:xwrc_board_kasli
     files:
       - kasli/wrc_board_kasli.vhd
     file_type: vhdlSource
@@ -30,7 +30,7 @@ targets:
       - rtl
       - constraints
     toplevel: wrc_board_kasli
-
+    
   synth:
     <<: *default
     default_tool: vivado
