@@ -147,7 +147,7 @@ begin  -- rtl
         gmii_tx_rst_n_i     => gmii_tx_rst_n_i,
         gmii_txdata_o       => gmii_txdata_o,
         gmii_txen_o         => gmii_txen_o,
-        gmii_tx_er_o        => gmii_tx_er_o,
+        gmii_tx_er_o        => gmii_tx_er_o
     );
 
 end rtl;

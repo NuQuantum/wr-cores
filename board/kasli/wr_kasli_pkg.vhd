@@ -44,6 +44,7 @@ use work.endpoint_pkg.all;
 use work.wr_board_pkg.all;
 use work.axi4_pkg.all;
 use work.streamers_pkg.all;
+use work.wr_xilinx_pkg.all;
 
 package wr_kasli_pkg is
 
