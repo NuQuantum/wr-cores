@@ -91,11 +91,16 @@ entity xwrc_board_kasli is
     clk_125m_bootstrap_p_i : in  std_logic;            
     clk_125m_bootstrap_n_i : in  std_logic;
 
-    -- Configurable (with g_aux_pll_cfg) clock outputs from the main PLL_BASE
-    clk_pll_aux_o          : out std_logic_vector(3 downto 0);
+    -- Generate sys clock and rest
+    clk_sys_62m5_o         : out std_logic;
+    rst_sys_62m5_n_o       : out std_logic;
 
-    -- Generated bootstrap reset 
-    rst_bootstrap_n_o      : out std_logic;
+    -- Generated bootstrap reset  
+    rst_bootstrap_62m5_n_o : out std_logic;
+
+    -- Configurable (with g_aux_pll_cfg) clock outputs from the main PLL_BASE
+    clk_aux_o              : out std_logic_vector(3 downto 0);
+    rst_aux_n_o            : out std_logic_vector(3 downto 0);
 
     ---------------------------------------------------------------------------
     -- I2C SI549s (Main = 0, Helper = 1)
@@ -258,18 +263,22 @@ architecture struct of xwrc_board_kasli is
   signal clk_pll_62m5   : std_logic;
   signal clk_pll_125m   : std_logic;
   signal clk_pll_dmtd   : std_logic;
+  signal clk_pll_aux    : std_logic_vector(3 downto 0);
   signal pll_locked     : std_logic;
   signal pll_sys_locked : std_logic;
   signal clk_10m_ext    : std_logic;
 
   -- Reset logic
-  signal rstlogic_clk_in            : std_logic_vector(0 downto 0);
-  signal core_rstlogic_arst_n       : std_logic;
-  signal core_rstlogic_rst_out      : std_logic_vector(0 downto 0);
-  signal bootstrao_rstlogic_arst_n  : std_logic;
+  signal sys_rstlogic_clk_in       : std_logic_vector(3 downto 0);
+  signal sys_rstlogic_arst_n       : std_logic;
+  signal sys_rstlogic_rst_out      : std_logic_vector(3 downto 0);
+  
+  signal bootstrap_rstlogic_clk_in  : std_logic_vector(0 downto 0);
+  signal bootstrap_rstlogic_arst_n  : std_logic;
   signal bootstrap_rstlogic_rst_out : std_logic_vector(0 downto 0);
-  signal rst_62m5_n                 : std_logic;
-  signal rst_bootstrap_n            : std_logic;
+  
+  signal rst_sys_62m5_n            : std_logic;
+  signal rst_bootstrap_62m5_n       : std_logic;
 
   -- Registers
   signal reg2hw : t_wrpc_kasli_regs_master_out 
@@ -347,7 +356,7 @@ begin  -- architecture struct
   cmp_axi4lite_wbm : xwb_axi4lite_bridge
     port (
       clk_sys_i    => clk_pll_62m5,
-      rst_n_i      => rst_bootstrap_n,
+      rst_n_i      => rst_bootstrap_62m5_n,
       -- from AXI lite slave 
       axi4_slave_i => m01_axi_i,
       axi4_slave_o => m01_axi_o,
@@ -365,7 +374,7 @@ begin  -- architecture struct
   cmp_axi4litem_wb : xaxi4lite_wb_bridge
     port map (
       clk_i         => clk_pll_62m5,
-      rst_n_i       => rst_bootstrap_n,
+      rst_n_i       => rst_bootstrap_62m5_n,
       -- from WB Slave 
       wb_slave_i    => wb_slave_in,  
       wb_slave_o    => wb_slave_out, 
@@ -389,7 +398,7 @@ begin  -- architecture struct
       g_sdb_addr    => c_secbar_sdb_address
     ) port map (
       clk_sys_i  => clk_pll_62m5,
-      rst_n_i    => rst_bootstrap_n, -- this is a sync reset
+      rst_n_i    => rst_bootstrap_62m5_n, -- this is a sync reset
       -- Master connections (INTERCON is a slave)
       slave_i(0) => wb_aux_master_o          
       slave_i(1) => wb_m01_slave_in          
@@ -430,7 +439,7 @@ begin  -- architecture struct
     port map (
       -- clock / reset
       clk_i                => clk_pll_62m5,
-      rst_n_i              => rst_bootstrap_n,
+      rst_n_i              => rst_bootstrap_62m5_n,
       -- wishbone interface
       wb_cyc_i             => wb_kasli_regs_in.cyc, 
       wb_stb_i             => wb_kasli_regs_in.stb,
@@ -479,7 +488,7 @@ begin  -- architecture struct
       clk_62m5_sys_o         => clk_pll_62m5,
       clk_125m_ref_o         => clk_pll_125m,
       clk_62m5_dmtd_o        => clk_pll_dmtd,
-      clk_pll_aux_o          => clk_pll_aux_o,
+      clk_pll_aux_o          => clk_pll_aux,
       pll_locked_o           => pll_locked,
       pll_aux_locked_o       => pll_sys_locked,
       clk_10m_ext_o          => clk_10m_ext,
@@ -490,13 +499,16 @@ begin  -- architecture struct
       ext_ref_mul_stopped_o  => ext_ref_mul_stopped,
       ext_ref_rst_i          => ext_ref_rst
     );
+
+  clk_sys_62m5_o <= clk_pll_62m5;
+  clk_aux_o <= clk_pll_aux;
   
   -----------------------------------------------------------------------------
   -- Reset logic
   -----------------------------------------------------------------------------
 
   -- logic AND of all async reset sources (active low)
-  core_rstlogic_arst_n <= pll_locked and (not reg2hw.RESET_WRPC_CORE);
+  sys_rstlogic_arst_n <= pll_locked and (not reg2hw.RESET_WRPC_CORE);
 
   -- Hold the bootstrap logic in reset until the sys PLL locks. However when the SI549 
   -- is selected as input lock will be lost ... in this case we want to avoid reset 
@@ -505,38 +517,43 @@ begin  -- architecture struct
   bootstrap_rstlogic_arst_n <= pll_sys_locked or reg2hw.SYSTEM_CLOCK_SELECT;
 
   -- concatenation of all clocks required to have synced resets
-  rstlogic_clk_in(0) <= clk_pll_62m5;
+  sys_rstlogic_clk_in(0)          <= clk_pll_62m5;
+  sys_rstlogic_clk_in(3 downto 1) <= clk_pll_aux(2 downto 0);
 
   cmp_rstlogic_reset : gc_reset
     generic map (
-      g_clocks    => 1, -- 62.5MHz
+      g_clocks    => 4, -- 62.5MHz + 3 Aux clocks
       g_logdelay  => 4, -- 16 clock cycles
       g_syncdepth => 3  -- length of sync chains
     ) port map (
       free_clk_i => clk_125m_bootstrap_buf, -- REVISIT
-      locked_i   => core_rstlogic_arst_n,
-      clks_i     => rstlogic_clk_in,
-      rstn_o     => core_rstlogic_rst_out
+      locked_i   => sys_rstlogic_arst_n,
+      clks_i     => sys_rstlogic_clk_in,
+      rstn_o     => sys_rstlogic_rst_out
     );
+
+  bootstrap_rstlogic_clk_in(0) <= clk_pll_62m5;
 
   cmp_rstlogic_reset : gc_reset
     generic map (
-      g_clocks    => 1, -- 62.5MHz
+      g_clocks    => 1, -- 62.5MHz 
       g_logdelay  => 4, -- 16 clock cycles
       g_syncdepth => 3  -- length of sync chains
     ) port map (
       free_clk_i => clk_125m_bootstrap_buf,
       locked_i   => bootstrap_rstlogic_arst_n,
-      clks_i     => rstlogic_clk_in,
+      clks_i     => bootstrap_rstlogic_clk_in,
       rstn_o     => bootstrap_rstlogic_rst_out
     );
 
   -- distribution of resets (already synchronized to their clock domains)
-  rst_62m5_n <= core_rstlogic_rst_out(0);
-  rst_bootstrap_n <= bootstrap_rstlogic_rst_out(0);
+  rst_sys_62m5_n <= sys_rstlogic_rst_out(0);
+  rst_bootstrap_62m5_n <= bootstrap_rstlogic_rst_out(0);
   
-  -- Export the reset for use in higher level startup
-  rst_bootstrap_n_o <= rst_bootstrap_n; 
+  -- Export the resets for use in higher level startup
+  rst_sys_62m5_n_o <= rst_sys_62m5_n; 
+  rst_aux_n_o <= sys_rstlogic_rst_out(3 downto 1); 
+  rst_bootstrap_62m5_n_o <= rst_bootstrap_62m5_n; 
 
   -----------------------------------------------------------------------------
   -- SI549 Main I2C masters
@@ -551,7 +568,7 @@ begin  -- architecture struct
           g_use_axi4l 			=> false  -- wb-interface, 
         ) port map  (
           clk_sys_i         => clk_pll_62m5,
-          rst_n_i           => rst_bootstrap_n,
+          rst_n_i           => rst_bootstrap_62m5n,
           -- WR Core timing interface: aux clock tune port
           -- TODO: should this be the tm_ output?
           tm_dac_value_i    => dac_pll_data(i),
@@ -615,7 +632,7 @@ begin  -- architecture struct
       clk_ext_stopped_i    => ext_ref_mul_stopped,
       clk_ext_rst_o        => ext_ref_rst,
       pps_ext_i            => pps_ext_i,
-      rst_n_i              => rst_62m5_n,
+      rst_n_i              => rst_sys_62m5_n,
       -- Helper PLL updates
       dac_hpll_load_p1_o   => dac_pll_load_p1(1),
       dac_hpll_data_o      => dac_pll_data(1),

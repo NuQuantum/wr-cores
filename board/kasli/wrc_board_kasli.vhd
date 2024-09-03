@@ -58,7 +58,7 @@ entity wrc_board_kasli is
     -- set to 1 to speed up some initialization processes during simulation
     g_simulation                : integer := 0;
     -- Number of aux clocks syntonized by WRPC to WR timebase
-    g_aux_clks                  : integer := 4;
+    g_aux_clks                  : integer := 3;
     -- "plainfbrc" = expose WRC fabric interface
     -- "streamers" = attach WRC streamers to fabric interface
     -- "etherbone" = attach Etherbone slave to fabric interface
@@ -88,8 +88,17 @@ entity wrc_board_kasli is
     clk_125m_gtp_p_i       : in  std_logic;
     clk_125m_bootstrap_p_i : in  std_logic;            
     clk_125m_bootstrap_n_i : in  std_logic;
-    -- Configurable (with g_aux_pll_cfg) clock outputs from the main MMCE_ADV
-    clk_pll_aux_o          : out std_logic_vector(3 downto 0);
+
+    -- Generate sys clock and reset
+    clk_sys_62m5_o         : out std_logic;
+    rst_sys_62m5_n_o       : out std_logic;
+
+    -- Generated bootstrap reset  
+    rst_bootstrap_62m5_n_o : out std_logic;
+
+    -- Configurable (with g_aux_pll_cfg) clock outputs from the main PLL_BASE
+    clk_aux_o              : out std_logic_vector(3 downto 0);
+    rst_aux_n_o            : out std_logic_vector(3 downto 0);
 
     ---------------------------------------------------------------------------
     -- I2C SI549s (Main = 0, Helper = 1)
@@ -506,7 +515,12 @@ begin  -- architecture struct
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_bootstrap_p_i => clk_125m_bootstrap_p_i, 
       clk_125m_bootstrap_n_i => clk_125m_bootstrap_n_i,
-      clk_pll_aux_o          => clk_pll_aux_o,
+      --
+      rst_sys_62m5_n_o       => rst_sys_62m5_n_o,      
+      rst_bootstrap_62m5_n_o => rst_bootstrap_62m5_n_o, 
+      -- Auxillary clocks / reset
+      clk_aux_o              => clk_aux_o,
+      rst_aux_n_o            => rst_aux_n_o,
       --
       si549_sda_i            => si549_sda_i,
       si549_sda_o            => si549_sda_o,
