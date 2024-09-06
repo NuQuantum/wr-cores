@@ -43,9 +43,9 @@ use ieee.numeric_std.all;
 
 library work;
 use work.endpoint_pkg.all;
-use work.wishbone_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.gencores_pkg.all;
+use work.wrf_gmii_pkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -78,7 +78,7 @@ port (
     wrf_snk_stall_o     : out std_logic;
     wrf_snk_err_o       : out std_logic;
     wrf_snk_rty_o       : out std_logic;
-    
+
     gmii_rx_rst_n_i     : in  std_logic;
     gmii_rx_125m_i      : in  std_logic;
     gmii_rxd_i          : in  std_logic_vector(7 downto 0);
@@ -126,8 +126,8 @@ begin  -- rtl
   wrf_snk_stall_o <= wrf_snk_out.stall;
   wrf_snk_err_o   <= wrf_snk_out.err;
   wrf_snk_rty_o   <= wrf_snk_out.rty;
-  
-  u_wrf_gmii_warpped : xwrf_gmii 
+
+  u_wrf_gmii_wrapped : component xwrf_gmii
     port map (
         clk_sys_i           => clk_sys_i,
         rst_sys_n_i         => rst_sys_n_i,

@@ -4,7 +4,13 @@ description: GMII to WR fabric bridge
 
 filesets:
   rtl:
+    depend:
+      - ohwr:general-cores:genram
+      - ohwr:general-cores:gencores_pkg
+      - ohwr:wrpc:wr_endpoint
+      - ohwr:wrpc:wr_fabric_pkg
     files:
+      - wr_gmii/wrf_gmii_pkg.vhd
       - wr_gmii/gmii2wrfsrc.vhd
       - wr_gmii/wrfsnk2gmii.vhd
       - wr_gmii/xwrf_gmii.vhd

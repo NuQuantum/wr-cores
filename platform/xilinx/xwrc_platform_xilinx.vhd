@@ -70,7 +70,7 @@ entity xwrc_platform_xilinx is
       g_use_default_plls           : boolean := TRUE;
       -- Config for the auxiliary PLL output (for now only used in Spartan-6
       g_aux_pll_cfg                : t_auxpll_cfg_array := c_AUXPLL_CFG_ARRAY_DEFAULT;
-      -- Select GTP channel to use 
+      -- Select GTP channel to use
       g_gtp_enable_ch0             : integer := 0;
       g_gtp_enable_ch1             : integer := 1;
       -- Select PHY reference clock
@@ -96,8 +96,7 @@ entity xwrc_platform_xilinx is
     ---------------------------------------------------------------------------
     -- 125 MHz Bootstrap clock (g_with_bootstrap_clock_input = TRUE)
     ---------------------------------------------------------------------------
-    clk_125m_bootstrap_p_i : in  std_logic;            
-    clk_125m_bootstrap_n_i : in  std_logic;            
+    clk_125m_bootstrap_i   : in  std_logic             := '0';
     ---------------------------------------------------------------------------
     -- 125 MHz Bootstrap clock select (default is GTP/GTX reference clock)
     ---------------------------------------------------------------------------
@@ -140,7 +139,7 @@ entity xwrc_platform_xilinx is
     sfp_los_i              : in  std_logic             := '0';
     sfp_tx_disable_o       : out std_logic;
     ---------------------------------------------------------------------------
-    -- if both SFP channels are enabled and sfp_mux is enabled, 
+    -- if both SFP channels are enabled and sfp_mux is enabled,
     -- this is the bit to switch between them
     -- '0' - enable  SFP (channel 0) and disable SFP1 (channel 1)
     -- '1' - disable SFP (channel 0) and enable  SFP1 (channel 1)
@@ -184,7 +183,7 @@ entity xwrc_platform_xilinx is
     ext_ref_mul_locked_o   : out std_logic;
     ext_ref_mul_stopped_o  : out std_logic;
     ext_ref_rst_i          : in  std_logic             := '0'
-    );
+  );
 
 end entity xwrc_platform_xilinx;
 
@@ -194,10 +193,9 @@ architecture rtl of xwrc_platform_xilinx is
   -- Signals declaration
   -----------------------------------------------------------------------------
 
-  signal pll_arst                      : std_logic := '0';
-  signal clk_125m_pllref_buf           : std_logic;
-  signal clk_125m_pllref_bootstrap_buf : std_logic;
-  signal clk_sys                       : std_logic;
+  signal pll_arst            : std_logic := '0';
+  signal clk_125m_pllref_buf : std_logic;
+  signal clk_sys             : std_logic;
 
 begin  -- architecture rtl
 
@@ -217,21 +215,21 @@ begin  -- architecture rtl
       severity ERROR;
   end generate gen_no_gtp_channel;
 
-  gen_mux_when_single_ch: if ((g_gtp_enable_ch0 = 0 or g_gtp_enable_ch1 = 0) 
-                          and g_gtp_mux_enable =  TRUE) 
+  gen_mux_when_single_ch: if ((g_gtp_enable_ch0 = 0 or g_gtp_enable_ch1 = 0)
+                          and g_gtp_mux_enable =  TRUE)
   generate
     assert FALSE
       report "GTP/SFP mux is allowed only when both channels are enabled"
       severity ERROR;
   end generate gen_mux_when_single_ch;
 
-  gen_mux_support: if (g_gtp_mux_enable =  TRUE and g_fpga_family /= "virtex5") 
+  gen_mux_support: if (g_gtp_mux_enable =  TRUE and g_fpga_family /= "virtex5")
   generate
     assert FALSE
       report "GTP/SFP mux is supported only on virtex5"
       severity ERROR;
   end generate gen_mux_support;
-  
+
   gen_dual_SFP_support: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0 and
                     g_gtp_mux_enable =  FALSE)
   generate
@@ -250,11 +248,11 @@ begin  -- architecture rtl
 
     -- Default PLL setup consists of two PLLs.
     -- One takes a 125MHz clock signal as input and produces the
-    -- 62.5MHz WR PTP core main system clock and the 125MHz reference clock. When 
-    -- g_with_bootstrap_clock_input = TRUE, a second clock input is taken to the system 
-    -- PLL (on supported devices) that enables a bootstrap clock to be used for initial 
-    -- system configuration, with the clock source chosen via clk_sys_sel_i. The 
-    -- bootstrap clock can be used to drive clk_sys while the system is configured, for 
+    -- 62.5MHz WR PTP core main system clock and the 125MHz reference clock. When
+    -- g_with_bootstrap_clock_input = TRUE, a second clock input is taken to the system
+    -- PLL (on supported devices) that enables a bootstrap clock to be used for initial
+    -- system configuration, with the clock source chosen via clk_sys_sel_i. The
+    -- bootstrap clock can be used to drive clk_sys while the system is configured, for
     -- example, when using programmable oscillators for the main PLL.
     -- The other PLL takes a 20MHz clock signal as input and produces the
     -- 62.5MHz DMTD clock.
@@ -590,39 +588,24 @@ begin  -- architecture rtl
     ---------------------------------------------------------------------------
     gen_kintex7_artix7_default_plls : if (g_fpga_family = "kintex7" or g_fpga_family = "artix7") generate
 
-      signal clk_sys_out            : std_logic;
-      signal clk_sys_fb             : std_logic;
-      signal pll_sys_locked         : std_logic;
-      signal clk_dmtd               : std_logic := '0'; -- initialize for simulation
-      signal pll_dmtd_locked        : std_logic;
-      signal clk_pll_aux            : std_logic_vector(3 downto 0);
-      signal clk_125m_bootstrap_buf : std_logic;
+      signal clk_sys_out        : std_logic;
+      signal clk_sys_fb         : std_logic;
+      signal pll_sys_locked     : std_logic;
+      signal clk_dmtd           : std_logic := '0'; -- initialize for simulation
+      signal pll_dmtd_locked    : std_logic;
+      signal clk_pll_aux        : std_logic_vector(3 downto 0);
+      signal clk_125m_bootstrap : std_logic;
 
     begin
-      
+
       -- When the bootstrap clock is used convert it to single ended
       gen_bootstrap_clock_enabled : if (g_with_bootstrap_clock_input = TRUE) generate
-        cmp_bootstrap_clk : IBUFGDS
-        generic map (
-            DIFF_TERM    => FALSE,
-            IBUF_LOW_PWR => TRUE, 
-            IOSTANDARD   => "DEFAULT")
-        port map (
-            O  => clk_125m_bootstrap_buf, 
-            I  => clk_125m_bootstrap_p_i,  
-            IB => clk_125m_bootstrap_n_i
-        );
-        
-        cmp_clk_sys_bootstrap_buf_i : BUFG
-        port map (
-          I => clk_125m_bootstrap_buf,
-          O => clk_125m_pllref_bootstrap_buf
-        );
+        clk_125m_bootstrap <= clk_125m_bootstrap_i;
       end generate gen_bootstrap_clock_enabled;
-      
+
       -- If the bootstrap clock is unused drive the second input to zero
       gen_bootstrap_clock_disabled : if (g_with_bootstrap_clock_input = FALSE) generate
-        clk_125m_pllref_bootstrap_buf <= '0';
+        clk_125m_bootstrap <= '0';
       end generate gen_bootstrap_clock_disabled;
 
       -- System PLL (125 MHz -> 62.5 MHz)
@@ -677,7 +660,7 @@ begin  -- architecture rtl
           -- Input clock control
           CLKFBIN      => clk_sys_fb,
           CLKIN1       => clk_125m_pllref_buf,
-          CLKIN2       => clk_125m_pllref_bootstrap_buf,
+          CLKIN2       => clk_125m_bootstrap,
           -- Tied to always select the primary input clock
           CLKINSEL     => clk_sys_sel_i,
           -- Ports for dynamic reconfiguration
@@ -785,7 +768,7 @@ begin  -- architecture rtl
             clk_dmtd <= not clk_dmtd;
           end if;
         end process;
-        
+
         pll_dmtd_locked <= '1';
       end generate gen_kintex7_artix7_direct_dmtd;
 
@@ -797,7 +780,7 @@ begin  -- architecture rtl
 
       -- External 10MHz reference PLL for Kintex7
       gen_kintex7_artix7_ext_ref_pll : if (g_with_external_clock_input = TRUE) generate
-        
+
         signal clk_ext_fbi : std_logic;
         signal clk_ext_fbo : std_logic;
         signal clk_ext_buf : std_logic;
@@ -902,7 +885,7 @@ begin  -- architecture rtl
 
 
     ---------------------------------------------------------------------------
-    
+
     gen_no_ext_ref_pll : if (g_with_external_clock_input = FALSE) generate
       clk_10m_ext_o         <= '0';
       ext_ref_mul_o         <= '0';
@@ -1045,7 +1028,7 @@ begin  -- architecture rtl
     phy16_o <= c_dummy_phy16_to_wrc;
 
     gen_gtp_ch_dual: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
-    generate 
+    generate
       assert FALSE
         report "Cannot enable both GTP channels simultaneously on SPARTAN 6"
         severity ERROR;
@@ -1278,7 +1261,7 @@ begin  -- architecture rtl
     phy8_o <= c_dummy_phy8_to_wrc;
 
     gen_gtp_ch_dual: if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
-    generate 
+    generate
       assert FALSE
         report "Cannot enable both GTP channels simultaneously on Kintex 7"
         severity ERROR;
@@ -1310,7 +1293,7 @@ begin  -- architecture rtl
         CEB   => '0',
         I     => clk_125m_gtp_p_i,
         IB    => clk_125m_gtp_n_i);
-    
+
     -- System PLL input clock buffer
     cmp_clk_sys_buf_i : BUFG
       port map (
@@ -1354,7 +1337,7 @@ begin  -- architecture rtl
     phy8_o <= c_dummy_phy8_to_wrc;
 
     gen_gtp_ch_dual : if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
-    generate 
+    generate
       assert FALSE
         report "Cannot enable both GTP channels simultaneously on ARTIX 7"
         severity ERROR;
