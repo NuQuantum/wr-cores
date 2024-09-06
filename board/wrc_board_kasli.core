@@ -10,27 +10,12 @@ filesets:
       - kasli/wrc_board_kasli.vhd
     file_type: vhdlSource
 
-  constraints:
-    files:
-      - kasli/wrc_board_kasli_ip.xdc
-    file_type: xdc
-
-parameters:
-  g_dpram_initf:
-    datatype: str
-    description: redirecting the base memory load file
-    default: "../wrc_phy16.bram"
-    paramtype: generic
-
 targets:
   default: &default
-    parameters:
-      - g_dpram_initf
     filesets:
       - rtl
-      - constraints
     toplevel: wrc_board_kasli
-    
+
   synth:
     <<: *default
     default_tool: vivado

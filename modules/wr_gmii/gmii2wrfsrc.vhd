@@ -11,6 +11,7 @@ use work.genram_pkg.all;
 use work.endpoint_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.wrf_gmii_pkg.all;
 
 entity gmii2wrfsrc is
   port(
@@ -88,7 +89,7 @@ begin
             mac_rx_sof             <= '0';
         else
             gmii_rxd_vector        <= gmii_rxd_vector(55 downto 0) & gmii_rxd_i;
-            if gmii_rxd_vector = X"55555555555555D5" then 
+            if gmii_rxd_vector = X"55555555555555D5" then
                 gmii_rxd_user_valid  <= '1';
             elsif gmii_rxdv_i= '0' then
                 gmii_rxd_user_valid  <= '0';
@@ -96,13 +97,13 @@ begin
             gmii_rxd_user_valid_d1 <= gmii_rxd_user_valid;
             gmii_rxd_user_valid_d2 <= gmii_rxd_user_valid_d1;
             gmii_rxd_user_valid_d3 <= gmii_rxd_user_valid_d2;
-            mac_rx_valid           <= gmii_rxd_user_valid_d3 and gmii_rxdv_i;  
+            mac_rx_valid           <= gmii_rxd_user_valid_d3 and gmii_rxdv_i;
             mac_rx_data            <= gmii_rxd_vector(31 downto 24);
-            mac_rx_sof             <= gmii_rxd_user_valid_d3 and (not mac_rx_valid) and gmii_rxd_user_valid; 
+            mac_rx_sof             <= gmii_rxd_user_valid_d3 and (not mac_rx_valid) and gmii_rxd_user_valid;
         end if;
     end if;
 end process;
-  
+
 ---------------------------------------------------------------------------
 ----------------------------- FIFO Write Part -----------------------------
 ---------------------------------------------------------------------------
