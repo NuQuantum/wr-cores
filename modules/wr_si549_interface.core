@@ -1,0 +1,16 @@
+CAPI=2:
+name: ohwr:wrpc:wr_si549_interface
+description: This is the Si549 I2C master / wishbone slave (plain port map)
+
+filesets:
+  rtl:
+    files:
+      - wr_si549_interface/si549_if_wb.vhd
+      - wr_si549_interface/wr_si549_interface.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: wr_si549_interface

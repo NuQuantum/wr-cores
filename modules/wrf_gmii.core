@@ -1,0 +1,17 @@
+CAPI=2:
+name: ohwr:wrpc:wrf_gmii
+description: GMII to WR fabric bridge recordless wrapper
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:wrpc:xwr_gmii
+    files:
+      - wr_gmii/wrf_gmii.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+

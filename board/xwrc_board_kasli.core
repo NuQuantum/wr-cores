@@ -1,0 +1,36 @@
+CAPI=2:
+name: ohwr:wrpc:xwrc_board_kasli
+description: This is the white rabbit core + interfaces for the kasli design (record)
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:general-cores:common
+      - ohwr:general-cores:wb_axi4lite_bridge
+      - ohwr:general-cores:axi4lite_wb_bridge
+      - ohwr:general-cores:wb_crossbar
+      - ohwr:wrpc:xwrc_platform_xilinx
+      - ohwr:wrpc:xwrc_board_common
+      - ohwr:etherbone:etherbone_pkg
+      - ohwr:wrpc:xwr_si549_interface
+    files:
+      - kasli/wr_kasli_pkg.vhd
+      - kasli/xwrc_board_kasli_regs.vhd
+      - kasli/xwrc_board_kasli.vhd
+    file_type: vhdlSource
+
+parameters:
+  g_dpram_initf:
+    datatype: str
+    description: redirecting the base memory load file
+    default: "../wrc_phy16.bram"
+    paramtype: generic
+
+targets:
+
+  default: &default
+    parameters:
+      - g_dpram_initf
+    filesets:
+      - rtl
+    toplevel: xwrc_board_kasli
