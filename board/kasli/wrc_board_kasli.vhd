@@ -343,9 +343,9 @@ architecture std_wrapper of wrc_board_kasli is
   constant c_auxpll_cfg_rtio_200m : t_auxpll_cfg       := (TRUE, TRUE, 5);
   constant c_auxpll_cfg           : t_auxpll_cfg_array :=
   (
-    c_auxpll_cfg_rtio_125m,
-    c_auxpll_cfg_rtio_500m,
     c_auxpll_cfg_rtio_200m,
+    c_auxpll_cfg_rtio_500m,
+    c_auxpll_cfg_rtio_125m,
     c_AUXPLL_CFG_DEFAULT
   );
 

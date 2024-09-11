@@ -353,6 +353,7 @@ begin  -- architecture struct
   -- Clock buffering / single ended conversion
   -----------------------------------------------------------------------------
 
+  -- REVISIT: this doesn't seem to be used anywhere for the Kintex7? Can we remove it?
   cmp_ibufgds_pllref : component IBUFGDS
     generic map (
       diff_term    => TRUE,
@@ -360,21 +361,26 @@ begin  -- architecture struct
       iostandard   => "DEFAULT"
     )
     port map (
-      o  => clk_125m_pllref_buf,
-      i  => clk_125m_pllref_p_i,
-      ib => clk_125m_pllref_n_i
+      O  => clk_125m_pllref_buf,
+      I  => clk_125m_pllref_p_i,
+      IB => clk_125m_pllref_n_i
     );
 
-  cmp_ibufgds_bootstrap : component IBUFGDS
-    generic map (
-      diff_term    => TRUE,
-      ibuf_low_pwr => TRUE,
-      iostandard   => "DEFAULT"
-    )
+
+  -- The bootstrap clock is fed in on MGTREFCLK0 so needs an IBUFDS_GTE2.
+  -- This is a free running 125MHz xtal oscillator.
+
+  cmp_gtp_dedicated_clk : component IBUFDS_GTE2
+    generic map(
+      CLKCM_CFG    => true,
+      CLKRCV_TRST  => true,
+      CLKSWING_CFG => "11")
     port map (
-      o  => clk_125m_bootstrap_buf,
-      i  => clk_125m_bootstrap_p_i,
-      ib => clk_125m_bootstrap_n_i
+      O     => clk_125m_bootstrap_buf,
+      ODIV2 => open,
+      CEB   => '0',
+      I     => clk_125m_bootstrap_p_i,
+      IB    => clk_125m_bootstrap_n_i
     );
 
   cmp_bufg_bootstrap : component BUFG
@@ -382,6 +388,7 @@ begin  -- architecture struct
       I => clk_125m_bootstrap_buf,
       O => clk_125m_bootstrap
     );
+
 
   -----------------------------------------------------------------------------
   -- AXI4-Lite Slave to WB  Master bridge.
@@ -508,7 +515,7 @@ begin  -- architecture struct
     )
     port map (
       -- clock / reset
-      areset_n_i             => '1',
+      areset_n_i             => '1', -- REVISIT: do we need to reset on clock switch? See UG472 p.91
       clk_20m_vcxo_i         => clk_20m_vcxo_i,
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
