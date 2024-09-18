@@ -1,13 +1,15 @@
 CAPI=2:
-name: ohwr:wrpc:timing  
+name: ohwr:wrpc:timing
 description: WRPC DMTD
 
 filesets:
   rtl:
+    depend:
+      - ohwr:general-cores:common
     files:
       - timing/dmtd_phase_meas.vhd
-      - timing/dmtd_with_deglitcher.vhd
       - timing/dmtd_sampler.vhd
+      - timing/dmtd_with_deglitcher.vhd
       - timing/multi_dmtd_with_deglitcher.vhd
       - timing/hpll_period_detect.vhd
       - timing/pulse_gen.vhd

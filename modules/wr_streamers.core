@@ -4,26 +4,30 @@ description: WRPC Streamers
 
 filesets:
   rtl:
+    depend:
+      - ohwr:general-cores:wishbone_pkg
+      - ohwr:wrpc:wr_fabric_pkg
+      - ohwr:wrpc:wrcore_pkg
     files:
+      - wr_streamers/streamers_pkg.vhd
       - wr_streamers/wr_streamers_wbgen2_pkg.vhd
       - wr_streamers/streamers_priv_pkg.vhd
-      - wr_streamers/streamers_pkg.vhd
       - wr_streamers/xrtx_streamers_stats.vhd
-      - wr_streamers/xtx_streamer.vhd
       - wr_streamers/tx_streamer.vhd
-      - wr_streamers/xrx_streamer.vhd
       - wr_streamers/rx_streamer.vhd
       - wr_streamers/escape_inserter.vhd
       - wr_streamers/escape_detector.vhd
       - wr_streamers/dropping_buffer.vhd
-      - wr_streamers/xwr_streamers.vhd
-      - wr_streamers/wr_streamers_wb.vhd
       - wr_streamers/xtx_streamers_stats.vhd
       - wr_streamers/xrx_streamers_stats.vhd
-      - wr_streamers/fixed_latency_delay.vhd
       - wr_streamers/fixed_latency_ts_match.vhd
+      - wr_streamers/fixed_latency_delay.vhd
       - wr_streamers/fifo_showahead_adapter.vhd
       - wr_streamers/ts_restore_tai.vhd
+      - wr_streamers/xrx_streamer.vhd
+      - wr_streamers/xtx_streamer.vhd
+      - wr_streamers/xwr_streamers.vhd
+      - wr_streamers/wr_streamers_wb.vhd
     file_type: vhdlSource
 
 
