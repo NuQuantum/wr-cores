@@ -1,0 +1,24 @@
+CAPI=2:
+name: ohwr:wrpc:wrcore_pkg
+description: WRPC core VHDL Package
+
+filesets:
+  rtl:
+    depend:
+      - ohwr:general-cores:genram_pkg
+      - ohwr:general-cores:wishbone_pkg
+      - ohwr:wrpc:wr_endpoint
+      - ohwr:wrpc:wr_softpll
+      - ohwr:wrpc:fabric
+      - ohwr:wrpc:wr_fabric_pkg
+    files:
+      - wrc_core/wrc_cpu_csr_wbgen2_pkg.vhd
+      - wrc_core/wrc_syscon_pkg.vhd
+      - wrc_core/wrcore_pkg.vhd
+    file_type: vhdlSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+

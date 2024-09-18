@@ -4,6 +4,9 @@ description: DDMTD phase measure
 
 filesets:
   rtl:
+    depend:
+      - ohwr:general-cores:common
+      - ohwr:wrpc:timing
     files:
       - timing/dmtd_phase_meas.vhd
       - timing/dmtd_with_deglitcher.vhd

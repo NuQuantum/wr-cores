@@ -12,29 +12,37 @@ filesets:
       - ohwr:wrpc:timing
       - ohwr:wrpc:fabric
       - ohwr:wrpc:wr_pps_gen
+      - ohwr:urv:cpu_core
       - ohwr:urv:xurv_core
       - ohwr:general-cores:wb_clock_monitor
       - ohwr:general-cores:wb_crossbar
       - ohwr:general-cores:wbgen2
       - ohwr:general-cores:wb_onewire_master
       - ohwr:general-cores:wb_simple_uart
+      - ohwr:wrpc:wrcore_pkg
     files:
-      - wrc_core/wrc_cpu_csr_wbgen2_pkg.vhd
-      - wrc_core/wrc_syscon_pkg.vhd
       - wrc_core/wrc_syscon_wb.vhd
-      - wrc_core/wrcore_pkg.vhd
       - wrc_core/wrc_diags_dpram.vhd
       - wrc_core/wrc_cpu_csr_wb.vhd
       - wrc_core/wrc_periph.vhd
       - wrc_core/wrc_urv_wrapper.vhd
       - wrc_core/wr_core.vhd
     file_type: vhdlSource
-    
+
 
 targets:
   default: &default
     filesets:
       - rtl
     toplevel: wr_core
-    
 
+  flist:
+    <<: *default
+    flow: generic
+    flow_options:
+      tool: flist
+      file_types:
+        - vhdlSource
+        - verilogSource
+        - systemVerilogSource
+        - vlt
