@@ -5,7 +5,7 @@
 -------------------------------------------------------------------------------
 -- File       : wr_kasli_pkg.vhd
 -- Author(s)  : Jonah Foley <jonah.foley@nu-quantum.com>
--- Company    : CERN (BE-CO-HT)
+-- Company    : Nu Quantum Ltd.
 -- Created    : 2017-08-02
 -- Last update: 2017-09-07
 -- Standard   : VHDL'93
@@ -59,6 +59,27 @@ package wr_kasli_pkg is
   constant c_wb_crossbar_address_vector_width : integer := c_wishbone_address_width * c_num_wb_crossbar_slaves;
 
   constant c_num_aux_clocks : integer := 3;
+
+  -- Address Map for the componenets connected to the WB_Crossbar outside the WRPC core (wr_core).
+  -- Addresses in the range x"0000_0xxx" belong to the HDL modules connected to the primary crossar inside the core.
+  -- Size: x100 = 1K space
+  -- At the primary crossbar:
+  --   0x00020000: Peripheral interconnect
+  constant c_wb_crossbar_addr_kasli_periph : std_logic_vector((c_wishbone_address_width * c_num_wb_crossbar_slaves)-1 downto 0) :=
+                                     x"000A_0000" & -- secbar_master_in(0): SI549 (0)
+                                     x"0008_0000" & -- secbar_master_in(2): SI549 (1)
+                                     x"0006_0000" & -- secbar_master_in(3): GP1 slave interface
+                                     x"0004_0000" & -- secbar_master_in(4): Kasli register map slave interface
+                                     x"0002_0000";  -- secbar_master_in(5): Core wishone slave interface
+
+  constant c_mask_kasli_periph: std_logic_vector((c_wishbone_address_width)-1 downto 0) := x"000F_0000";
+
+  constant c_wb_crossbar_mask_kasli_periph : std_logic_vector((c_wishbone_address_width * c_num_wb_crossbar_slaves)-1 downto 0) :=
+                                     c_mask_kasli_periph & -- secbar_master_in(0): SI549 (0)
+                                     c_mask_kasli_periph & -- secbar_master_in(2): SI549 (1)
+                                     c_mask_kasli_periph & -- secbar_master_in(3): GP1 slave interface
+                                     c_mask_kasli_periph & -- secbar_master_in(4): Kasli register map slave interface
+                                     c_mask_kasli_periph;  -- secbar_master_in(5): Core wishone slave interface
 
   -----------------------------------------------------------------------------
   -- External Component declarations
@@ -358,7 +379,17 @@ package wr_kasli_pkg is
       pps_led_o : out   std_logic;
 
       -- Link ok indication
-      link_ok_o : out   std_logic
+      link_ok_o : out   std_logic;
+
+      ---------------------------------------------------------------------------
+      -- Debug interface for clock_select, reset and clock
+      ---------------------------------------------------------------------------
+      d_wrpc_reset_core_n  : out std_logic := '0';
+      d_wrpc_reset_core_p  : out std_logic := '0';
+      d_system_clock_select_n  : out std_logic := '0';
+      d_system_clock_select_p  : out std_logic := '0';
+      d_clock_62m5_signal_n  : out std_logic := '0';
+      d_clock_62m5_signal_p  : out std_logic := '0'
     );
   end component wrc_board_kasli;
 
@@ -551,7 +582,17 @@ package wr_kasli_pkg is
       pps_p_o   : out   std_logic;
       pps_led_o : out   std_logic;
       -- Link ok indication
-      link_ok_o : out   std_logic
+      link_ok_o : out   std_logic;
+
+      ---------------------------------------------------------------------------
+      -- Debug interface for clock_select, reset and clock
+      ---------------------------------------------------------------------------
+      d_wrpc_reset_core_n  : out std_logic := '0';
+      d_wrpc_reset_core_p  : out std_logic := '0';
+      d_system_clock_select_n  : out std_logic := '0';
+      d_system_clock_select_p  : out std_logic := '0';
+      d_clock_62m5_signal_n  : out std_logic := '0';
+      d_clock_62m5_signal_p  : out std_logic := '0'
     );
   end component xwrc_board_kasli;
 

@@ -245,7 +245,17 @@ entity xwrc_board_kasli is
     pps_p_o   : out   std_logic;
     pps_led_o : out   std_logic;
     -- Link ok indication
-    link_ok_o : out   std_logic
+    link_ok_o : out   std_logic;
+
+    ---------------------------------------------------------------------------
+    -- Debug interface for clock_select, reset and clock
+    ---------------------------------------------------------------------------
+    d_wrpc_reset_core_n  : out std_logic := '0';
+    d_wrpc_reset_core_p  : out std_logic := '0';
+    d_system_clock_select_n  : out std_logic := '0';
+    d_system_clock_select_p  : out std_logic := '0';
+    d_clock_62m5_signal_n  : out std_logic := '0';
+    d_clock_62m5_signal_p  : out std_logic := '0'
   );
 end entity xwrc_board_kasli;
 
@@ -294,6 +304,28 @@ architecture struct of xwrc_board_kasli is
 
   signal rst_sys_62m5_n       : std_logic;
   signal rst_bootstrap_62m5_n : std_logic;
+
+  -- Reset to MMCM:
+  --   Tackling the error on generating bitstream when the tool did not allow the reset
+  --   to be tied to '1' and instead required an active net.
+  attribute async_reg       : string;
+  signal cs_i   : std_logic := '0';
+  signal cs_ii  : std_logic := '0';
+  signal cs_iii : std_logic := '0';
+  attribute async_reg of cs_i   : signal is "true";
+  attribute async_reg of cs_ii  : signal is "true";
+  attribute async_reg of cs_iii : signal is "true";
+  signal reset_n_to_PLL: std_logic := '0';
+
+  -- Debugging clock_select and reset
+  signal clock_62m5_ODDR2BUF  : std_logic := '0';
+
+  signal rst_wrpc_i   : std_logic := '0';
+  signal rst_wrpc_ii  : std_logic := '0';
+  signal rst_wrpc_iii : std_logic := '0';
+  attribute async_reg of rst_wrpc_i   : signal is "true";
+  attribute async_reg of rst_wrpc_ii  : signal is "true";
+  attribute async_reg of rst_wrpc_iii : signal is "true";
 
   -- Registers
   signal reg2hw : t_wrpc_kasli_regs_master_out;
@@ -501,6 +533,97 @@ begin  -- architecture struct
     );
 
   -----------------------------------------------------------------------------
+  -- Reset to PLL
+  -----------------------------------------------------------------------------
+  -- Generating an active reset logic for `areset_n_i` so the bitstream can be
+  -- generated (Vivado did not accept this reset to be tied to '1')
+  cdc_gen_ClkSel : IF TRUE GENERATE
+     CDC_PROC_ClkSel: process(clk_125m_bootstrap)
+     begin
+        if rising_edge(clk_125m_bootstrap) then
+           cs_i  <= reg2hw.SYSTEM_CLOCK_SELECT;
+           cs_ii  <= cs_i;
+           cs_iii <= cs_ii; -- to be used at edge detection
+        end if;
+     end process;
+  end generate cdc_gen_ClkSel;
+
+  reset_n_to_PLL <= cs_ii and (not cs_iii);
+
+  -----------------------------------------------------------------------------
+  -- Debugging:
+  -- Clock_select, clock 62m5, and wrpc reset
+  -----------------------------------------------------------------------------
+  ----------------------------------
+  -- System clock select
+  ----------------------------------
+  -- CDC handled at `cdc_gen_ClkSel`
+  OBUFDS_ClkSel : OBUFDS
+  generic map (
+     IOSTANDARD => "DEFAULT",
+     SLEW => "SLOW")
+  port map (
+     O =>  d_system_clock_select_p,
+     OB => d_system_clock_select_n,
+     I =>  cs_iii
+  );
+  --   d_system_clock_select  <= cs_iii;
+
+  ----------------------------------
+  -- WRPC Core Reset
+  ----------------------------------
+  cdc_gen_WRPCRstCore : IF TRUE GENERATE
+     CDC_PROC_WRPCRstCore: process(clk_125m_bootstrap)
+     begin
+        if rising_edge(clk_125m_bootstrap) then
+           rst_wrpc_i   <= reg2hw.RESET_WRPC_CORE;
+           rst_wrpc_ii  <= rst_wrpc_i;
+           rst_wrpc_iii <= rst_wrpc_ii;
+        end if;
+     end process;
+  end generate cdc_gen_WRPCRstCore;
+
+  OBUFDS_WRPCRstCore : OBUFDS
+  generic map (
+     IOSTANDARD => "DEFAULT",
+     SLEW => "SLOW")
+  port map (
+     O =>  d_wrpc_reset_core_p,
+     OB => d_wrpc_reset_core_n,
+     I =>  rst_wrpc_iii
+  );
+  --d_reset_wrpc_core      <= rst_wrpc_iii;
+
+  ----------------------------------
+  -- Clock 62m5
+  ----------------------------------
+  DDR_clk62m5t : ODDR
+  generic map(
+      DDR_CLK_EDGE => "OPPOSITE_EDGE", -- "OPPOSITE_EDGE" or "SAME_EDGE"
+      INIT => '0',                     -- Initial value for Q port ('1' or '0')
+      SRTYPE => "SYNC")                -- Reset Type ("ASYNC" or "SYNC")
+  port map (
+      Q => clock_62m5_ODDR2BUF, -- 1-bit DDR output
+      C => clk_pll_62m5,   -- 1-bit clock input
+      CE => '1',           -- 1-bit clock enable input
+      D1 => '1',           -- 1-bit data input (positive edge)
+      D2 => '0',           -- 1-bit data input (negative edge)
+      R => '0',            -- 1-bit reset input
+      S => '0'             -- 1-bit set input
+  );
+
+  OBUFDS_clk62m5 : OBUFDS
+  generic map (
+     IOSTANDARD => "DEFAULT", -- Specify the output I/O standard
+     SLEW => "SLOW")          -- Specify the output slew rate
+  port map (
+     O =>  d_clock_62m5_signal_p,   -- Diff_p output
+     OB => d_clock_62m5_signal_n,   -- Diff_n output
+     I =>  clock_62m5_ODDR2BUF      -- Buffer input
+  );
+
+
+  -----------------------------------------------------------------------------
   -- Platform-dependent part (PHY, PLLs, buffers, etc)
   -----------------------------------------------------------------------------
 
@@ -515,7 +638,7 @@ begin  -- architecture struct
     )
     port map (
       -- clock / reset
-      areset_n_i             => '1', -- REVISIT: do we need to reset on clock switch? See UG472 p.91
+      areset_n_i             => reset_n_to_PLL, --'1', -- REVISIT: do we need to reset on clock switch? See UG472 p.91
       clk_20m_vcxo_i         => clk_20m_vcxo_i,
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,

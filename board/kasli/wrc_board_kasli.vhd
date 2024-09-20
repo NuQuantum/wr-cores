@@ -301,7 +301,17 @@ entity wrc_board_kasli is
     pps_led_o : out   std_logic;
 
     -- Link ok indication
-    link_ok_o : out   std_logic
+    link_ok_o : out   std_logic;
+
+    ---------------------------------------------------------------------------
+    -- Debug interface for clock_select, reset and clock
+    ---------------------------------------------------------------------------
+    d_wrpc_reset_core_n  : out std_logic := '0';
+    d_wrpc_reset_core_p  : out std_logic := '0';
+    d_system_clock_select_n  : out std_logic := '0';
+    d_system_clock_select_p  : out std_logic := '0';
+    d_clock_62m5_signal_n  : out std_logic := '0';
+    d_clock_62m5_signal_p  : out std_logic := '0'
   );
 end entity wrc_board_kasli;
 
@@ -352,9 +362,8 @@ architecture std_wrapper of wrc_board_kasli is
   -- wb crossbar address / mask
   -- convert from a flat vector to an array of t_wishbone_address
   -- vsg_off
-  constant c_wb_crossbar_address_cfg : t_wishbone_address_array(c_num_wb_crossbar_slaves - 1 downto 0) := t_wishbone_address_array(f_de_vectorize_diag(g_wb_crossbar_address_cfg_vector, c_wb_crossbar_address_vector_width));
-
-  constant c_wb_crossbar_mask_cfg : t_wishbone_address_array(c_num_wb_crossbar_slaves - 1 downto 0) := t_wishbone_address_array(f_de_vectorize_diag(g_wb_crossbar_mask_cfg_vector, c_wb_crossbar_address_vector_width));
+  constant c_wb_crossbar_address_cfg : t_wishbone_address_array(c_num_wb_crossbar_slaves - 1 downto 0) := t_wishbone_address_array(f_de_vectorize_diag(c_wb_crossbar_addr_kasli_periph, c_wb_crossbar_address_vector_width));
+  constant c_wb_crossbar_mask_cfg : t_wishbone_address_array(c_num_wb_crossbar_slaves - 1 downto 0) := t_wishbone_address_array(f_de_vectorize_diag(c_wb_crossbar_mask_kasli_periph, c_wb_crossbar_address_vector_width));
   -- vsg_on
 
 begin  -- architecture struct
@@ -562,7 +571,15 @@ begin  -- architecture struct
       pps_p_o   => pps_p_o,
       pps_led_o => pps_led_o,
       --
-      link_ok_o => link_ok_o
+      link_ok_o => link_ok_o,
+
+      -- Debug interface for clock_select, reset and clock,
+      d_wrpc_reset_core_n  => d_wrpc_reset_core_n,
+      d_wrpc_reset_core_p  => d_wrpc_reset_core_p,
+      d_system_clock_select_n => d_system_clock_select_n,
+      d_system_clock_select_p => d_system_clock_select_p,
+      d_clock_62m5_signal_n => d_clock_62m5_signal_n,
+      d_clock_62m5_signal_p => d_clock_62m5_signal_p
     );
 
 end architecture std_wrapper;
