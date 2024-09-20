@@ -39,6 +39,7 @@
 
 library ieee;
   use ieee.std_logic_1164.all;
+  use ieee.std_logic_misc.all;
 
 library work;
   use work.gencores_pkg.all;
@@ -245,7 +246,14 @@ entity xwrc_board_kasli is
     pps_p_o   : out   std_logic;
     pps_led_o : out   std_logic;
     -- Link ok indication
-    link_ok_o : out   std_logic
+    link_ok_o : out   std_logic;
+
+    ---------------------------------------------------------------------------
+    -- Debug interface for clock_select, reset and clock
+    ---------------------------------------------------------------------------
+    dbg_rst_wrpc_core  : out   std_logic := '0';
+    dbg_sys_clk_select : out   std_logic := '0';
+    dbg_clk_pll_62m5   : out   std_logic := '0'
   );
 end entity xwrc_board_kasli;
 
@@ -294,6 +302,21 @@ architecture struct of xwrc_board_kasli is
 
   signal rst_sys_62m5_n       : std_logic;
   signal rst_bootstrap_62m5_n : std_logic;
+
+  -- Async reset generation and clock selection
+  signal areset_n         : std_logic;
+  signal ppulse           : std_logic;
+  signal npulse           : std_logic;
+  signal clk_sel_change   : std_logic;
+  signal pll_reset_sr_q   : std_logic_vector (7 downto 0) := (others => '0');
+  signal areset_n_buff    : std_logic_vector (6 downto 0) := (others => '0');
+
+  -- Debugging (clock and wrpc core reset)
+  signal clk_pll_62m5_s   : std_logic; -- post oddr (sync)
+  signal rst_wrpc_core    : std_logic;
+  signal rst_wrpc_core_s  : std_logic; -- post cdc
+  signal sys_clk_select   : std_logic;
+  signal sys_clk_select_s : std_logic; -- post cdc
 
   -- Registers
   signal reg2hw : t_wrpc_kasli_regs_master_out;
@@ -354,7 +377,7 @@ begin  -- architecture struct
   -----------------------------------------------------------------------------
 
   -- REVISIT: this doesn't seem to be used anywhere for the Kintex7? Can we remove it?
-  cmp_ibufgds_pllref : component IBUFGDS
+  u_ibufgds_pllref : component IBUFGDS
     generic map (
       diff_term    => TRUE,
       ibuf_low_pwr => TRUE,
@@ -370,7 +393,7 @@ begin  -- architecture struct
   -- The bootstrap clock is fed in on MGTREFCLK0 so needs an IBUFDS_GTE2.
   -- This is a free running 125MHz xtal oscillator.
 
-  cmp_gtp_dedicated_clk : component IBUFDS_GTE2
+  u_gtp_dedicated_clk : component IBUFDS_GTE2
     generic map(
       CLKCM_CFG    => true,
       CLKRCV_TRST  => true,
@@ -383,7 +406,7 @@ begin  -- architecture struct
       IB    => clk_125m_bootstrap_n_i
     );
 
-  cmp_bufg_bootstrap : component BUFG
+  u_bufg_bootstrap : component BUFG
     port map (
       I => clk_125m_bootstrap_buf,
       O => clk_125m_bootstrap
@@ -396,7 +419,7 @@ begin  -- architecture struct
 
   s01_axi_aclk_o <= clk_pll_62m5;
 
-  cmp_wbm_axi4lite : component xwb_axi4lite_bridge
+  u_wbm_axi4lite : component xwb_axi4lite_bridge
     port map (
       clk_sys_i => clk_pll_62m5,
       rst_n_i   => rst_bootstrap_62m5_n,
@@ -414,7 +437,7 @@ begin  -- architecture struct
 
   m01_axi_aclk_o <= clk_pll_62m5;
 
-  cmp_axi4litem_wb : component xaxi4lite_wb_bridge
+  u_axi4litem_wb : component xaxi4lite_wb_bridge
     port map (
       clk_i   => clk_pll_62m5,
       rst_n_i => rst_bootstrap_62m5_n,
@@ -430,7 +453,7 @@ begin  -- architecture struct
   -- Wishbone interconnect
   -----------------------------------------------------------------------------
 
-  cmp_kasli_interconnect : component xwb_crossbar
+  u_kasli_interconnect : component xwb_crossbar
     generic map (
       g_num_masters => 2,
       g_num_slaves  => c_num_wb_crossbar_slaves,
@@ -478,7 +501,7 @@ begin  -- architecture struct
   -- Cannot be reset by the system PLL since it drives the clk sel input
   -----------------------------------------------------------------------------
 
-  cmp_xwrc_kasli_regs : component xwrc_board_kasli_regs
+  u_xwrc_kasli_regs : component xwrc_board_kasli_regs
     port map (
       -- clock / reset
       clk_i   => clk_pll_62m5,
@@ -501,10 +524,41 @@ begin  -- architecture struct
     );
 
   -----------------------------------------------------------------------------
+  -- Asynchronous reset `areset_n`
+  -----------------------------------------------------------------------------
+  -- Generating active net based on edge detection from `sys_clk_select`.
+  -- Async reset to be connected to System and DMTD PLLs.
+  -----------------------------------------------------------------------------
+  sys_clk_select <= reg2hw.SYSTEM_CLOCK_SELECT;
+
+  u_gc_sync_ffs_sys_clk_select: gc_sync_ffs
+    generic map(
+      g_SYNC_EDGE => "positive")
+    port map (
+      clk_i     => clk_125m_bootstrap,
+      rst_n_i   => '1',
+      data_i    => sys_clk_select,
+      synced_o  => sys_clk_select_s,
+      npulse_o  => npulse,
+      ppulse_o  => ppulse
+      );
+
+  clk_sel_change <= npulse or ppulse;
+
+  proc_shift_reset: process(clk_125m_bootstrap)
+  begin
+     if rising_edge(clk_125m_bootstrap) then
+       pll_reset_sr_q(7 downto 0) <= pll_reset_sr_q(6 downto 0) & clk_sel_change;
+     end if;
+  end process;
+
+  areset_n <= nor_reduce(pll_reset_sr_q);
+
+  -----------------------------------------------------------------------------
   -- Platform-dependent part (PHY, PLLs, buffers, etc)
   -----------------------------------------------------------------------------
 
-  cmp_xwrc_platform : component xwrc_platform_xilinx
+  u_xwrc_platform : component xwrc_platform_xilinx
     generic map (
       g_fpga_family                => "kintex7",
       g_with_external_clock_input  => FALSE,
@@ -515,7 +569,7 @@ begin  -- architecture struct
     )
     port map (
       -- clock / reset
-      areset_n_i             => '1', -- REVISIT: do we need to reset on clock switch? See UG472 p.91
+      areset_n_i             => areset_n,
       clk_20m_vcxo_i         => clk_20m_vcxo_i,
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
@@ -564,7 +618,7 @@ begin  -- architecture struct
   sys_rstlogic_clk_in(3 downto 1) <= clk_pll_aux(c_num_aux_clocks - 1 downto 0);
 
   -- TODO: free_clock_i -> locked_i false path
-  cmp_sys_rstlogic_reset : component gc_reset
+  u_sys_rstlogic_reset : component gc_reset
     generic map (
       g_clocks    => c_num_aux_clocks + 1,
       g_logdelay  => 4,
@@ -580,7 +634,7 @@ begin  -- architecture struct
   bootstrap_rstlogic_clk_in(0) <= clk_pll_62m5;
 
   -- TODO: free_clock_i -> locked_i false path
-  cmp_bootstrap_rstlogic_reset : component gc_reset
+  u_bootstrap_rstlogic_reset : component gc_reset
     generic map (
       g_clocks    => 1,
       g_logdelay  => 4,
@@ -608,7 +662,7 @@ begin  -- architecture struct
 
   gen_si549 : for i in 0 to 1 generate
 
-    cmp_si549_main_i2c_master : component xwr_si549_interface
+    u_si549_main_i2c_master : component xwr_si549_interface
       generic map (
         g_simulation     => g_simulation,
         g_sys_clock_freq => 62500000, -- 1Mbps
@@ -641,7 +695,7 @@ begin  -- architecture struct
   -- The WR PTP core with optional fabric interface attached
   -----------------------------------------------------------------------------
 
-  cmp_board_common : component xwrc_board_common
+  u_board_common : component xwrc_board_common
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => FALSE,
@@ -756,5 +810,45 @@ begin  -- architecture struct
 
   eeprom_sda_o <= '0';
   eeprom_scl_o <= '0';
+
+
+  -----------------------------------------------------------------------------
+  -- Debugging
+  -----------------------------------------------------------------------------
+  dbg_sys_clk_select <= sys_clk_select_s;
+  dbg_rst_wrpc_core  <= rst_wrpc_core_s;
+  dbg_clk_pll_62m5   <= clk_pll_62m5_s;
+
+  ----------------------------------
+  -- WRPC Core Reset
+  ----------------------------------
+  rst_wrpc_core <= reg2hw.RESET_WRPC_CORE;
+
+  u_gc_sync_wrpc_rst_core: gc_sync
+  generic map(
+    g_SYNC_EDGE => "positive")
+  port map(
+    clk_i      => clk_125m_bootstrap,
+    rst_n_a_i  => rst_bootstrap_62m5_n,
+    d_i        => rst_wrpc_core,
+    q_o        => rst_wrpc_core_s);
+
+  ----------------------------------
+  -- Clock 62m5 (clock forwarding)
+  ----------------------------------
+  u_oddr_clk_62m5 : ODDR
+  generic map(
+      DDR_CLK_EDGE => "OPPOSITE_EDGE",
+      INIT => '0',
+      SRTYPE => "SYNC")
+  port map (
+      Q => clk_pll_62m5_s,
+      C => clk_pll_62m5,
+      CE => '1',
+      D1 => '1',
+      D2 => '0',
+      R => '0',
+      S => '0'
+  );
 
 end architecture struct;
