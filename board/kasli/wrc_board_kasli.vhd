@@ -74,10 +74,7 @@ entity wrc_board_kasli is
     g_diag_ver : integer := 0;
     -- size the generic diag interface (must be num diag i/f's * vector width (32))
     g_diag_ro_vector_width : integer := 0;
-    g_diag_rw_vector_width : integer := 0;
-    -- vectorised wishbone crossbar address array
-    g_wb_crossbar_address_cfg_vector : std_logic_vector(c_wb_crossbar_address_vector_width - 1 downto 0) := (others => '0');
-    g_wb_crossbar_mask_cfg_vector    : std_logic_vector(c_wb_crossbar_address_vector_width - 1 downto 0) := (others => '0')
+    g_diag_rw_vector_width : integer := 0
   );
   port (
     ---------------------------------------------------------------------------
@@ -301,7 +298,14 @@ entity wrc_board_kasli is
     pps_led_o : out   std_logic;
 
     -- Link ok indication
-    link_ok_o : out   std_logic
+    link_ok_o : out   std_logic;
+
+    ---------------------------------------------------------------------------
+    -- Debug interface for clock_select, reset and clock
+    ---------------------------------------------------------------------------
+    dbg_rst_wrpc_core  : out   std_logic := '0';
+    dbg_sys_clk_select : out   std_logic := '0';
+    dbg_clk_pll_62m5   : out   std_logic := '0'
   );
 end entity wrc_board_kasli;
 
@@ -349,12 +353,6 @@ architecture std_wrapper of wrc_board_kasli is
     c_AUXPLL_CFG_DEFAULT
   );
 
-  -- wb crossbar address / mask
-  -- convert from a flat vector to an array of t_wishbone_address
-  -- vsg_off
-  constant c_wb_crossbar_address_cfg : t_wishbone_address_array(c_num_wb_crossbar_slaves - 1 downto 0) := t_wishbone_address_array(f_de_vectorize_diag(g_wb_crossbar_address_cfg_vector, c_wb_crossbar_address_vector_width));
-
-  constant c_wb_crossbar_mask_cfg : t_wishbone_address_array(c_num_wb_crossbar_slaves - 1 downto 0) := t_wishbone_address_array(f_de_vectorize_diag(g_wb_crossbar_mask_cfg_vector, c_wb_crossbar_address_vector_width));
   -- vsg_on
 
 begin  -- architecture struct
@@ -463,8 +461,8 @@ begin  -- architecture struct
       g_diag_ro_size            => c_diag_ro_size,
       g_diag_rw_size            => c_diag_rw_size,
       g_aux_pll_cfg             => c_auxpll_cfg,
-      g_wb_crossbar_address_cfg => c_wb_crossbar_address_cfg,
-      g_wb_crossbar_mask_cfg    => c_wb_crossbar_mask_cfg
+      g_wb_crossbar_address_cfg => c_wb_crossbar_addr_kasli_periph,
+      g_wb_crossbar_mask_cfg    => c_wb_crossbar_mask_kasli_periph
     )
     port map (
       clk_20m_vcxo_i         => clk_20m_vcxo_i,
@@ -562,7 +560,12 @@ begin  -- architecture struct
       pps_p_o   => pps_p_o,
       pps_led_o => pps_led_o,
       --
-      link_ok_o => link_ok_o
+      link_ok_o => link_ok_o,
+
+      -- debug
+      dbg_rst_wrpc_core  => dbg_rst_wrpc_core,
+      dbg_sys_clk_select => dbg_sys_clk_select,
+      dbg_clk_pll_62m5   => dbg_clk_pll_62m5
     );
 
 end architecture std_wrapper;

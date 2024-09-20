@@ -5,7 +5,7 @@
 -------------------------------------------------------------------------------
 -- File       : wr_kasli_pkg.vhd
 -- Author(s)  : Jonah Foley <jonah.foley@nu-quantum.com>
--- Company    : CERN (BE-CO-HT)
+-- Company    : Nu Quantum Ltd.
 -- Created    : 2017-08-02
 -- Last update: 2017-09-07
 -- Standard   : VHDL'93
@@ -59,6 +59,28 @@ package wr_kasli_pkg is
   constant c_wb_crossbar_address_vector_width : integer := c_wishbone_address_width * c_num_wb_crossbar_slaves;
 
   constant c_num_aux_clocks : integer := 3;
+
+  -- Address Map for the componenets connected to the WB_Crossbar outside the WRPC core - secondary crossbar.
+  -- Addresses in the range 0x00020000 to 0x0002_0800 belong to HDL modules connected to the primary crossar.
+  -- Also 0x0008000 is reserved as Auxillary space (Etherbone config, etc).
+  -- At the primary crossbar:
+  --   0x0002_0000: Peripheral interconnect
+  constant c_si549_master_addr : t_wishbone_address := x"0003_0C00";
+  constant c_si549_helper_addr : t_wishbone_address := x"0003_0800";
+  constant c_gp1_slave_addr    : t_wishbone_address := x"0003_0400";
+  constant c_kasli_regs_addr   : t_wishbone_address := x"0003_0000";
+  constant c_wr_core_addr      : t_wishbone_address := x"0002_0000";
+
+  constant c_wb_crossbar_addr_kasli_periph : t_wishbone_address_array(c_num_wb_crossbar_slaves-1 downto 0) := (
+    c_si549_master_addr,
+    c_si549_helper_addr,
+    c_gp1_slave_addr,
+    c_kasli_regs_addr,
+    c_wr_core_addr
+  );
+
+  constant c_mask_kasli_periph: t_wishbone_address := x"000F_FC00";
+  constant c_wb_crossbar_mask_kasli_periph : t_wishbone_address_array(c_num_wb_crossbar_slaves-1 downto 0) := (others => c_mask_kasli_periph);  
 
   -----------------------------------------------------------------------------
   -- External Component declarations
@@ -131,10 +153,7 @@ package wr_kasli_pkg is
       g_diag_ver : integer := 0;
       -- size the generic diag interface (must be num diag i/f's * vector width (32))
       g_diag_ro_vector_width : integer := 0;
-      g_diag_rw_vector_width : integer := 0;
-      -- vectorised wishbone crossbar address array
-      g_wb_crossbar_address_cfg_vector : std_logic_vector(c_wb_crossbar_address_vector_width - 1 downto 0) := (others => '0');
-      g_wb_crossbar_mask_cfg_vector    : std_logic_vector(c_wb_crossbar_address_vector_width - 1 downto 0) := (others => '0')
+      g_diag_rw_vector_width : integer := 0
     );
     port (
       ---------------------------------------------------------------------------
@@ -358,7 +377,14 @@ package wr_kasli_pkg is
       pps_led_o : out   std_logic;
 
       -- Link ok indication
-      link_ok_o : out   std_logic
+      link_ok_o : out   std_logic;
+
+      ---------------------------------------------------------------------------
+      -- Debug interface for clock_select, reset and clock
+      ---------------------------------------------------------------------------
+      dbg_rst_wrpc_core  : out   std_logic := '0';
+      dbg_sys_clk_select : out   std_logic := '0';
+      dbg_clk_pll_62m5   : out   std_logic := '0'
     );
   end component wrc_board_kasli;
 
@@ -551,7 +577,14 @@ package wr_kasli_pkg is
       pps_p_o   : out   std_logic;
       pps_led_o : out   std_logic;
       -- Link ok indication
-      link_ok_o : out   std_logic
+      link_ok_o : out   std_logic;
+
+      ---------------------------------------------------------------------------
+      -- Debug interface for clock_select, reset and clock
+      ---------------------------------------------------------------------------
+      dbg_rst_wrpc_core  : out   std_logic := '0';
+      dbg_sys_clk_select : out   std_logic := '0';
+      dbg_clk_pll_62m5   : out   std_logic := '0'
     );
   end component xwrc_board_kasli;
 
