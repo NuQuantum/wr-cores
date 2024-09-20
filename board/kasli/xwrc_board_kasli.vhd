@@ -88,12 +88,18 @@ entity xwrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Clocks/resets
     ---------------------------------------------------------------------------
-    -- Clock inputs from the board
+    -- dmtd PLL reference clock (from helper Si549)
     clk_20m_vcxo_i         : in    std_logic;
+    
+    -- sys PLL reference clock (from main Si549)
     clk_125m_pllref_p_i    : in    std_logic;
     clk_125m_pllref_n_i    : in    std_logic;
+    
+    -- transciever reference clock
     clk_125m_gtp_p_i       : in    std_logic;
     clk_125m_gtp_n_i       : in    std_logic;
+
+    -- sys PLL reference clock (from bootstrap oscillator)
     clk_125m_bootstrap_p_i : in    std_logic;
     clk_125m_bootstrap_n_i : in    std_logic;
 
@@ -353,7 +359,6 @@ begin  -- architecture struct
   -- Clock buffering / single ended conversion
   -----------------------------------------------------------------------------
 
-  -- REVISIT: this doesn't seem to be used anywhere for the Kintex7? Can we remove it?
   cmp_ibufgds_pllref : component IBUFGDS
     generic map (
       diff_term    => TRUE,
@@ -517,6 +522,7 @@ begin  -- architecture struct
       -- clock / reset
       areset_n_i             => '1', -- REVISIT: do we need to reset on clock switch? See UG472 p.91
       clk_20m_vcxo_i         => clk_20m_vcxo_i,
+      clk_125m_pllref_i      => clk_125m_pllref_buf,
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
       clk_125m_bootstrap_i   => clk_125m_bootstrap,
