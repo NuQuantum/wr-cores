@@ -306,12 +306,9 @@ entity wrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Debug interface for clock_select, reset and clock
     ---------------------------------------------------------------------------
-    d_wrpc_reset_core_n  : out std_logic := '0';
-    d_wrpc_reset_core_p  : out std_logic := '0';
-    d_system_clock_select_n  : out std_logic := '0';
-    d_system_clock_select_p  : out std_logic := '0';
-    d_clock_62m5_signal_n  : out std_logic := '0';
-    d_clock_62m5_signal_p  : out std_logic := '0'
+    d_wrpc_reset_core     : out   std_logic := '0';
+    d_system_clock_select : out   std_logic := '0';
+    d_clock_62m5_signal   : out   std_logic := '0'
   );
 end entity wrc_board_kasli;
 
@@ -573,13 +570,10 @@ begin  -- architecture struct
       --
       link_ok_o => link_ok_o,
 
-      -- Debug interface for clock_select, reset and clock,
-      d_wrpc_reset_core_n  => d_wrpc_reset_core_n,
-      d_wrpc_reset_core_p  => d_wrpc_reset_core_p,
-      d_system_clock_select_n => d_system_clock_select_n,
-      d_system_clock_select_p => d_system_clock_select_p,
-      d_clock_62m5_signal_n => d_clock_62m5_signal_n,
-      d_clock_62m5_signal_p => d_clock_62m5_signal_p
+      -- debug
+      d_wrpc_reset_core     => d_wrpc_reset_core,
+      d_system_clock_select => d_system_clock_select,
+      d_clock_62m5_signal   => d_clock_62m5_signal
     );
 
 end architecture std_wrapper;

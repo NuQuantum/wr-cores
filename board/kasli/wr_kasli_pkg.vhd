@@ -60,9 +60,9 @@ package wr_kasli_pkg is
 
   constant c_num_aux_clocks : integer := 3;
 
-  -- Address Map for the componenets connected to the WB_Crossbar outside the WRPC core (wr_core).
-  -- Addresses in the range x"0000_0xxx" belong to the HDL modules connected to the primary crossar inside the core.
-  -- Size: x100 = 1K space
+  -- Address Map for the componenets connected to the WB_Crossbar outside the WRPC core - secondary crossbar.
+  -- Addresses in the range 0x00020000 to 0x00020800 belong to HDL modules connected to the primary crossar.
+  -- Also 0x0008000 is reserved as Auxillary space (Etherbone config, etc).
   -- At the primary crossbar:
   --   0x00020000: Peripheral interconnect
   constant c_wb_crossbar_addr_kasli_periph : std_logic_vector((c_wishbone_address_width * c_num_wb_crossbar_slaves)-1 downto 0) :=
@@ -384,12 +384,9 @@ package wr_kasli_pkg is
       ---------------------------------------------------------------------------
       -- Debug interface for clock_select, reset and clock
       ---------------------------------------------------------------------------
-      d_wrpc_reset_core_n  : out std_logic := '0';
-      d_wrpc_reset_core_p  : out std_logic := '0';
-      d_system_clock_select_n  : out std_logic := '0';
-      d_system_clock_select_p  : out std_logic := '0';
-      d_clock_62m5_signal_n  : out std_logic := '0';
-      d_clock_62m5_signal_p  : out std_logic := '0'
+      d_wrpc_reset_core     : out   std_logic := '0';
+      d_system_clock_select : out   std_logic := '0';
+      d_clock_62m5_signal   : out   std_logic := '0'
     );
   end component wrc_board_kasli;
 
@@ -587,12 +584,9 @@ package wr_kasli_pkg is
       ---------------------------------------------------------------------------
       -- Debug interface for clock_select, reset and clock
       ---------------------------------------------------------------------------
-      d_wrpc_reset_core_n  : out std_logic := '0';
-      d_wrpc_reset_core_p  : out std_logic := '0';
-      d_system_clock_select_n  : out std_logic := '0';
-      d_system_clock_select_p  : out std_logic := '0';
-      d_clock_62m5_signal_n  : out std_logic := '0';
-      d_clock_62m5_signal_p  : out std_logic := '0'
+      d_wrpc_reset_core     : out   std_logic := '0';
+      d_system_clock_select : out   std_logic := '0';
+      d_clock_62m5_signal   : out   std_logic := '0'
     );
   end component xwrc_board_kasli;
 
