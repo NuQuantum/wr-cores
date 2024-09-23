@@ -14,8 +14,8 @@ filesets:
       - ohwr:etherbone:etherbone_pkg
       - ohwr:wrpc:xwr_si549_interface
     files:
-      - kasli/wr_kasli_pkg.vhd
       - kasli/xwrc_board_kasli_regs.vhd
+      - kasli/wr_kasli_pkg.vhd
       - kasli/xwrc_board_kasli.vhd
     file_type: vhdlSource
 
