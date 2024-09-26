@@ -80,7 +80,7 @@ package wr_kasli_pkg is
   );
 
   constant c_mask_kasli_periph: t_wishbone_address := x"000F_FC00";
-  constant c_wb_crossbar_mask_kasli_periph : t_wishbone_address_array(c_num_wb_crossbar_slaves-1 downto 0) := (others => c_mask_kasli_periph);  
+  constant c_wb_crossbar_mask_kasli_periph : t_wishbone_address_array(c_num_wb_crossbar_slaves-1 downto 0) := (others => c_mask_kasli_periph);
 
   -----------------------------------------------------------------------------
   -- External Component declarations
@@ -197,11 +197,6 @@ package wr_kasli_pkg is
       sfp_tx_n_o        : out   std_logic;
       sfp_rx_p_i        : in    std_logic;
       sfp_rx_n_i        : in    std_logic;
-      sfp_det_i         : in    std_logic := '1';
-      sfp_rate_select_o : out   std_logic;
-      sfp_tx_fault_i    : in    std_logic := '0';
-      sfp_tx_disable_o  : out   std_logic;
-      sfp_los_i         : in    std_logic := '0';
 
       ---------------------------------------------------------------------------
       -- I2C EEPROM
@@ -458,11 +453,6 @@ package wr_kasli_pkg is
       sfp_txn_o         : out   std_logic;
       sfp_rxp_i         : in    std_logic;
       sfp_rxn_i         : in    std_logic;
-      sfp_det_i         : in    std_logic := '1';
-      sfp_rate_select_o : out   std_logic;
-      sfp_tx_fault_i    : in    std_logic := '0';
-      sfp_tx_disable_o  : out   std_logic;
-      sfp_los_i         : in    std_logic := '0';
 
       ---------------------------------------------------------------------------
       -- I2C EEPROM
