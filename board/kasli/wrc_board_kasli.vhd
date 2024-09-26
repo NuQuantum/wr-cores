@@ -118,11 +118,6 @@ entity wrc_board_kasli is
     sfp_tx_n_o        : out   std_logic;
     sfp_rx_p_i        : in    std_logic;
     sfp_rx_n_i        : in    std_logic;
-    sfp_det_i         : in    std_logic := '1';
-    sfp_rate_select_o : out   std_logic;
-    sfp_tx_fault_i    : in    std_logic := '0';
-    sfp_tx_disable_o  : out   std_logic;
-    sfp_los_i         : in    std_logic := '0';
 
     ---------------------------------------------------------------------------
     -- I2C EEPROM
@@ -490,11 +485,6 @@ begin  -- architecture struct
       sfp_txn_o         => sfp_tx_n_o,
       sfp_rxp_i         => sfp_rx_p_i,
       sfp_rxn_i         => sfp_rx_n_i,
-      sfp_det_i         => sfp_det_i,
-      sfp_rate_select_o => sfp_rate_select_o,
-      sfp_tx_fault_i    => sfp_tx_fault_i,
-      sfp_tx_disable_o  => sfp_tx_disable_o,
-      sfp_los_i         => sfp_los_i,
       --
       eeprom_sda_i => eeprom_sda_i,
       eeprom_sda_o => eeprom_sda_o,

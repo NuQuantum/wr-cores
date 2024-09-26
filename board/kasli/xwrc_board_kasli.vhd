@@ -127,11 +127,6 @@ entity xwrc_board_kasli is
     sfp_txn_o         : out   std_logic;
     sfp_rxp_i         : in    std_logic;
     sfp_rxn_i         : in    std_logic;
-    sfp_det_i         : in    std_logic := '1';
-    sfp_rate_select_o : out   std_logic;
-    sfp_tx_fault_i    : in    std_logic := '0';
-    sfp_tx_disable_o  : out   std_logic;
-    sfp_los_i         : in    std_logic := '0';
 
     ---------------------------------------------------------------------------
     -- I2C EEPROM
@@ -321,8 +316,14 @@ architecture struct of xwrc_board_kasli is
   -- Registers
   signal reg2hw : t_wrpc_kasli_regs_master_out;
 
-  -- PLL DAC ARB
+  -- SFP Status Signals
+  signal sfp_det         : std_logic;
+  signal sfp_rate_select : std_logic;
+  signal sfp_tx_fault    : std_logic;
+  signal sfp_tx_disable  : std_logic;
+  signal sfp_los         : std_logic;
 
+  -- PLL DAC ARB
   type pll_data_array_t is array (0 to 1) of std_logic_vector(23 downto 0);
 
   signal dac_pll_load_p1 : std_logic_vector(1 downto 0);
@@ -523,6 +524,12 @@ begin  -- architecture struct
       wrpc_kasli_regs_o => reg2hw
     );
 
+  -- REVISIT: These SFP signals need to be driven from registers. They are all
+  -- accessible via the I2C expanders connected to the PS I2C lines.
+  sfp_det      <= '1';
+  sfp_los      <= '0';
+  sfp_tx_fault <= '0';
+
   -----------------------------------------------------------------------------
   -- Asynchronous reset `areset_n`
   -----------------------------------------------------------------------------
@@ -579,9 +586,9 @@ begin  -- architecture struct
       sfp_txp_o              => sfp_txp_o,
       sfp_rxn_i              => sfp_rxn_i,
       sfp_rxp_i              => sfp_rxp_i,
-      sfp_tx_fault_i         => sfp_tx_fault_i,
-      sfp_los_i              => sfp_los_i,
-      sfp_tx_disable_o       => sfp_tx_disable_o,
+      sfp_tx_fault_i         => sfp_tx_fault,
+      sfp_los_i              => sfp_los,
+      sfp_tx_disable_o       => sfp_tx_disable,
       clk_62m5_sys_o         => clk_pll_62m5,
       clk_125m_ref_o         => clk_pll_125m,
       clk_62m5_dmtd_o        => clk_pll_dmtd,
@@ -747,7 +754,7 @@ begin  -- architecture struct
       sda_o => eeprom_sda_t,
       sda_i => eeprom_sda_i,
       -- No SFP I2C as it comes via the wishbone interface to the RISC-V
-      sfp_det_i => sfp_det_i,
+      sfp_det_i => sfp_det,
       -- flash SPI
       spi_sclk_o => flash_sclk_o,
       spi_ncs_o  => flash_ncs_o,
@@ -800,7 +807,7 @@ begin  -- architecture struct
       link_ok_o            => link_ok_o
     );
 
-  sfp_rate_select_o <= '1';
+  sfp_rate_select <= '1';
 
   thermo_id_t <= '0' when onewire_en(0) = '1' else '1';
   thermo_id_o <= '0';
