@@ -18,7 +18,7 @@ memory-map:
   - reg:
       name: RESET
       comment: WRPC Core Reset Register
-      description: Controls the WRPC reset 
+      description: Controls the WRPC reset
       width: 32
       access: rw
       children:
@@ -26,18 +26,19 @@ memory-map:
           name: WRPC_CORE
           comment: 'Write 1: assert the reset'
           description: External core reset
-          range: 0          
+          range: 0
   - reg:
       name: SYSTEM_CLOCK
       comment: System Clock Register
-      description: Controls the system PLL reference clock input 
+      description: Controls the system PLL reference clock input
       width: 32
       access: rw
       children:
       - field:
           name: SELECT
           comment: 'Write 1: SI549, Write 0: Bootsrap clock'
-          description: system PLL clock select 
-          range: 0          
-          
+          description: system PLL clock select
+          preset: 1
+          range: 0
+
 
