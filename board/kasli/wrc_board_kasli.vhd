@@ -59,10 +59,10 @@ entity wrc_board_kasli is
   generic (
     -- set to 1 to speed up some initialization processes during simulation
     g_simulation : integer := 0;
-    -- "plainfbrc" = expose WRC fabric interface
-    -- "streamers" = attach WRC streamers to fabric interface
-    -- "etherbone" = attach Etherbone slave to fabric interface
-    g_fabric_iface : string := "plainfbrc";
+    -- "PLAINFBRC" = expose WRC fabric interface
+    -- "STREAMERS" = attach WRC streamers to fabric interface
+    -- "ETHERBONE" = attach Etherbone slave to fabric interface
+    g_fabric_iface : string := "PLAINFBRC";
     -- parameters configuration when g_fabric_iface = "streamers" (otherwise ignored)
     -- g_streamers_op_mode        : t_streamers_op_mode  := TX_AND_RX;
     -- g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
