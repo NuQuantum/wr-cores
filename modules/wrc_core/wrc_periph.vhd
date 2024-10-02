@@ -455,8 +455,8 @@ begin
       g_interface_mode      => PIPELINED,
       g_address_granularity => BYTE,
       g_num_ports           => 2,
-      g_ow_btp_normal       => "5.0",
-      g_ow_btp_overdrive    => "1.0"
+      g_ow_btp_normal       => 50,
+      g_ow_btp_overdrive    => 10
       )
     port map(
       clk_sys_i => clk_sys_i,
