@@ -376,21 +376,6 @@ begin  -- architecture struct
   -----------------------------------------------------------------------------
   -- Clock buffering / single ended conversion
   -----------------------------------------------------------------------------
-
-  -- REVISIT: this doesn't seem to be used anywhere for the Kintex7? Can we remove it?
-  u_ibufgds_pllref : component IBUFGDS
-    generic map (
-      diff_term    => TRUE,
-      ibuf_low_pwr => TRUE,
-      iostandard   => "DEFAULT"
-    )
-    port map (
-      O  => clk_125m_pllref_buf,
-      I  => clk_125m_pllref_p_i,
-      IB => clk_125m_pllref_n_i
-    );
-
-
   -- The bootstrap clock is fed in on MGTREFCLK0 so needs an IBUFDS_GTE2.
   -- This is a free running 125MHz xtal oscillator.
 
@@ -713,7 +698,7 @@ begin  -- architecture struct
       g_ep_rxbuf_size             => 1024,
       g_tx_runt_padding           => TRUE,
       g_dpram_initf               => g_dpram_initf,
-      g_dpram_size                => 131072 / 4,
+      g_dpram_size                => 262144 / 4,
       g_interface_mode            => PIPELINED,
       g_address_granularity       => BYTE,
       g_aux_sdb                   => c_wrc_periph3_sdb,
