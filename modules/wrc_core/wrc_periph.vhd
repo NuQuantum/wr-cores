@@ -11,25 +11,25 @@
 -------------------------------------------------------------------------------
 -- Description:
 -- WRC_PERIPH integrates WRC_SYSCON, UART/VUART, 1-Wire Master, WRPC_DIAGS
--- 
+--
 -------------------------------------------------------------------------------
 --
 -- Copyright (c) 2012 - 2017 CERN
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
@@ -132,17 +132,17 @@ architecture struct of wrc_periph is
   signal cntr_div      : unsigned(23 downto 0);
   signal cntr_tics     : unsigned(31 downto 0);
   signal cntr_overflow : std_logic;
-  
+
   signal diag_adr : unsigned(15 downto 0);
   signal diag_dat : std_logic_vector(31 downto 0);
   signal diag_out_regs : t_generic_word_array(g_diag_rw_size - 1 downto 0);
   signal diag_in       : t_generic_word_array(g_diag_ro_size + g_diag_rw_size-1 downto 0);
 
   constant c_RESET_CHAIN_LENGTH : integer := 3;
-  
+
   signal rst_net_n, rst_wrc_n : std_logic;
   signal rst_net_n_chain, rst_wrc_n_chain : std_logic_vector(c_RESET_CHAIN_LENGTH -1 downto 0);
-  
+
 begin
 
   -- async assert, sync de-assert reset.
@@ -159,7 +159,7 @@ begin
 
   rst_wrc_n_o <= rst_wrc_n_chain(0);
   rst_net_n_o <= rst_net_n_chain(0);
-  
+
   process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
@@ -176,13 +176,13 @@ begin
 
         if(sysc_regs_o.rstr_trig_wr_o = '1' and sysc_regs_o.rstr_trig_o = x"deadbee") then
           rst_wrc_n <= not sysc_regs_o.rstr_rst_o;
-        end if; 
-            
+        end if;
+
         rst_net_n <= not sysc_regs_o.gpsr_net_rst_o;
-      end if; 
-    end if; 
+      end if;
+    end if;
   end process;
-  
+
   -------------------------------------
   -- buttons
   -------------------------------------
@@ -455,8 +455,8 @@ begin
       g_interface_mode      => PIPELINED,
       g_address_granularity => BYTE,
       g_num_ports           => 2,
-      g_ow_btp_normal       => "5.0",
-      g_ow_btp_overdrive    => "1.0"
+      g_ow_btp_normal       => 50,
+      g_ow_btp_overdrive    => 10
       )
     port map(
       clk_sys_i => clk_sys_i,
