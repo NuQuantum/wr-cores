@@ -65,21 +65,21 @@ package wr_kasli_pkg is
   -- Also 0x0008000 is reserved as Auxillary space (Etherbone config, etc).
   -- At the primary crossbar:
   --   0x0002_0000: Peripheral interconnect
-  constant c_si549_master_addr : t_wishbone_address := x"0003_0C00";
-  constant c_si549_helper_addr : t_wishbone_address := x"0003_0800";
-  constant c_gp1_slave_addr    : t_wishbone_address := x"0003_0400";
+  constant c_si549_master_addr : t_wishbone_address := x"0003_3000";
+  constant c_si549_helper_addr : t_wishbone_address := x"0003_2000";
+  constant c_gp1_slave_addr    : t_wishbone_address := x"0003_1000";
   constant c_kasli_regs_addr   : t_wishbone_address := x"0003_0000";
   constant c_wr_core_addr      : t_wishbone_address := x"0002_0000";
 
   constant c_wb_crossbar_addr_kasli_periph : t_wishbone_address_array(c_num_wb_crossbar_slaves-1 downto 0) := (
-    c_si549_master_addr,
-    c_si549_helper_addr,
-    c_gp1_slave_addr,
-    c_kasli_regs_addr,
-    c_wr_core_addr
+    0 => c_si549_master_addr,
+    1 => c_si549_helper_addr,
+    2 => c_gp1_slave_addr,
+    3 => c_kasli_regs_addr,
+    4 => c_wr_core_addr
   );
 
-  constant c_mask_kasli_periph: t_wishbone_address := x"000F_FC00";
+  constant c_mask_kasli_periph: t_wishbone_address := x"000F_F000";
   constant c_wb_crossbar_mask_kasli_periph : t_wishbone_address_array(c_num_wb_crossbar_slaves-1 downto 0) := (others => c_mask_kasli_periph);
 
   -----------------------------------------------------------------------------
