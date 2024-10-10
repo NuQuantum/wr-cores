@@ -371,11 +371,19 @@ architecture struct of xwrc_board_kasli is
   signal wb_si549_master_out : t_wishbone_master_out_array(1 downto 0);
   signal wb_si549_master_in  : t_wishbone_master_in_array(1 downto 0);
 
+  -- I2C
+  signal si549_scl_t_n :  std_logic_vector(1 downto 0);
+  signal si549_sda_t_n :  std_logic_vector(1 downto 0);
+
+  signal eeprom_scl_t_n :  std_logic;
+  signal eeprom_sda_t_n :  std_logic;
+
 begin  -- architecture struct
 
   -----------------------------------------------------------------------------
   -- Clock buffering / single ended conversion
   -----------------------------------------------------------------------------
+
   -- The bootstrap clock is fed in on MGTREFCLK0 so needs an IBUFDS_GTE2.
   -- This is a free running 125MHz xtal oscillator.
 
@@ -494,7 +502,7 @@ begin  -- architecture struct
       wb_cyc_i => wb_kasli_regs_in.cyc,
       wb_stb_i => wb_kasli_regs_in.stb,
       -- Only two registers, so only 1 bit is used for addressing
-      wb_adr_i   => wb_kasli_regs_in.adr(0 downto 0),
+      wb_adr_i   => wb_kasli_regs_in.adr(2 downto 2),
       wb_sel_i   => wb_kasli_regs_in.sel,
       wb_we_i    => wb_kasli_regs_in.we,
       wb_dat_i   => wb_kasli_regs_in.dat,
@@ -665,8 +673,8 @@ begin  -- architecture struct
         tm_dac_value_i    => dac_pll_data(i),
         tm_dac_value_wr_i => dac_pll_load_p1(i),
         -- I2C bus: output enable (active low)
-        scl_pad_oen_o => si549_scl_t(i),
-        sda_pad_oen_o => si549_sda_t(i),
+        scl_pad_oen_o => si549_scl_t_n(i),
+        sda_pad_oen_o => si549_sda_t_n(i),
         -- I2C bus: input pads
         scl_pad_i => si549_scl_i(i),
         sda_pad_i => si549_sda_i(i),
@@ -678,6 +686,9 @@ begin  -- architecture struct
     -- Drive to zero such that when oen is high the SCL/SDA lines go low
     si549_scl_o(i) <= '0';
     si549_sda_o(i) <= '0';
+
+    si549_scl_t(i) <= '1' when si549_scl_t_n(i) = '0' else '0';
+    si549_sda_t(i) <= '1' when si549_sda_t_n(i) = '0' else '0';
 
   end generate gen_si549;
 
@@ -732,9 +743,9 @@ begin  -- architecture struct
       phy16_o => phy16_from_wrc,
       phy16_i => phy16_to_wrc,
       -- EEPROM I2C
-      scl_o => eeprom_scl_t,
+      scl_o => eeprom_scl_t_n,
       scl_i => eeprom_scl_i,
-      sda_o => eeprom_sda_t,
+      sda_o => eeprom_sda_t_n,
       sda_i => eeprom_sda_i,
       -- No SFP I2C as it comes via the wishbone interface to the RISC-V
       sfp_det_i => sfp_det,
@@ -798,9 +809,11 @@ begin  -- architecture struct
   onewire_in(0) <= thermo_id_i;
   onewire_in(1) <= '1';
 
+  eeprom_scl_t <= '1' when eeprom_scl_t_n = '0' else '0';
+  eeprom_sda_t <= '1' when eeprom_sda_t_n = '0' else '0';
+
   eeprom_sda_o <= '0';
   eeprom_scl_o <= '0';
-
 
   -----------------------------------------------------------------------------
   -- Debugging
