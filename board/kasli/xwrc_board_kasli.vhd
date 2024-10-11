@@ -441,7 +441,7 @@ begin  -- architecture struct
 
   u_kasli_interconnect : component xwb_crossbar
     generic map (
-      g_num_masters => 2,
+      g_num_masters => 1,
       g_num_slaves  => c_num_wb_crossbar_slaves,
       g_registered  => TRUE,
       g_address     => g_wb_crossbar_address_cfg,
@@ -452,10 +452,8 @@ begin  -- architecture struct
       clk_sys_i => clk_pll_62m5,
       rst_n_i   => rst_bootstrap_62m5_n,
       -- Master connections (INTERCON is a slave)
-      slave_i(0) => wb_aux_master_out,
-      slave_i(1) => wb_m01_slave_in,
-      slave_o(0) => wb_aux_master_in,
-      slave_o(1) => wb_m01_slave_out,
+      slave_i(0) => wb_m01_slave_in,
+      slave_o(0) => wb_m01_slave_out,
       -- Slave connections (INTERCON is a master)
       master_i => secbar_master_in,
       master_o => secbar_master_out
@@ -756,8 +754,8 @@ begin  -- architecture struct
       wb_slave_i => wb_wrc_master_out,
       wb_slave_o => wb_wrc_master_in,
       -- Aux mater port (From WRC -> PS .. for I2C)
-      aux_master_o => wb_aux_master_out,
-      aux_master_i => wb_aux_master_in,
+      aux_master_o => open,                  -- REVISIT: cannot connect aux_master and wb_slave to same crossbar.
+      aux_master_i => c_DUMMY_WB_MASTER_IN,  -- REVISIT: cannot connect aux_master and wb_slave to same crossbar.
       -- wr fabric interface (g_fabric_interface = plain)
       wrf_src_o => wrf_src_o,
       wrf_src_i => wrf_src_i,
