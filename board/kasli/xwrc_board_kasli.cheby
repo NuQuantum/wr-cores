@@ -26,6 +26,7 @@ memory-map:
           name: WRPC_CORE
           comment: 'Write 1: assert the reset'
           description: External core reset
+          preset: 1
           range: 0
   - reg:
       name: SYSTEM_CLOCK
@@ -38,7 +39,7 @@ memory-map:
           name: SELECT
           comment: 'Write 1: SI549, Write 0: Bootsrap clock'
           description: system PLL clock select
-          preset: 1
+          preset: 0
           range: 0
 
 

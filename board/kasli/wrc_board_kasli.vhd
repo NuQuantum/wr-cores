@@ -361,8 +361,8 @@ begin  -- architecture struct
   m01_axi_arvalid <= m01_axi_out.arvalid;
   m01_axi_rready  <= m01_axi_out.rready;
   -- axi supports word-addressing only, i.e. per 4 bytes; shift for wb-bridge
-  m01_axi_awaddr <= m01_axi_out.awaddr(29 downto 0) & "00";
-  m01_axi_araddr <= m01_axi_out.araddr(29 downto 0) & "00";
+  m01_axi_awaddr <= m01_axi_out.awaddr;
+  m01_axi_araddr <= m01_axi_out.araddr;
 
   m01_axi_in.awready <= m01_axi_awready;
   m01_axi_in.wready  <= m01_axi_wready;
@@ -383,8 +383,8 @@ begin  -- architecture struct
   s01_axi_in.arvalid <= s01_axi_arvalid;
   s01_axi_in.rready  <= s01_axi_rready;
   -- axi supports word-addressing only, i.e. per 4 bytes; shift for wb-bridge
-  s01_axi_in.awaddr <= "00" & s01_axi_awaddr(31 downto 2);
-  s01_axi_in.araddr <= "00" & s01_axi_araddr(31 downto 2);
+  s01_axi_in.awaddr <= s01_axi_awaddr;
+  s01_axi_in.araddr <= s01_axi_araddr;
 
   s01_axi_awready <= s01_axi_out.awready;
   s01_axi_wready  <= s01_axi_out.wready;
