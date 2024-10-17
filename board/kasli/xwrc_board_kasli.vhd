@@ -603,7 +603,8 @@ begin  -- architecture struct
   -----------------------------------------------------------------------------
 
   -- logic AND of all async reset sources (active low)
-  sys_rstlogic_arst_n <= pll_locked and (not reg2hw.RESET_WRPC_CORE);
+  sys_rstlogic_arst_n <= pll_locked when g_simulation=1 else
+                         pll_locked and (not reg2hw.RESET_WRPC_CORE);
 
   -- Hold the bootstrap logic in reset until the sys PLL locks. However when the SI549
   -- is selected as input lock will be lost ... in this case we want to avoid reset

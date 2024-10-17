@@ -596,6 +596,94 @@ begin  -- architecture rtl
       signal clk_pll_aux        : std_logic_vector(3 downto 0);
       signal clk_125m_bootstrap : std_logic;
 
+      component MMCME2_ADV is
+        generic (
+          BANDWIDTH : string := "OPTIMIZED";
+          CLKFBOUT_MULT_F : real := 5.000;
+          CLKFBOUT_PHASE : real := 0.000;
+          CLKFBOUT_USE_FINE_PS : boolean := FALSE;
+          CLKIN1_PERIOD : real := 0.000;
+          CLKIN2_PERIOD : real := 0.000;
+          CLKOUT0_DIVIDE_F : real := 1.000;
+          CLKOUT0_DUTY_CYCLE : real := 0.500;
+          CLKOUT0_PHASE : real := 0.000;
+          CLKOUT0_USE_FINE_PS : boolean := FALSE;
+          CLKOUT1_DIVIDE : integer := 1;
+          CLKOUT1_DUTY_CYCLE : real := 0.500;
+          CLKOUT1_PHASE : real := 0.000;
+          CLKOUT1_USE_FINE_PS : boolean := FALSE;
+          CLKOUT2_DIVIDE : integer := 1;
+          CLKOUT2_DUTY_CYCLE : real := 0.500;
+          CLKOUT2_PHASE : real := 0.000;
+          CLKOUT2_USE_FINE_PS : boolean := FALSE;
+          CLKOUT3_DIVIDE : integer := 1;
+          CLKOUT3_DUTY_CYCLE : real := 0.500;
+          CLKOUT3_PHASE : real := 0.000;
+          CLKOUT3_USE_FINE_PS : boolean := FALSE;
+          CLKOUT4_CASCADE : boolean := FALSE;
+          CLKOUT4_DIVIDE : integer := 1;
+          CLKOUT4_DUTY_CYCLE : real := 0.500;
+          CLKOUT4_PHASE : real := 0.000;
+          CLKOUT4_USE_FINE_PS : boolean := FALSE;
+          CLKOUT5_DIVIDE : integer := 1;
+          CLKOUT5_DUTY_CYCLE : real := 0.500;
+          CLKOUT5_PHASE : real := 0.000;
+          CLKOUT5_USE_FINE_PS : boolean := FALSE;
+          CLKOUT6_DIVIDE : integer := 1;
+          CLKOUT6_DUTY_CYCLE : real := 0.500;
+          CLKOUT6_PHASE : real := 0.000;
+          CLKOUT6_USE_FINE_PS : boolean := FALSE;
+          COMPENSATION : string := "ZHOLD";
+          DIVCLK_DIVIDE : integer := 1;
+          IS_CLKINSEL_INVERTED : bit := '0';
+          IS_PSEN_INVERTED : bit := '0';
+          IS_PSINCDEC_INVERTED : bit := '0';
+          IS_PWRDWN_INVERTED : bit := '0';
+          IS_RST_INVERTED : bit := '0';
+          REF_JITTER1 : real := 0.0;
+          REF_JITTER2 : real := 0.0;
+          SS_EN : string := "FALSE";
+          SS_MODE : string := "CENTER_HIGH";
+          SS_MOD_PERIOD : integer := 10000;
+          STARTUP_WAIT : boolean := FALSE
+          );
+
+        port (
+            CLKFBOUT             : out std_ulogic := '0';
+            CLKFBOUTB            : out std_ulogic := '0';
+            CLKFBSTOPPED         : out std_ulogic := '0';
+            CLKINSTOPPED         : out std_ulogic := '0';
+            CLKOUT0              : out std_ulogic := '0';
+            CLKOUT0B             : out std_ulogic := '0';
+            CLKOUT1              : out std_ulogic := '0';
+            CLKOUT1B             : out std_ulogic := '0';
+            CLKOUT2              : out std_ulogic := '0';
+            CLKOUT2B             : out std_ulogic := '0';
+            CLKOUT3              : out std_ulogic := '0';
+            CLKOUT3B             : out std_ulogic := '0';
+            CLKOUT4              : out std_ulogic := '0';
+            CLKOUT5              : out std_ulogic := '0';
+            CLKOUT6              : out std_ulogic := '0';
+            DO                   : out std_logic_vector(15 downto 0);
+            DRDY                 : out std_ulogic := '0';
+            LOCKED               : out std_ulogic := '0';
+            PSDONE               : out std_ulogic := '0';
+            CLKFBIN              : in std_ulogic;
+            CLKIN1               : in std_ulogic;
+            CLKIN2               : in std_ulogic;
+            CLKINSEL             : in std_ulogic;
+            DADDR                : in std_logic_vector(6 downto 0);
+            DCLK                 : in std_ulogic;
+            DEN                  : in std_ulogic;
+            DI                   : in std_logic_vector(15 downto 0);
+            DWE                  : in std_ulogic;
+            PSCLK                : in std_ulogic;
+            PSEN                 : in std_ulogic;
+            PSINCDEC             : in std_ulogic;
+            PWRDWN               : in std_ulogic;
+            RST                  : in std_ulogic
+          );
+        end component MMCME2_ADV;
     begin
 
       -- When the bootstrap clock is used convert it to single ended
