@@ -59,6 +59,8 @@ entity wrc_board_kasli is
   generic (
     -- set to 1 to speed up some initialization processes during simulation
     g_simulation : integer := 0;
+    -- Define how many debug signals are exported to the top level
+    g_dbg_bits : integer := 6;
     -- "PLAINFBRC" = expose WRC fabric interface
     -- "STREAMERS" = attach WRC streamers to fabric interface
     -- "ETHERBONE" = attach Etherbone slave to fabric interface
@@ -298,9 +300,7 @@ entity wrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Debug interface for clock_select, reset and clock
     ---------------------------------------------------------------------------
-    dbg_rst_wrpc_core  : out   std_logic := '0';
-    dbg_sys_clk_select : out   std_logic := '0';
-    dbg_clk_pll_62m5   : out   std_logic := '0'
+    dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0)
   );
 end entity wrc_board_kasli;
 
@@ -553,9 +553,7 @@ begin  -- architecture struct
       link_ok_o => link_ok_o,
 
       -- debug
-      dbg_rst_wrpc_core  => dbg_rst_wrpc_core,
-      dbg_sys_clk_select => dbg_sys_clk_select,
-      dbg_clk_pll_62m5   => dbg_clk_pll_62m5
+      dbg_bus_o => dbg_bus_o
     );
 
 end architecture std_wrapper;
