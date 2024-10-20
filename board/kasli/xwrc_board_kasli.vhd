@@ -40,6 +40,7 @@
 library ieee;
   use ieee.std_logic_1164.all;
   use ieee.std_logic_misc.all;
+  use ieee.numeric_std.all;
 
 library work;
   use work.gencores_pkg.all;
@@ -61,6 +62,8 @@ entity xwrc_board_kasli is
   generic (
     -- set to 1 to speed up some initialization processes during simulation
     g_simulation : integer := 0;
+    -- Define how many debug signals are exported to the top level
+    g_dbg_bits : integer := 6;
     -- Select whether to include external ref clock input
     g_aux_clks : integer := 4;
     -- plain     = expose WRC fabric interface
@@ -246,9 +249,7 @@ entity xwrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Debug interface for clock_select, reset and clock
     ---------------------------------------------------------------------------
-    dbg_rst_wrpc_core  : out   std_logic := '0';
-    dbg_sys_clk_select : out   std_logic := '0';
-    dbg_clk_pll_62m5   : out   std_logic := '0'
+    dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0)
   );
 end entity xwrc_board_kasli;
 
@@ -299,19 +300,14 @@ architecture struct of xwrc_board_kasli is
   signal rst_bootstrap_62m5_n : std_logic;
 
   -- Async reset generation and clock selection
-  signal areset_n         : std_logic;
-  signal ppulse           : std_logic;
-  signal npulse           : std_logic;
-  signal clk_sel_change   : std_logic;
-  signal pll_reset_sr_q   : std_logic_vector (7 downto 0) := (others => '0');
-  signal areset_n_buff    : std_logic_vector (6 downto 0) := (others => '0');
-
-  -- Debugging (clock and wrpc core reset)
-  signal clk_pll_62m5_s   : std_logic; -- post oddr (sync)
-  signal rst_wrpc_core    : std_logic;
-  signal rst_wrpc_core_s  : std_logic; -- post cdc
-  signal sys_clk_select   : std_logic;
-  signal sys_clk_select_s : std_logic; -- post cdc
+  type t_pll_reset_state is (ST_IDLE, ST_RESET, ST_DONE);
+  signal pll_areset_n       : std_logic;
+  signal pll_clk_sys_sel    : std_logic;
+  signal clk_sel_change     : std_logic;
+  signal pll_reset_state_q  : t_pll_reset_state := ST_IDLE;
+  signal pll_reset_count_q  : unsigned(16 downto 0) := (others => '0');
+  signal rst_wrpc_core      : std_logic;
+  signal sys_clk_select     : std_logic;
 
   -- Registers
   signal reg2hw : t_wrpc_kasli_regs_master_out;
@@ -521,14 +517,21 @@ begin  -- architecture struct
   sfp_los      <= '0';
   sfp_tx_fault <= '0';
 
+  -- Software control of PLL clock select: 0 -> 125MHz bootstrap / 1 -> Si549
+  sys_clk_select <= reg2hw.SYSTEM_CLOCK_SELECT;
+
+  -- Software holds WRPC in reset until the PS has booted and Si549's programmed
+  rst_wrpc_core  <= reg2hw.RESET_WRPC_CORE;
+
+
   -----------------------------------------------------------------------------
   -- Asynchronous reset `areset_n`
   -----------------------------------------------------------------------------
   -- Generating active net based on edge detection from `sys_clk_select`.
   -- Async reset to be connected to System and DMTD PLLs.
   -----------------------------------------------------------------------------
-  sys_clk_select <= reg2hw.SYSTEM_CLOCK_SELECT;
 
+  -- Use a positive going edge on sys_clk_select to kick off the FSM.
   u_gc_sync_ffs_sys_clk_select: gc_sync_ffs
     generic map(
       g_SYNC_EDGE => "positive")
@@ -536,21 +539,43 @@ begin  -- architecture struct
       clk_i     => clk_125m_bootstrap,
       rst_n_i   => '1',
       data_i    => sys_clk_select,
-      synced_o  => sys_clk_select_s,
-      npulse_o  => npulse,
-      ppulse_o  => ppulse
+      synced_o  => open,
+      npulse_o  => open,
+      ppulse_o  => clk_sel_change
       );
 
-  clk_sel_change <= npulse or ppulse;
-
-  proc_shift_reset: process(clk_125m_bootstrap)
+  -- Simple FSM to control the PLL clock select change.  We need to reset the MMCM
+  -- when the clock source is changed during the bootstrap phase, i.e. just after
+  -- programming the Si549, so we use a 17-bit counter to give a ~1ms pulse (2^17*8ns).
+  -- Note that the clock select is driven from the MSB of the counter meaning we switch
+  -- at the midpoint of the reset pulse.
+  proc_pll_reset_fsm: process(clk_125m_bootstrap)
   begin
-     if rising_edge(clk_125m_bootstrap) then
-       pll_reset_sr_q(7 downto 0) <= pll_reset_sr_q(6 downto 0) & clk_sel_change;
-     end if;
+    if rising_edge(clk_125m_bootstrap) then
+      case pll_reset_state_q is
+
+        when ST_IDLE =>
+          if (clk_sel_change = '1') then
+              pll_reset_state_q <= ST_RESET;
+          end if;
+
+        when ST_RESET =>
+          if (and_reduce(std_logic_vector(pll_reset_count_q)) = '1') then
+              pll_reset_state_q <= ST_DONE;
+          else
+              pll_reset_count_q <= pll_reset_count_q + 1;
+          end if;
+
+        when others => null;
+
+      end case;
+    end if;
   end process;
 
-  areset_n <= nor_reduce(pll_reset_sr_q);
+
+  pll_areset_n    <= '0' when pll_reset_state_q = ST_RESET else '1';
+  pll_clk_sys_sel <= '1' when pll_reset_count_q(16) = '1'  else '0';
+
 
   -----------------------------------------------------------------------------
   -- Platform-dependent part (PHY, PLLs, buffers, etc)
@@ -567,12 +592,12 @@ begin  -- architecture struct
     )
     port map (
       -- clock / reset
-      areset_n_i             => areset_n,
+      areset_n_i             => pll_areset_n,
       clk_20m_vcxo_i         => clk_20m_vcxo_i,
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
       clk_125m_bootstrap_i   => clk_125m_bootstrap,
-      clk_sys_sel_i          => reg2hw.SYSTEM_CLOCK_SELECT,
+      clk_sys_sel_i          => pll_clk_sys_sel,
       sfp_txn_o              => sfp_txn_o,
       sfp_txp_o              => sfp_txp_o,
       sfp_rxn_i              => sfp_rxn_i,
@@ -603,13 +628,13 @@ begin  -- architecture struct
   -----------------------------------------------------------------------------
 
   -- logic AND of all async reset sources (active low)
-  sys_rstlogic_arst_n <= pll_locked and (not reg2hw.RESET_WRPC_CORE);
+  sys_rstlogic_arst_n <= pll_locked and (not rst_wrpc_core);
 
   -- Hold the bootstrap logic in reset until the sys PLL locks. However when the SI549
   -- is selected as input lock will be lost ... in this case we want to avoid reset
-  -- since that will cause a reset loop. In this case SYSTEM_CLOCK_SELECT is 1 so use
+  -- since that will cause a reset loop. In this case sys_clk_select is 1 so use
   -- that to mask the reset
-  bootstrap_rstlogic_arst_n <= pll_sys_locked or reg2hw.SYSTEM_CLOCK_SELECT;
+  bootstrap_rstlogic_arst_n <= pll_sys_locked or sys_clk_select;
 
   -- concatenation of all clocks required to have synced resets
   sys_rstlogic_clk_in(0)          <= clk_pll_62m5;
@@ -818,40 +843,13 @@ begin  -- architecture struct
   -----------------------------------------------------------------------------
   -- Debugging
   -----------------------------------------------------------------------------
-  dbg_sys_clk_select <= sys_clk_select_s;
-  dbg_rst_wrpc_core  <= rst_wrpc_core_s;
-  dbg_clk_pll_62m5   <= clk_pll_62m5_s;
 
-  ----------------------------------
-  -- WRPC Core Reset
-  ----------------------------------
-  rst_wrpc_core <= reg2hw.RESET_WRPC_CORE;
+  dbg_bus_o(0) <= sys_clk_select;
+  dbg_bus_o(1) <= rst_wrpc_core;
+  dbg_bus_o(2) <= pll_locked;
+  dbg_bus_o(3) <= pll_sys_locked;
+  dbg_bus_o(4) <= pll_areset_n;
+  dbg_bus_o(5) <= pll_clk_sys_sel;
 
-  u_gc_sync_wrpc_rst_core: gc_sync
-  generic map(
-    g_SYNC_EDGE => "positive")
-  port map(
-    clk_i      => clk_125m_bootstrap,
-    rst_n_a_i  => rst_bootstrap_62m5_n,
-    d_i        => rst_wrpc_core,
-    q_o        => rst_wrpc_core_s);
-
-  ----------------------------------
-  -- Clock 62m5 (clock forwarding)
-  ----------------------------------
-  u_oddr_clk_62m5 : ODDR
-  generic map(
-      DDR_CLK_EDGE => "OPPOSITE_EDGE",
-      INIT => '0',
-      SRTYPE => "SYNC")
-  port map (
-      Q => clk_pll_62m5_s,
-      C => clk_pll_62m5,
-      CE => '1',
-      D1 => '1',
-      D2 => '0',
-      R => '0',
-      S => '0'
-  );
 
 end architecture struct;
