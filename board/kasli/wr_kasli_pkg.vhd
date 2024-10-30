@@ -114,6 +114,20 @@ package wr_kasli_pkg is
   -- Internal Component declarations
   -----------------------------------------------------------------------------
 
+  component clk_switch_fsm is
+    generic (
+      g_reset_counter_bits : integer   := 8;
+      g_initial_value      : std_logic := '0'
+    );
+    port (
+      clk_i        : in  std_logic;
+      rst_n_i      : in  std_logic;
+      clk_switch_i : in  std_logic;
+      clk_switch_o : out std_logic;
+      rst_n_o      : out std_logic
+    );
+  end component clk_switch_fsm;
+
   component xwrc_board_kasli_regs is
     port (
       rst_n_i    : in    std_logic;

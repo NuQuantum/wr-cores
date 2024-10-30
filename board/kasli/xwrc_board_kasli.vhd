@@ -4,10 +4,10 @@
 -- URL        : http://www.ohwr.org/projects/wr-cores/wiki/Wrpc_core
 -------------------------------------------------------------------------------
 -- File       : xwrc_board_kasli.vhd
--- Author(s)  : Jonah Foley <jonah.foley@nu-quantum.com>
+-- Author(s)  : Nu Quantum Ltd.
 -- Company    : Nu Quantum Ltd.
 -- Created    : 2024-08-28
--- Last update: 2024-08-28
+-- Last update: 2024-11-01
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -407,7 +407,7 @@ begin  -- architecture struct
   -- AXI4-Lite Slave to WB  Master bridge.
   -----------------------------------------------------------------------------
 
-  s01_axi_aclk_o <= clk_pll_62m5;
+  m01_axi_aclk_o <= clk_pll_62m5;
 
   u_wbm_axi4lite : component xwb_axi4lite_bridge
     port map (
@@ -525,10 +525,11 @@ begin  -- architecture struct
 
 
   -----------------------------------------------------------------------------
-  -- Asynchronous reset `areset_n`
+  -- Clock Switch FSM
   -----------------------------------------------------------------------------
-  -- Generating active net based on edge detection from `sys_clk_select`.
-  -- Async reset to be connected to System and DMTD PLLs.
+  -- We need to delay the application of the system PLL clock select such that
+  -- There is sufficient time for the axi response to be made before the PLL
+  -- loses lock and the output clock goes to zero.
   -----------------------------------------------------------------------------
 
   -- Use a positive going edge on sys_clk_select to kick off the FSM.
