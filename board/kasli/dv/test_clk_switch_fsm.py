@@ -12,7 +12,7 @@ class TB:
     _init = [
         ("clk_i", 0),
         ("rst_n_i", 1),
-        ("clk_switch_i", 0),
+        ("clk_sel_i", 0),
     ]
 
     def __init__(self, dut):
@@ -50,12 +50,12 @@ async def cctb_test_pulse_switch(dut):
 
     await ClockCycles(tb.clk, 5)
 
-    tb.dut.clk_switch_i.value = 1
+    tb.dut.clk_sel_i.value = 1
     await RisingEdge(tb.clk)
-    tb.dut.clk_switch_i.value = 0
+    tb.dut.clk_sel_i.value = 0
 
     await ClockCycles(tb.clk, 3 * tb.n_countdown_cycles)
-    assert tb.dut.clk_switch_o.value == 1
+    assert tb.dut.clk_sel_o.value == 1
 
 
 @cocotb.test
@@ -65,9 +65,9 @@ async def cctb_test_hold_switch(dut):
     await tb.reset()
 
     await ClockCycles(tb.clk, 5)
-    tb.dut.clk_switch_i.value = 1
+    tb.dut.clk_sel_i.value = 1
     await ClockCycles(tb.clk, 3 * tb.n_countdown_cycles)
-    assert tb.dut.clk_switch_o.value == 1
+    assert tb.dut.clk_sel_o.value == 1
 
 
 @cocotb.test
@@ -77,12 +77,12 @@ async def cctb_test_hold_then_swap(dut):
     await tb.reset()
 
     await ClockCycles(tb.clk, 5)
-    tb.dut.clk_switch_i.value = 1
+    tb.dut.clk_sel_i.value = 1
     await ClockCycles(tb.clk, 3 * tb.n_countdown_cycles)
-    assert tb.dut.clk_switch_o.value == 1
-    tb.dut.clk_switch_i.value = 0
+    assert tb.dut.clk_sel_o.value == 1
+    tb.dut.clk_sel_i.value = 0
     await ClockCycles(tb.clk, 3 * tb.n_countdown_cycles)
-    assert tb.dut.clk_switch_o.value == 0
+    assert tb.dut.clk_sel_o.value == 0
 
 
 def test_clk_switch_fsm_runner():

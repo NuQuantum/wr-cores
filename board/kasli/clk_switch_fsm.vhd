@@ -49,68 +49,76 @@ entity clk_switch_fsm is
   generic (
     -- The number of staging cycles is 2^g_reset_counter_bits
     g_reset_counter_bits : integer   := 8;
-    -- The initial clk_switch_o value upon reset
+    -- The initial clk_sel_o value upon reset
     g_initial_value      : std_logic := '0'
   );
   port (
     -- The clock to run the FSM off
-    clk_i        : in  std_logic;
-    rst_n_i      : in  std_logic;
+    clk_i     : in  std_logic;
+    rst_n_i   : in  std_logic;
     -- Input and output select, synchronised to clk_i domain
-    clk_switch_i : in  std_logic;
-    clk_switch_o : out std_logic;
-    rst_n_o      : out std_logic
+    clk_sel_i : in  std_logic;
+    clk_sel_o : out std_logic;
+    rst_n_o   : out std_logic
   );
 end entity clk_switch_fsm;
 
 architecture rtl of clk_switch_fsm is
 
-  signal clk_switch         : std_logic;
-  signal clk_switch_update  : std_logic;
-  signal clk_switch_release : std_logic;
+  signal clk_sel         : std_logic;
+  signal clk_sel_changed  : std_logic;
+  signal clk_sel_release : std_logic;
 
-  signal clk_switch_staged  : std_logic;
+  signal clk_sel_staged  : std_logic;
 
   signal countdown     : std_logic;
-  signal delay_counter : unsigned(g_reset_counter_bits-1 downto 0);
+  signal pll_reset_count_q : unsigned(g_reset_counter_bits-1 downto 0);
 
-  type t_state is (IDLE, INITIAL_DELAY, STAGE, RESET_RELEASE, CLOCK_SWITCH);
-  signal present_state : t_state;
-  signal next_state    : t_state;
+  type t_state is (ST_IDLE, ST_INITIAL_DELAY, ST_RESET);
+  signal pll_reset_state_q : t_state;
+  signal pll_reset_state_d : t_state;
 
 begin
 
-  process(clk_i) begin
-    if rising_edge(clk_i) then
-      if rst_n_i = '0' then
-        clk_switch <= '0';
-      else
-        clk_switch <= clk_switch_i;
-      end if;
-    end if;
-  end process;
-
-  -- There is a clock sw update when the current and previous values of clock switch
-  -- differ
-  clk_switch_update <= clk_switch xor clk_switch_i;
+  -----------------------------------------------------------------------------------
+  -- Detection of clock select change
+  -----------------------------------------------------------------------------------
+  -- We support both changing the select from 0->1 and 1->0
+  -----------------------------------------------------------------------------------
 
   process(clk_i) begin
     if rising_edge(clk_i) then
       if rst_n_i = '0' then
-        delay_counter <= to_unsigned((2**g_reset_counter_bits)-1, g_reset_counter_bits);
+        clk_sel <= '0';
       else
-        if (countdown = '1') then
-          delay_counter <= delay_counter - 1;
-        end if;
+        clk_sel <= clk_sel_i;
       end if;
     end if;
   end process;
+
+  clk_sel_changed <= clk_sel xor clk_sel_i;
 
   -- When there is a clk updated latch the current switch value into the staging area
   process(clk_i) begin
     if rising_edge(clk_i) then
-      if (clk_switch_update = '1' and present_state = IDLE) then
-        clk_switch_staged <= clk_switch_i;
+      if (clk_sel_changed = '1' and pll_reset_state_q = ST_IDLE) then
+        clk_sel_staged <= clk_sel_i;
+      end if;
+    end if;
+  end process;
+
+  -----------------------------------------------------------------------------------
+  -- Counts the reset duration
+  -----------------------------------------------------------------------------------
+
+  process(clk_i) begin
+    if rising_edge(clk_i) then
+      if rst_n_i = '0' then
+        pll_reset_count_q <= to_unsigned((2**g_reset_counter_bits)-1, g_reset_counter_bits);
+      else
+        if (countdown = '1') then
+          pll_reset_count_q <= pll_reset_count_q - 1;
+        end if;
       end if;
     end if;
   end process;
@@ -122,54 +130,61 @@ begin
   process(clk_i) begin
     if rising_edge(clk_i) then
       if rst_n_i = '0' then
-        present_state <= IDLE;
+        pll_reset_state_q <= ST_IDLE;
       else
-        present_state <= next_state;
+        pll_reset_state_q <= pll_reset_state_d;
       end if;
     end if;
   end process;
 
-  process(present_state, clk_switch_update, delay_counter) begin
+  process(pll_reset_state_q, clk_sel_changed, pll_reset_count_q) begin
     -- default values
-    clk_switch_release <= '0';
-    countdown <= '0';
-    rst_n_o <= '1';
-    next_state <= present_state;
-    case present_state is
-      when IDLE =>
-        if clk_switch_update = '1' then
-          next_state <= INITIAL_DELAY;
+    countdown         <= '0';
+    rst_n_o           <= '1';
+    clk_sel_release   <= '0';
+    pll_reset_state_d <= pll_reset_state_q;
+
+    case pll_reset_state_q is
+
+      when ST_IDLE =>
+        if clk_sel_changed = '1' then
+          pll_reset_state_d <= ST_INITIAL_DELAY;
         end if;
+
       -- An initial delay where the clk sel register write can ack the AXI txn
-      when INITIAL_DELAY =>
+      when ST_INITIAL_DELAY =>
         countdown <= '1';
-        if delay_counter = to_unsigned(0, g_reset_counter_bits) then
-          next_state <= STAGE;
+        if pll_reset_count_q = to_unsigned(0, g_reset_counter_bits) then
+          pll_reset_state_d <= ST_RESET;
         end if;
-      when STAGE =>
-        countdown <= '1';
-        rst_n_o <= '0';
-        if delay_counter = to_unsigned(0, g_reset_counter_bits) then
-          next_state <= RESET_RELEASE;
+
+      when ST_RESET =>
+        countdown        <= '1';
+        rst_n_o          <= '0';
+        -- release the staged value at the midpoint of the reset
+        if pll_reset_count_q(g_reset_counter_bits - 1) = '0' then
+          clk_sel_release <= '1';
         end if;
-      -- release the reset prior to switching the clock
-      when RESET_RELEASE =>
-        next_state <= CLOCK_SWITCH;
-      when CLOCK_SWITCH =>
-        clk_switch_release <= '1';
-        next_state <= IDLE;
+        if pll_reset_count_q = to_unsigned(0, g_reset_counter_bits) then
+          pll_reset_state_d <= ST_IDLE;
+        end if;
+
       when others => null;
+
     end case;
   end process;
 
-  -- When the release signal is asserted implement the staged value
+  -----------------------------------------------------------------------------------
+  -- Output stage
+  -----------------------------------------------------------------------------------
+
   process(clk_i) begin
     if rising_edge(clk_i) then
       if rst_n_i = '0' then
-        clk_switch_o <= g_initial_value;
+        clk_sel_o <= g_initial_value;
       else
-        if (clk_switch_release = '1') then
-          clk_switch_o <= clk_switch_staged;
+        if (clk_sel_release = '1') then
+          clk_sel_o <= clk_sel_staged;
         end if;
       end if;
     end if;

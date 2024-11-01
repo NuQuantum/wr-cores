@@ -120,11 +120,11 @@ package wr_kasli_pkg is
       g_initial_value      : std_logic := '0'
     );
     port (
-      clk_i        : in  std_logic;
-      rst_n_i      : in  std_logic;
-      clk_switch_i : in  std_logic;
-      clk_switch_o : out std_logic;
-      rst_n_o      : out std_logic
+      clk_i     : in  std_logic;
+      rst_n_i   : in  std_logic;
+      clk_sel_i : in  std_logic;
+      clk_sel_o : out std_logic;
+      rst_n_o   : out std_logic
     );
   end component clk_switch_fsm;
 

@@ -308,6 +308,7 @@ architecture struct of xwrc_board_kasli is
   signal pll_reset_count_q  : unsigned(16 downto 0) := (others => '0');
   signal rst_wrpc_core      : std_logic;
   signal sys_clk_select     : std_logic;
+  signal sys_clk_select_s   : std_logic;
 
   -- Registers
   signal reg2hw : t_wrpc_kasli_regs_master_out;
@@ -402,12 +403,11 @@ begin  -- architecture struct
       O => clk_125m_bootstrap
     );
 
-
   -----------------------------------------------------------------------------
   -- AXI4-Lite Slave to WB  Master bridge.
   -----------------------------------------------------------------------------
 
-  m01_axi_aclk_o <= clk_pll_62m5;
+  s01_axi_aclk_o <= clk_pll_62m5;
 
   u_wbm_axi4lite : component xwb_axi4lite_bridge
     port map (
@@ -523,16 +523,21 @@ begin  -- architecture struct
   -- Software holds WRPC in reset until the PS has booted and Si549's programmed
   rst_wrpc_core  <= reg2hw.RESET_WRPC_CORE;
 
-
   -----------------------------------------------------------------------------
-  -- Clock Switch FSM
+  -- Clock Select FSM
   -----------------------------------------------------------------------------
-  -- We need to delay the application of the system PLL clock select such that
+  -- This FSM delays the application of the system PLL clock select such that
   -- There is sufficient time for the axi response to be made before the PLL
-  -- loses lock and the output clock goes to zero.
+  -- loses lock and the output clock goes to zero. When we perform the switch we
+  -- hold the PLL reset low for ~0.5ms, and perform the clock switch at the
+  -- midpoint of the reset.
+  --
+  -- Due to the loss of system clock, it is required that all system buses be cleared
+  -- prior to writing to the SYSTEM_CLOCK_SELECT register (for example via calls to
+  -- isb() and dsb())
   -----------------------------------------------------------------------------
 
-  -- Use a positive going edge on sys_clk_select to kick off the FSM.
+  -- Synchronise the clock select the the bootstrap domain
   u_gc_sync_ffs_sys_clk_select: gc_sync_ffs
     generic map(
       g_SYNC_EDGE => "positive")
@@ -540,43 +545,24 @@ begin  -- architecture struct
       clk_i     => clk_125m_bootstrap,
       rst_n_i   => '1',
       data_i    => sys_clk_select,
-      synced_o  => open,
+      synced_o  => sys_clk_select_s,
       npulse_o  => open,
-      ppulse_o  => clk_sel_change
-      );
+      ppulse_o  => open
+    );
 
-  -- Simple FSM to control the PLL clock select change.  We need to reset the MMCM
-  -- when the clock source is changed during the bootstrap phase, i.e. just after
-  -- programming the Si549, so we use a 17-bit counter to give a ~1ms pulse (2^17*8ns).
-  -- Note that the clock select is driven from the MSB of the counter meaning we switch
-  -- at the midpoint of the reset pulse.
-  proc_pll_reset_fsm: process(clk_125m_bootstrap)
-  begin
-    if rising_edge(clk_125m_bootstrap) then
-      case pll_reset_state_q is
-
-        when ST_IDLE =>
-          if (clk_sel_change = '1') then
-              pll_reset_state_q <= ST_RESET;
-          end if;
-
-        when ST_RESET =>
-          if (and_reduce(std_logic_vector(pll_reset_count_q)) = '1') then
-              pll_reset_state_q <= ST_DONE;
-          else
-              pll_reset_count_q <= pll_reset_count_q + 1;
-          end if;
-
-        when others => null;
-
-      end case;
-    end if;
-  end process;
-
-
-  pll_areset_n    <= '0' when pll_reset_state_q = ST_RESET else '1';
-  pll_clk_sys_sel <= '1' when pll_reset_count_q(16) = '1'  else '0';
-
+  -- 2^16 counts at 125MHz is about 0.5ms
+  u_clk_switch_fsm: clk_switch_fsm
+    generic map (
+      g_reset_counter_bits => 16,
+      g_initial_value      => '0'
+    )
+    port map (
+      clk_i     => clk_125m_bootstrap,
+      rst_n_i   => rst_bootstrap_62m5_n,
+      clk_sel_i => sys_clk_select_s,
+      clk_sel_o => pll_clk_sys_sel,
+      rst_n_o   => pll_areset_n
+    );
 
   -----------------------------------------------------------------------------
   -- Platform-dependent part (PHY, PLLs, buffers, etc)
@@ -851,6 +837,5 @@ begin  -- architecture struct
   dbg_bus_o(3) <= pll_sys_locked;
   dbg_bus_o(4) <= pll_areset_n;
   dbg_bus_o(5) <= pll_clk_sys_sel;
-
 
 end architecture struct;
