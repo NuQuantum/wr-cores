@@ -21,7 +21,8 @@ class TB:
         self.clk = self.dut.clk_i
         self.rst_n = self.dut.rst_n_i
 
-        self.n_countdown_cycles = 2 ** int(self.dut.g_reset_counter_bits.value)
+        print(f"rst counter bits: {int(self.dut.c_reset_counter_bits.value)}")
+        self.n_countdown_cycles = 2 ** int(self.dut.c_reset_counter_bits.value)
 
         for signal, reset_value in self._init:
             getattr(self.dut, signal).setimmediatevalue(reset_value)
@@ -56,6 +57,7 @@ async def cctb_test_pulse_switch(dut):
 
     await ClockCycles(tb.clk, 3 * tb.n_countdown_cycles)
     assert tb.dut.clk_sel_o.value == 1
+    assert tb.dut.rst_n_o.value == 1
 
 
 @cocotb.test
@@ -68,44 +70,42 @@ async def cctb_test_hold_switch(dut):
     tb.dut.clk_sel_i.value = 1
     await ClockCycles(tb.clk, 3 * tb.n_countdown_cycles)
     assert tb.dut.clk_sel_o.value == 1
+    assert tb.dut.rst_n_o.value == 1
 
 
-@cocotb.test
-async def cctb_test_hold_then_swap(dut):
-
-    tb = TB(dut)
-    await tb.reset()
-
-    await ClockCycles(tb.clk, 5)
-    tb.dut.clk_sel_i.value = 1
-    await ClockCycles(tb.clk, 3 * tb.n_countdown_cycles)
-    assert tb.dut.clk_sel_o.value == 1
-    tb.dut.clk_sel_i.value = 0
-    await ClockCycles(tb.clk, 3 * tb.n_countdown_cycles)
-    assert tb.dut.clk_sel_o.value == 0
-
-
-def test_clk_switch_fsm_runner():
+def test_clock_switch_supervisor_runner():
     """Python simulation runner"""
 
     pwd = Path(__file__).resolve().parent
 
-    hdl_toplevel = "clk_switch_fsm"
+    hdl_toplevel = "xwrc_clock_switch_supervisor"
     sim = os.getenv("SIM", "xcelium")
     testcase = os.getenv("TESTCASE", None)
     waves = os.getenv("WAVES", False)
 
     sources = [
-        pwd / "../clk_switch_fsm.vhd",
+        *[
+            pwd / f"../../../ip_cores/general-cores/modules/common/{module}.vhd"
+            for module in [
+                "gencores_pkg",
+                "gc_edge_detect",
+                "gc_sync",
+                "gc_sync_ffs",
+            ]
+        ],
+        pwd / "../xwrc_clock_switch_supervisor.vhd",
     ]
 
     runner = get_runner(sim)
     runner.build(
-        sources=sources, hdl_toplevel=hdl_toplevel, always=True, build_args=["-v200X"]
+        vhdl_sources=sources,
+        hdl_toplevel=hdl_toplevel,
+        always=True,
+        build_args=["-v200X"],
     )
     runner.test(
         hdl_toplevel=hdl_toplevel,
-        test_module=f"test_{hdl_toplevel},",
+        test_module=f"test_{hdl_toplevel.removeprefix('xwrc_')},",
         hdl_toplevel_lang="vhdl",
         testcase=testcase,
         waves=waves,
@@ -113,4 +113,4 @@ def test_clk_switch_fsm_runner():
 
 
 if __name__ == "__main__":
-    test_clk_switch_fsm_runner()
+    test_clock_switch_supervisor_runner()

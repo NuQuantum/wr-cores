@@ -84,8 +84,6 @@ entity wrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Clock inputs from the board
     clk_20m_vcxo_i         : in    std_logic;
-    clk_125m_pllref_p_i    : in    std_logic;
-    clk_125m_pllref_n_i    : in    std_logic;
     clk_125m_gtp_n_i       : in    std_logic;
     clk_125m_gtp_p_i       : in    std_logic;
     clk_125m_bootstrap_p_i : in    std_logic;
@@ -461,10 +459,8 @@ begin  -- architecture struct
     )
     port map (
       clk_20m_vcxo_i         => clk_20m_vcxo_i,
-      clk_125m_pllref_p_i    => clk_125m_pllref_p_i,
-      clk_125m_pllref_n_i    => clk_125m_pllref_n_i,
-      clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
+      clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
       clk_125m_bootstrap_p_i => clk_125m_bootstrap_p_i,
       clk_125m_bootstrap_n_i => clk_125m_bootstrap_n_i,
       --

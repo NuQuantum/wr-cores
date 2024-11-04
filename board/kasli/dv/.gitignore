@@ -3,3 +3,4 @@ sim_build
 xrun*
 __pycache__
 .simvision
+*.log

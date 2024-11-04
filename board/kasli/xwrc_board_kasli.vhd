@@ -94,8 +94,6 @@ entity xwrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Clock inputs from the board
     clk_20m_vcxo_i         : in    std_logic;
-    clk_125m_pllref_p_i    : in    std_logic;
-    clk_125m_pllref_n_i    : in    std_logic;
     clk_125m_gtp_p_i       : in    std_logic;
     clk_125m_gtp_n_i       : in    std_logic;
     clk_125m_bootstrap_p_i : in    std_logic;
@@ -274,7 +272,6 @@ architecture struct of xwrc_board_kasli is
   -----------------------------------------------------------------------------
 
   -- IBUFDS
-  signal clk_125m_pllref_buf    : std_logic;
   signal clk_125m_bootstrap_buf : std_logic;
   signal clk_125m_bootstrap     : std_logic;
 
@@ -292,12 +289,13 @@ architecture struct of xwrc_board_kasli is
   signal sys_rstlogic_arst_n  : std_logic;
   signal sys_rstlogic_rst_out : std_logic_vector(3 downto 0);
 
-  signal bootstrap_rstlogic_clk_in  : std_logic_vector(0 downto 0);
+  signal bootstrap_rstlogic_clk_in  : std_logic_vector(1 downto 0);
   signal bootstrap_rstlogic_arst_n  : std_logic;
-  signal bootstrap_rstlogic_rst_out : std_logic_vector(0 downto 0);
+  signal bootstrap_rstlogic_rst_out : std_logic_vector(1 downto 0);
 
   signal rst_sys_62m5_n       : std_logic;
   signal rst_bootstrap_62m5_n : std_logic;
+  signal rst_bootstrap_125m_n : std_logic;
 
   -- Async reset generation and clock selection
   type t_pll_reset_state is (ST_IDLE, ST_RESET, ST_DONE);
@@ -308,7 +306,7 @@ architecture struct of xwrc_board_kasli is
   signal pll_reset_count_q  : unsigned(16 downto 0) := (others => '0');
   signal rst_wrpc_core      : std_logic;
   signal sys_clk_select     : std_logic;
-  signal sys_clk_select_s   : std_logic;
+  signal clk_sel_changed    : std_logic;
 
   -- Registers
   signal reg2hw : t_wrpc_kasli_regs_master_out;
@@ -524,42 +522,27 @@ begin  -- architecture struct
   rst_wrpc_core  <= reg2hw.RESET_WRPC_CORE;
 
   -----------------------------------------------------------------------------
-  -- Clock Select FSM
+  -- Clock switch supervisor
   -----------------------------------------------------------------------------
-  -- This FSM delays the application of the system PLL clock select such that
+  -- This module delays the application of the system PLL clock select such that
   -- There is sufficient time for the axi response to be made before the PLL
-  -- loses lock and the output clock goes to zero. When we perform the switch we
-  -- hold the PLL reset low for ~0.5ms, and perform the clock switch at the
-  -- midpoint of the reset.
+  -- driving the interface loses lock. When we perform the switch we hold the PLL
+  -- reset low for ~0.5ms, and perform the clock switch at the midpoint of the reset.
   --
   -- Due to the loss of system clock, it is required that all system buses be cleared
   -- prior to writing to the SYSTEM_CLOCK_SELECT register (for example via calls to
   -- isb() and dsb())
   -----------------------------------------------------------------------------
 
-  -- Synchronise the clock select the the bootstrap domain
-  u_gc_sync_ffs_sys_clk_select: gc_sync_ffs
-    generic map(
-      g_SYNC_EDGE => "positive")
-    port map (
-      clk_i     => clk_125m_bootstrap,
-      rst_n_i   => '1',
-      data_i    => sys_clk_select,
-      synced_o  => sys_clk_select_s,
-      npulse_o  => open,
-      ppulse_o  => open
-    );
-
-  -- 2^16 counts at 125MHz is about 0.5ms
-  u_clk_switch_fsm: clk_switch_fsm
+  u_clock_switch_supervisor: xwrc_clock_switch_supervisor
     generic map (
-      g_reset_counter_bits => 16,
-      g_initial_value      => '0'
+      g_clock_frequency_hz => 125000000,
+      g_reset_duration_us  => 500
     )
     port map (
       clk_i     => clk_125m_bootstrap,
-      rst_n_i   => rst_bootstrap_62m5_n,
-      clk_sel_i => sys_clk_select_s,
+      rst_n_i   => rst_bootstrap_125m_n,
+      clk_sel_i => sys_clk_select,
       clk_sel_o => pll_clk_sys_sel,
       rst_n_o   => pll_areset_n
     );
@@ -642,11 +625,12 @@ begin  -- architecture struct
     );
 
   bootstrap_rstlogic_clk_in(0) <= clk_pll_62m5;
+  bootstrap_rstlogic_clk_in(1) <= clk_125m_bootstrap;
 
   -- TODO: free_clock_i -> locked_i false path
   u_bootstrap_rstlogic_reset : component gc_reset
     generic map (
-      g_clocks    => 1,
+      g_clocks    => 2,
       g_logdelay  => 4,
       g_syncdepth => 3
     )
@@ -660,6 +644,7 @@ begin  -- architecture struct
   -- distribution of resets (already synchronized to their clock domains)
   rst_sys_62m5_n       <= sys_rstlogic_rst_out(0);
   rst_bootstrap_62m5_n <= bootstrap_rstlogic_rst_out(0);
+  rst_bootstrap_125m_n <= bootstrap_rstlogic_rst_out(1);
 
   -- Export the resets for use in higher level startup
   rst_sys_62m5_n_o       <= rst_sys_62m5_n;
