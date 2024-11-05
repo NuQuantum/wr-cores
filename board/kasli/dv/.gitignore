@@ -1,0 +1,6 @@
+sim_build
+.pytest*
+xrun*
+__pycache__
+.simvision
+*.log

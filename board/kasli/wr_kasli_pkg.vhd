@@ -114,6 +114,20 @@ package wr_kasli_pkg is
   -- Internal Component declarations
   -----------------------------------------------------------------------------
 
+  component xwrc_clock_switch_supervisor is
+    generic (
+      g_clock_frequency_hz : integer := 125000000;
+      g_reset_duration_us  : integer := 50
+    );
+    port (
+      clk_i     : in  std_logic;
+      rst_n_i   : in  std_logic;
+      clk_sel_i : in  std_logic;
+      clk_sel_o : out std_logic;
+      rst_n_o   : out std_logic
+    );
+  end component xwrc_clock_switch_supervisor;
+
   component xwrc_board_kasli_regs is
     port (
       rst_n_i    : in    std_logic;
@@ -163,10 +177,8 @@ package wr_kasli_pkg is
       ---------------------------------------------------------------------------
       -- Clock inputs from the board
       clk_20m_vcxo_i         : in    std_logic;
-      clk_125m_pllref_p_i    : in    std_logic;
-      clk_125m_pllref_n_i    : in    std_logic;
-      clk_125m_gtp_n_i       : in    std_logic;
       clk_125m_gtp_p_i       : in    std_logic;
+      clk_125m_gtp_n_i       : in    std_logic;
       clk_125m_bootstrap_p_i : in    std_logic;
       clk_125m_bootstrap_n_i : in    std_logic;
 
@@ -419,8 +431,6 @@ package wr_kasli_pkg is
       ---------------------------------------------------------------------------
       -- Clock inputs from the board
       clk_20m_vcxo_i         : in    std_logic;
-      clk_125m_pllref_p_i    : in    std_logic;
-      clk_125m_pllref_n_i    : in    std_logic;
       clk_125m_gtp_p_i       : in    std_logic;
       clk_125m_gtp_n_i       : in    std_logic;
       clk_125m_bootstrap_p_i : in    std_logic;
