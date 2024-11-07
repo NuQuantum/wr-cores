@@ -13,6 +13,7 @@ filesets:
       - ohwr:wrpc:xwrc_board_common
       - ohwr:etherbone:etherbone_pkg
       - ohwr:wrpc:xwr_si549_interface
+      - nq:debug:clk_dbg_component
     files:
       - kasli/xwrc_clock_switch_supervisor.vhd
       - kasli/xwrc_board_kasli_regs.vhd

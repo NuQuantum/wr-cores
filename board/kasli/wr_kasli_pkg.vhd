@@ -134,7 +134,7 @@ package wr_kasli_pkg is
       clk_i      : in    std_logic;
       wb_cyc_i   : in    std_logic;
       wb_stb_i   : in    std_logic;
-      wb_adr_i   : in    std_logic_vector(2 downto 2);
+      wb_adr_i   : in    std_logic_vector(3 downto 2);
       wb_sel_i   : in    std_logic_vector(3 downto 0);
       wb_we_i    : in    std_logic;
       wb_dat_i   : in    std_logic_vector(31 downto 0);
@@ -177,6 +177,8 @@ package wr_kasli_pkg is
       ---------------------------------------------------------------------------
       -- Clock inputs from the board
       clk_20m_vcxo_i         : in    std_logic;
+      clk_125m_pllref_p_i    : in    std_logic;
+      clk_125m_pllref_n_i    : in    std_logic;
       clk_125m_gtp_p_i       : in    std_logic;
       clk_125m_gtp_n_i       : in    std_logic;
       clk_125m_bootstrap_p_i : in    std_logic;
@@ -391,7 +393,11 @@ package wr_kasli_pkg is
       ---------------------------------------------------------------------------
       -- Debug interface for clock_select, reset and clock
       ---------------------------------------------------------------------------
-      dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0)
+      dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0);
+      testpoint          : out   std_logic_vector(4 downto 0);
+      led_user           : out   std_logic_vector(1 downto 0);
+      ps_clk_from_PS     : in    std_logic := '0';
+      fclk_clk0_from_PS  : in    std_logic := '0'
     );
   end component wrc_board_kasli;
 
@@ -431,6 +437,8 @@ package wr_kasli_pkg is
       ---------------------------------------------------------------------------
       -- Clock inputs from the board
       clk_20m_vcxo_i         : in    std_logic;
+      clk_125m_pllref_p_i    : in    std_logic;
+      clk_125m_pllref_n_i    : in    std_logic;
       clk_125m_gtp_p_i       : in    std_logic;
       clk_125m_gtp_n_i       : in    std_logic;
       clk_125m_bootstrap_p_i : in    std_logic;
@@ -584,7 +592,11 @@ package wr_kasli_pkg is
       ---------------------------------------------------------------------------
       -- Debug interface for clock_select, reset and clock
       ---------------------------------------------------------------------------
-      dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0)
+      dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0);
+      testpoint          : out   std_logic_vector(4 downto 0);
+      led_user           : out   std_logic_vector(1 downto 0);
+      ps_clk_from_PS     : in    std_logic := '0';
+      fclk_clk0_from_PS  : in    std_logic := '0'
     );
   end component xwrc_board_kasli;
 

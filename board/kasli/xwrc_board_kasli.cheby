@@ -41,5 +41,11 @@ memory-map:
           description: system PLL clock select
           preset: 0
           range: 0
-
-
+  - reg:
+      name: DEBUG
+      comment: General Purpose Debug Register
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x11223344

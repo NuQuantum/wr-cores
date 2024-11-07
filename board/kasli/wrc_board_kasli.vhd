@@ -84,6 +84,8 @@ entity wrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Clock inputs from the board
     clk_20m_vcxo_i         : in    std_logic;
+    clk_125m_pllref_p_i    : in    std_logic;
+    clk_125m_pllref_n_i    : in    std_logic;
     clk_125m_gtp_n_i       : in    std_logic;
     clk_125m_gtp_p_i       : in    std_logic;
     clk_125m_bootstrap_p_i : in    std_logic;
@@ -298,7 +300,11 @@ entity wrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Debug interface for clock_select, reset and clock
     ---------------------------------------------------------------------------
-    dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0)
+    dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0);
+    testpoint          : out   std_logic_vector(4 downto 0);
+    led_user           : out   std_logic_vector(1 downto 0);
+    ps_clk_from_PS     : in    std_logic := '0';
+    fclk_clk0_from_PS  : in    std_logic := '0'
   );
 end entity wrc_board_kasli;
 
@@ -459,6 +465,8 @@ begin  -- architecture struct
     )
     port map (
       clk_20m_vcxo_i         => clk_20m_vcxo_i,
+      clk_125m_pllref_p_i    => clk_125m_pllref_p_i,
+      clk_125m_pllref_n_i    => clk_125m_pllref_n_i,
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
       clk_125m_bootstrap_p_i => clk_125m_bootstrap_p_i,
@@ -549,7 +557,11 @@ begin  -- architecture struct
       link_ok_o => link_ok_o,
 
       -- debug
-      dbg_bus_o => dbg_bus_o
+      dbg_bus_o => dbg_bus_o,
+      testpoint          => testpoint,
+      led_user           => led_user,
+      ps_clk_from_PS     => ps_clk_from_PS,
+      fclk_clk0_from_PS  => fclk_clk0_from_PS
     );
 
 end architecture std_wrapper;

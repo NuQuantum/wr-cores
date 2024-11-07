@@ -94,6 +94,8 @@ entity xwrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Clock inputs from the board
     clk_20m_vcxo_i         : in    std_logic;
+    clk_125m_pllref_p_i    : in    std_logic;
+    clk_125m_pllref_n_i    : in    std_logic;
     clk_125m_gtp_p_i       : in    std_logic;
     clk_125m_gtp_n_i       : in    std_logic;
     clk_125m_bootstrap_p_i : in    std_logic;
@@ -247,7 +249,11 @@ entity xwrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Debug interface for clock_select, reset and clock
     ---------------------------------------------------------------------------
-    dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0)
+    dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0);
+    testpoint          : out   std_logic_vector(4 downto 0);
+    led_user           : out   std_logic_vector(1 downto 0);
+    ps_clk_from_PS     : in    std_logic := '0';
+    fclk_clk0_from_PS  : in    std_logic := '0'
   );
 end entity xwrc_board_kasli;
 
@@ -266,6 +272,37 @@ architecture struct of xwrc_board_kasli is
       axi4_master_i : in    t_axi4_lite_master_in_32
     );
   end component xaxi4lite_wb_bridge;
+
+  COMPONENT clk_dbg_component
+  generic(
+    n_bits     : integer := 2;
+    n_bits_led : integer := 16
+  );
+  port(
+    rst_vio_o                : out  std_logic := '0';
+    rst_n_vio_o              : out  std_logic := '0';
+    clk_select_o             : out  std_logic := '0';
+    -- clock inputs from board/ps
+    clk_125m_bootstrap       : in  std_logic := '0';
+    clk_ps                   : in  std_logic := '0';
+    clk_ps_fclk_clk0         : in  std_logic := '0';
+    clk_125m_gtp             : in  std_logic := '0';
+    clk_125m_pllref          : in  std_logic := '0';
+    clk_20m_vcxo             : in  std_logic := '0';
+    -- clocks and locked inputs from PLL
+    clk_pll_125m             : in  std_logic := '0';
+    clk_pll_dmtd             : in  std_logic := '0';
+    clk_pll_62m5             : in  std_logic := '0';
+    pll_locked               : in  std_logic := '0';
+    pll_sys_locked           : in  std_logic := '0';
+    -- SI549 output enable
+    si549_helper_dxco_oe     : out std_logic;
+    si549_main_dxco_oe       : out std_logic;
+    -- Exporting the board
+    testpoint                : out   std_logic_vector(4 downto 0);
+    led_user                 : out   std_logic_vector(1 downto 0)
+  );
+  end COMPONENT;
 
   -----------------------------------------------------------------------------
   -- Signals
@@ -372,6 +409,26 @@ architecture struct of xwrc_board_kasli is
 
   signal eeprom_scl_t_n :  std_logic;
   signal eeprom_sda_t_n :  std_logic;
+
+  -----------------------------------------------------------------------------
+  -- Signals Debuggery
+  -----------------------------------------------------------------------------
+  signal vio_reset                     : std_logic := '0';
+  signal vio_reset_n                   : std_logic := '1';
+  signal vio_clk_select                : std_logic := '0';
+
+  signal dbg_OR_pll_areset_n           :  std_logic;
+  signal dbg_OR_pll_clk_sys_sel        :  std_logic;
+
+  signal clk_125m_gtp                  : std_logic := '0';
+  signal clk_125m_pllref               : std_logic := '0';
+  signal clk_125m_pllref_i             : std_logic := '0';
+  signal clk_fclk_clk0                 : std_logic := '0';
+  signal clk_ps                        : std_logic := '0';
+
+    -- output enable
+  signal si549_helper_dxco_oe_UNUSED   : std_logic := '0';
+  signal si549_main_dxco_oe_UNUSED     : std_logic := '0';
 
 begin  -- architecture struct
 
@@ -496,7 +553,7 @@ begin  -- architecture struct
       wb_cyc_i => wb_kasli_regs_in.cyc,
       wb_stb_i => wb_kasli_regs_in.stb,
       -- Only two registers, so only 1 bit is used for addressing
-      wb_adr_i   => wb_kasli_regs_in.adr(2 downto 2),
+      wb_adr_i   => wb_kasli_regs_in.adr(3 downto 2),
       wb_sel_i   => wb_kasli_regs_in.sel,
       wb_we_i    => wb_kasli_regs_in.we,
       wb_dat_i   => wb_kasli_regs_in.dat,
@@ -550,6 +607,10 @@ begin  -- architecture struct
   -----------------------------------------------------------------------------
   -- Platform-dependent part (PHY, PLLs, buffers, etc)
   -----------------------------------------------------------------------------
+  -- debug
+  dbg_OR_pll_areset_n    <= pll_areset_n or vio_reset_n;
+  dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel or vio_clk_select;
+  -- end debug
 
   u_xwrc_platform : component xwrc_platform_xilinx
     generic map (
@@ -562,12 +623,12 @@ begin  -- architecture struct
     )
     port map (
       -- clock / reset
-      areset_n_i             => pll_areset_n,
+      areset_n_i             => dbg_OR_pll_areset_n, --pll_areset_n,
       clk_20m_vcxo_i         => clk_20m_vcxo_i,
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
       clk_125m_bootstrap_i   => clk_125m_bootstrap,
-      clk_sys_sel_i          => pll_clk_sys_sel,
+      clk_sys_sel_i          => dbg_OR_pll_clk_sys_sel, --pll_clk_sys_sel,
       sfp_txn_o              => sfp_txn_o,
       sfp_txp_o              => sfp_txp_o,
       sfp_rxn_i              => sfp_rxn_i,
@@ -587,7 +648,9 @@ begin  -- architecture struct
       ext_ref_mul_o          => ext_ref_mul,
       ext_ref_mul_locked_o   => ext_ref_mul_locked,
       ext_ref_mul_stopped_o  => ext_ref_mul_stopped,
-      ext_ref_rst_i          => ext_ref_rst
+      ext_ref_rst_i          => ext_ref_rst,
+      -- debug
+      clk_125m_gtp_buf_dbg   => clk_125m_gtp
     );
 
   clk_sys_62m5_o <= clk_pll_62m5;
@@ -822,5 +885,94 @@ begin  -- architecture struct
   dbg_bus_o(3) <= pll_sys_locked;
   dbg_bus_o(4) <= pll_areset_n;
   dbg_bus_o(5) <= pll_clk_sys_sel;
+
+  -----------------------------------------------------------------------------
+  -- Debugging with ILAs and VIOs
+  -----------------------------------------------------------------------------
+
+  ------------------------------------
+  -- Clocks: differential to single
+  -- ended signals.
+  ------------------------------------
+
+  -- 1) board:  clk_125m_bootstrap:
+  -- This file: IBUFDS_GTE2 -> BUFG -> here
+
+
+  -- 2) board: clk_ps
+  -- There was a BUFG here but it was not allowed.
+
+  -- 3) board: clk_fclk_clk0
+  BUFG_clk_fclk_clk0 : BUFG
+  port map (
+     O => clk_fclk_clk0,   -- 1-bit Clock output
+     I => fclk_clk0_from_PS  -- 1-bit Clock input
+  );
+
+  -- 4) board: clk_20m_vcxo
+  -- Com from IBUFDS at wrc_board_kasli_wrapper
+
+  -- 5) board:  clk_125m_pllref
+  IBUFDS_125m_pllref : IBUFDS
+  generic map (
+     DIFF_TERM    => TRUE,
+     IBUF_LOW_PWR => FALSE,
+     IOSTANDARD   => "DEFAULT")
+  port map (
+     O  => clk_125m_pllref_i,      -- Buffer output
+     I  => clk_125m_pllref_p_i,    -- Diff_p buffer input
+     IB => clk_125m_pllref_n_i     -- Diff_n buffer input
+  );
+
+  BUFG_clk_pll_ref : BUFG
+  port map (
+     O => clk_125m_pllref,   -- 1-bit Clock output
+     I => clk_125m_pllref_i  -- 1-bit Clock input
+  );
+
+  -- 6) board: clk_125m_gtp
+  -- Coming from the gtx transceivers at xwrc_platform_xilinx.vhd
+
+  -- 7) pll: clk_pll_125m
+  -- From PLL at xwrc_platform_xilinx
+
+  -- 8) pll: clk_pll_dmtd
+  -- From PLL at xwrc_platform_xilinx
+
+  -- 9) pll: clk_pll_62m5
+  -- From PLL at xwrc_platform_xilinx
+
+  ----------------------------------
+  -- Debug Component
+  ----------------------------------
+  u_clk_dbg_component: clk_dbg_component
+    generic map(
+      n_bits     => 2,
+      n_bits_led => 16
+    )
+    port map(
+      rst_vio_o                => vio_reset,
+      rst_n_vio_o              => vio_reset_n,
+      clk_select_o             => vio_clk_select,
+      -- clock inputs from board/ps
+      clk_125m_bootstrap       => clk_125m_bootstrap,
+      clk_ps                   => '0', -- clk_ps,
+      clk_ps_fclk_clk0         => clk_fclk_clk0,
+      clk_125m_gtp             => clk_125m_gtp,
+      clk_125m_pllref          => clk_125m_pllref,
+      clk_20m_vcxo             => clk_20m_vcxo_i, --clk_20m_vcxo,
+      -- clocks and locked inputs from PLL
+      clk_pll_125m             => clk_pll_125m,
+      clk_pll_dmtd             => clk_pll_dmtd,
+      clk_pll_62m5             => clk_pll_62m5,
+      pll_locked               => pll_locked,
+      pll_sys_locked           => pll_sys_locked,
+      -- SI549 output enable
+      si549_helper_dxco_oe     => si549_helper_dxco_oe_UNUSED,
+      si549_main_dxco_oe       => si549_main_dxco_oe_UNUSED,
+      -- Exporting the board
+      testpoint                => testpoint,
+      led_user                 => led_user
+    );
 
 end architecture struct;
