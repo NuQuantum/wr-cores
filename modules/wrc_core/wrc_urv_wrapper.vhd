@@ -115,7 +115,45 @@ architecture arch of wrc_urv_wrapper is
   signal regs_in : t_wrc_cpu_csr_out_registers;
   signal regs_out : t_wrc_cpu_csr_in_registers;
 
+----------------------------------------------------------------------------------------
+-- COMPONENT & Signal - Debug
+----------------------------------------------------------------------------------------
+  COMPONENT ila_cpu_dbg is
+  Port(
+    clk: in STD_LOGIC;
+    probe0: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+    probe1: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe2: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+    probe3: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe4: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+    probe5: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+    probe6: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+    probe7: in STD_LOGIC_VECTOR(3 DOWNTO 0)
+  );
+  END COMPONENT;
+
+  signal im_rd_o_UNUSED: std_logic := '0';
+----------------------------------------------------------------------------------------
+
 begin
+
+  ----------------------------------
+  -- ILA
+  ----------------------------------
+  u_ila_cpu_dbg: component ila_cpu_dbg
+  Port map(
+	clk        => clk_sys_i,
+    -- bit
+	probe0     => im_addr,
+	probe1(0)  => im_rd_o_UNUSED,
+	probe2     => im_data,
+	probe3(0)  => im_valid,
+	probe4     => dm_addr,
+    probe5     => dm_data_s,
+    probe6     => dm_data_l,
+    probe7     => dm_data_select
+  );
+  ----------------------------------
 
   wrc_cpu_csr_wb_slave_1: entity work.wrc_cpu_csr_wb_slave
     port map (
@@ -230,7 +268,7 @@ begin
         end if;
       end if;
     end process p_iram_host_access;
-  end generate;  
+  end generate;
 
   -- Wishbone bus arbitration / internal RAM access
   p_wishbone_master : process(clk_sys_i)

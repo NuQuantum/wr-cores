@@ -20,7 +20,10 @@ filesets:
       - ohwr:general-cores:wb_onewire_master
       - ohwr:general-cores:wb_simple_uart
       - ohwr:wrpc:wrcore_pkg
+      - nq:debug:ila_uart_dbg
+      - nq:debug:ila_cpu_dbg
     files:
+      - wrc_core/dbg_xwrc_board_kasli_regs.vhd
       - wrc_core/wrc_syscon_wb.vhd
       - wrc_core/wrc_diags_dpram.vhd
       - wrc_core/wrc_cpu_csr_wb.vhd

@@ -12,6 +12,7 @@ filesets:
       - ohwr:wrpc:fabric
       - ohwr:wrpc:wr_fabric_pkg
     files:
+      - wrc_core/dbg_xwrc_board_kasli_regs.vhd
       - wrc_core/wrc_cpu_csr_wbgen2_pkg.vhd
       - wrc_core/wrc_syscon_pkg.vhd
       - wrc_core/wrcore_pkg.vhd

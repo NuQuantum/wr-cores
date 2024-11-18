@@ -1,0 +1,97 @@
+memory-map:
+  name: dbg_xwrc_board_kasli_regs
+  description: Board kasli register interface (debug version)
+  bus: wb-32-be
+  schema-version:
+    core: 2.0.0
+    x-conversions: 1.0.0
+    x-driver-edge: 1.0.0
+    x-enums: 1.0.0
+    x-fesa: 2.0.0
+    x-gena: 2.0.0
+    x-hdl: 1.0.0
+    x-map-info: 1.0.0
+    x-wbgen: 1.0.0
+  x-hdl:
+    iogroup: dbg_wrpc_kasli_regs
+  children:
+  - reg:
+      name: DEBUG_1
+      comment: General Purpose Debug Register 1
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x00000001
+  - reg:
+      name: DEBUG_2
+      comment: General Purpose Debug Register 2
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x00000002
+  - reg:
+      name: DEBUG_3
+      comment: General Purpose Debug Register 3
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x00000003
+  - reg:
+      name: DEBUG_4
+      comment: General Purpose Debug Register 5
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x00000004
+  - reg:
+      name: DEBUG_5
+      comment: General Purpose Debug Register 5
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x00000005
+  - reg:
+      name: DEBUG_6
+      comment: General Purpose Debug Register 6
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x00000006
+  - reg:
+      name: DBG_BASE_ONE_WIRE
+      comment: DBG Register DBG_BASE_ONE_WIRE
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x00000007
+  - reg:
+      name: DBG_BASE_UART
+      comment: DBG Register DBG_BASE_UART
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x00000008
+  - reg:
+      name: DBG_CONS_UART_BAUDRATE
+      comment: DBG Register UART BAUD RATE
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x00000009
+  - reg:
+      name: DBG_UART_REG_BCR
+      comment: DBG Register UART REG BCR
+      description: Unsigned register for general debug access.
+      width: 32
+      access: rw
+      type: unsigned
+      preset: 0x0000000A

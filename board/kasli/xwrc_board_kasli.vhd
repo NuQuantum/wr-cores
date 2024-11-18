@@ -282,6 +282,14 @@ architecture struct of xwrc_board_kasli is
     rst_vio_o                : out  std_logic := '0';
     rst_n_vio_o              : out  std_logic := '0';
     clk_select_o             : out  std_logic := '0';
+    -- rst inputs
+    rst_sys_62m5_n            : in std_logic := '0';
+    rst_bootstrap_62m5_n      : in std_logic := '0';
+    rst_bootstrap_125m_n      : in std_logic := '0';
+    rst_wrpc_core             : in std_logic := '0';
+    pll_areset_n              : in std_logic := '0';
+    sys_rstlogic_arst_n       : in std_logic := '0';
+    bootstrap_rstlogic_arst_n : in std_logic := '0';
     -- clock inputs from board/ps
     clk_125m_bootstrap       : in  std_logic := '0';
     clk_ps                   : in  std_logic := '0';
@@ -296,8 +304,11 @@ architecture struct of xwrc_board_kasli is
     pll_locked               : in  std_logic := '0';
     pll_sys_locked           : in  std_logic := '0';
     -- SI549 output enable
-    si549_helper_dxco_oe     : out std_logic;
-    si549_main_dxco_oe       : out std_logic;
+    si549_helper_dxco_oe     : out std_logic := '0';
+    si549_main_dxco_oe       : out std_logic := '0';
+    -- UART
+    dbg_uart_rxd_i           : in  std_logic := '0';
+    dbg_uart_txd_o           : in  std_logic := '0';
     -- Exporting the board
     testpoint                : out   std_logic_vector(4 downto 0);
     led_user                 : out   std_logic_vector(1 downto 0)
@@ -429,6 +440,10 @@ architecture struct of xwrc_board_kasli is
     -- output enable
   signal si549_helper_dxco_oe_UNUSED   : std_logic := '0';
   signal si549_main_dxco_oe_UNUSED     : std_logic := '0';
+
+  -- UART
+  signal dbg_uart_rxd_i                : std_logic := '0';
+  signal dbg_uart_txd_o                : std_logic := '0';
 
 begin  -- architecture struct
 
@@ -608,8 +623,10 @@ begin  -- architecture struct
   -- Platform-dependent part (PHY, PLLs, buffers, etc)
   -----------------------------------------------------------------------------
   -- debug
-  dbg_OR_pll_areset_n    <= pll_areset_n or vio_reset_n;
-  dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel or vio_clk_select;
+--   dbg_OR_pll_areset_n    <= pll_areset_n or vio_reset_n;
+--   dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel or vio_clk_select;
+  dbg_OR_pll_areset_n    <= pll_areset_n;
+  dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
   -- end debug
 
   u_xwrc_platform : component xwrc_platform_xilinx
@@ -792,7 +809,7 @@ begin  -- architecture struct
       clk_ext_mul_locked_i => ext_ref_mul_locked,
       clk_ext_stopped_i    => ext_ref_mul_stopped,
       clk_ext_rst_o        => ext_ref_rst,
-      rst_n_i              => rst_sys_62m5_n,
+      rst_n_i              => rst_sys_62m5_n, --vio_reset_n,
       -- Helper PLL updates
       dac_hpll_load_p1_o => dac_pll_load_p1(1),
       dac_hpll_data_o    => dac_pll_data(1),
@@ -815,8 +832,8 @@ begin  -- architecture struct
       spi_mosi_o => flash_mosi_o,
       spi_miso_i => flash_miso_i,
       -- UART
-      uart_rxd_i => uart_rxd_i,
-      uart_txd_o => uart_txd_o,
+      uart_rxd_i => dbg_uart_rxd_i,
+      uart_txd_o => dbg_uart_txd_o,
       -- one wire
       owr_pwren_o => open,
       owr_en_o    => onewire_en,
@@ -891,6 +908,12 @@ begin  -- architecture struct
   -----------------------------------------------------------------------------
 
   ------------------------------------
+  -- UART
+  ------------------------------------
+  dbg_uart_rxd_i <= uart_rxd_i;
+  uart_txd_o     <= dbg_uart_txd_o;
+
+  ------------------------------------
   -- Clocks: differential to single
   -- ended signals.
   ------------------------------------
@@ -954,6 +977,14 @@ begin  -- architecture struct
       rst_vio_o                => vio_reset,
       rst_n_vio_o              => vio_reset_n,
       clk_select_o             => vio_clk_select,
+      -- rst inputs
+      rst_sys_62m5_n            => rst_sys_62m5_n,
+      rst_bootstrap_62m5_n      => rst_bootstrap_62m5_n,
+      rst_bootstrap_125m_n      => rst_bootstrap_125m_n,
+      rst_wrpc_core             => rst_wrpc_core,
+      pll_areset_n              => pll_areset_n,
+      sys_rstlogic_arst_n       => sys_rstlogic_arst_n,
+      bootstrap_rstlogic_arst_n => bootstrap_rstlogic_arst_n,
       -- clock inputs from board/ps
       clk_125m_bootstrap       => clk_125m_bootstrap,
       clk_ps                   => '0', -- clk_ps,
@@ -970,6 +1001,9 @@ begin  -- architecture struct
       -- SI549 output enable
       si549_helper_dxco_oe     => si549_helper_dxco_oe_UNUSED,
       si549_main_dxco_oe       => si549_main_dxco_oe_UNUSED,
+      -- UART
+      dbg_uart_rxd_i           => dbg_uart_rxd_i,
+      dbg_uart_txd_o           => dbg_uart_txd_o,
       -- Exporting the board
       testpoint                => testpoint,
       led_user                 => led_user
