@@ -12,22 +12,22 @@
 --
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
--- 
+--
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -104,7 +104,7 @@ package wr_board_pkg is
       g_ram_address_space_size_kb : integer                        := 128;
       g_board_name                : string                         := "NA  ";
       g_flash_secsz_kb            : integer                        := 256;        -- default for M25P128
-      g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for M25P128
+      g_flash_sdbfs_baddr         : integer                        := 16#0#; --16#600000#; -- default for M25P128
       g_phys_uart                 : boolean                        := TRUE;
       g_virtual_uart              : boolean                        := TRUE;
       g_aux_clks                  : integer                        := 0;
@@ -242,7 +242,7 @@ package wr_board_pkg is
       master_o    : out t_wishbone_master_out;
       master_i    : in  t_wishbone_master_in);
   end component eb_ethernet_slave;
-  
+
 end wr_board_pkg;
 
 package body wr_board_pkg is

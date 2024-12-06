@@ -69,6 +69,7 @@ use work.endpoint_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.sysc_wbgen2_pkg.all;
 use work.softpll_pkg.all;
+use work.dbg_xwrc_board_kasli_regs_pkg.all;
 
 entity wr_core is
   generic(
@@ -82,7 +83,7 @@ entity wr_core is
    --
     g_board_name                : string                         := "NA  ";
     g_flash_secsz_kb            : integer                        := 256;        -- default for SVEC (M25P128)
-    g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for SVEC (M25P128)
+    g_flash_sdbfs_baddr         : integer                        := 16#0#; --16#600000#; -- default for SVEC (M25P128)
     g_phys_uart                 : boolean                        := true;
     g_virtual_uart              : boolean                        := true;
     g_with_phys_uart_fifo       : boolean                        := false;
@@ -357,6 +358,27 @@ architecture struct of wr_core is
     end if;
   end function;
 
+-- fixme: bring me to generic param
+----------------------------------------------------------------------------------------
+-- COMPONENT declaration
+----------------------------------------------------------------------------------------
+  COMPONENT ila_uart_dbg is
+  Port(
+      clk: in STD_LOGIC;
+      probe0: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe1: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe2: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe3: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe4: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe5: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe6: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe7: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe8: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe9: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe10: in STD_LOGIC_VECTOR(31 DOWNTO 0)
+  );
+  END COMPONENT;
+
   -----------------------------------------------------------------------------
   --Local resets for peripheral
   -----------------------------------------------------------------------------
@@ -423,6 +445,7 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   --WB Secondary Crossbar
   -----------------------------------------------------------------------------
+  -- fixme: bring me to generic param (periph 6 is replaced 6)
   constant c_secbar_layout : t_sdb_record_array(11 downto 0) :=
     (0  => f_sdb_embed_device(c_xwr_mini_nic_sdb, x"00000000"),
      1  => f_sdb_embed_device(c_xwr_endpoint_sdb, x"00000100"),
@@ -431,7 +454,8 @@ architecture struct of wr_core is
      4  => f_sdb_embed_device(c_wrc_periph0_sdb,  x"00000400"),  -- Syscon
      5  => f_sdb_embed_device(c_wrc_periph1_sdb,  x"00000500"),  -- UART
      6  => f_sdb_embed_device(c_wrc_periph2_sdb,  x"00000600"),  -- 1-Wire
-     7  => f_sdb_embed_device(c_wrc_periph4_sdb,  x"00000800"),  -- wdiag (usr)
+    --  7  => f_sdb_embed_device(c_wrc_periph4_sdb,  x"00000800"),  -- wdiag (usr)
+     7  => f_sdb_embed_device(c_dbg_kasli_regs_sdb,  x"00000800"),  -- kasli diag reg
      8  => f_sdb_embed_device(c_wrc_periph5_sdb,  x"00000900"),  -- wdiag (cpu)
      9  => f_sdb_embed_device(c_wrc_periph6_sdb,  x"00000a00"),  -- freq mon
      10 => f_sdb_embed_device(c_wrc_cpu_csr_sdb,  x"00000b00"),  -- cpu csr
@@ -521,6 +545,17 @@ architecture struct of wr_core is
 
   signal phy_mdio_master_out : t_wishbone_master_out;
   signal phy_mdio_master_in : t_wishbone_master_in;
+
+  -- fixme: bring me to generic param
+  -----------------------------------------------------------------------------
+  -- Signals Debuggery
+  -----------------------------------------------------------------------------
+  -- Register map interface
+  signal dbg_wb_kasli_regs_out : t_wishbone_slave_out;
+  signal dbg_wb_kasli_regs_in  : t_wishbone_slave_in;
+  -- Registers
+  signal dbg_kasli_reg : t_dbg_wrpc_kasli_regs_master_out;
+
 begin
 
   -----------------------------------------------------------------------------
@@ -780,7 +815,7 @@ begin
 
       phy_mdio_master_o => phy_mdio_master_out,
       phy_mdio_master_i => phy_mdio_master_in,
-            
+
       phy8_o  => phy8_o,
       phy8_i  => phy8_i,
       phy16_o => phy16_o,
@@ -825,8 +860,8 @@ begin
   phy_mdio_master_in.ack <= phy_mdio_master_ack_i;
   phy_mdio_master_in.stall <= phy_mdio_master_stall_i;
   phy_mdio_master_in.rty <= '0';
-  phy_mdio_master_in.err <= '0'; 
-  
+  phy_mdio_master_in.err <= '0';
+
   -----------------------------------------------------------------------------
   -- Mini-NIC
   -----------------------------------------------------------------------------
@@ -956,6 +991,51 @@ begin
       sl_rty_o   => wb_rty_o,
       sl_stall_o => wb_stall_o);
 
+  -- fixme: bring me to generic param
+  -----------------------------------------------------------------------------
+  -- Debug: Kasli Register Map
+  -----------------------------------------------------------------------------
+  u_dbg_xwrc_kasli_regs : component dbg_xwrc_board_kasli_regs
+    port map (
+      -- clock / reset
+      clk_i   => clk_sys_i,
+      rst_n_i => rst_n_i,
+      -- wishbone interface
+      wb_cyc_i   => dbg_wb_kasli_regs_in.cyc,
+      wb_stb_i   => dbg_wb_kasli_regs_in.stb,
+      wb_adr_i   => dbg_wb_kasli_regs_in.adr(5 downto 2),
+      wb_sel_i   => dbg_wb_kasli_regs_in.sel,
+      wb_we_i    => dbg_wb_kasli_regs_in.we,
+      wb_dat_i   => dbg_wb_kasli_regs_in.dat,
+      --
+      wb_ack_o   => dbg_wb_kasli_regs_out.ack,
+      wb_err_o   => dbg_wb_kasli_regs_out.err,
+      wb_rty_o   => dbg_wb_kasli_regs_out.rty,
+      wb_stall_o => dbg_wb_kasli_regs_out.stall,
+      wb_dat_o   => dbg_wb_kasli_regs_out.dat,
+      -- Wires and registers
+      dbg_wrpc_kasli_regs_o => dbg_kasli_reg
+    );
+  -- fixme: bring me to generic param
+  ----------------------------------
+  -- ILA
+  ----------------------------------
+  u_ila_uart_dbg: component ila_uart_dbg
+  Port map(
+	clk        => clk_sys_i,
+	probe0(0)  => rst_n_i,
+	probe1     => dbg_kasli_reg.DEBUG_1,
+	probe2     => dbg_kasli_reg.DEBUG_2,
+	probe3     => dbg_kasli_reg.DEBUG_3,
+	probe4     => dbg_kasli_reg.DEBUG_4,
+	probe5     => dbg_kasli_reg.DEBUG_5,
+	probe6     => dbg_kasli_reg.DEBUG_6,
+    probe7     => dbg_kasli_reg.DBG_BASE_WDIAGS_PRIV,
+    probe8     => dbg_kasli_reg.DBG_BASE_UART,
+    probe9     => dbg_kasli_reg.DBG_CONS_UART_BAUDRATE,
+    probe10    => dbg_kasli_reg.DBG_UART_REG_BCR
+  );
+
   -----------------------------------------------------------------------------
   -- WB Secondary Crossbar
   -----------------------------------------------------------------------------
@@ -1003,9 +1083,13 @@ begin
 
   secbar_master_i(6) <= periph_slave_o(2);
   periph_slave_i(2)  <= secbar_master_o(6);
+--   secbar_master_i(6) <= dbg_wb_kasli_regs_out;
+--   dbg_wb_kasli_regs_in  <= secbar_master_o(6);
 
-  secbar_master_i(7) <= periph_slave_o(3);
-  periph_slave_i(3)  <= secbar_master_o(7);
+--   secbar_master_i(7) <= periph_slave_o(3);
+--   periph_slave_i(3)  <= secbar_master_o(7);
+  secbar_master_i(7) <= dbg_wb_kasli_regs_out;
+  dbg_wb_kasli_regs_in  <= secbar_master_o(7);
 
   secbar_master_i(8) <= periph_slave_o(4);
   periph_slave_i(4)  <= secbar_master_o(8);

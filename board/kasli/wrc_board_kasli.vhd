@@ -298,7 +298,12 @@ entity wrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Debug interface for clock_select, reset and clock
     ---------------------------------------------------------------------------
-    dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0)
+    dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0);
+    -- fixme: remove what is not ocmpatible with *.sv
+    testpoint          : out   std_logic_vector(4 downto 0);
+    led_user           : out   std_logic_vector(1 downto 0);
+    ps_clk_from_PS     : in    std_logic := '0';
+    fclk_clk0_from_PS  : in    std_logic := '0'
   );
 end entity wrc_board_kasli;
 

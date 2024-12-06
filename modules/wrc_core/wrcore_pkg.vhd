@@ -40,16 +40,17 @@ use work.sysc_wbgen2_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.softpll_pkg.all;
+use work.dbg_xwrc_board_kasli_regs_pkg.all;
 
 package wrcore_pkg is
 
   constant c_WR_CORE_SYSTEM_CLOCK_FREQ_HZ : integer := 62500000;
-  
+
   function f_refclk_rate(pcs_16 : boolean) return integer;
 
   type t_generic_word_array is array (natural range <>) of std_logic_vector(31 downto 0);
 
-  ----------------------------------------------------------------------------- 
+  -----------------------------------------------------------------------------
   --PPS generator
   -----------------------------------------------------------------------------
   constant c_xwr_pps_gen_sdb : t_sdb_device := (
@@ -154,7 +155,7 @@ package wrcore_pkg is
         version   => x"00000001",
         date      => x"20120305",
         name      => "WR-urv-cpu-csr     ")));
-  
+
 
   -----------------------------------------------------------------------------
   -- PERIPHERIALS
@@ -276,7 +277,7 @@ package wrcore_pkg is
     generic(
       g_board_name      : string  := "NA  ";
       g_flash_secsz_kb    : integer := 64;
-      g_flash_sdbfs_baddr : integer := 16#2e0000#;
+      g_flash_sdbfs_baddr : integer := 16#0#; --16#2e0000#;
       g_has_preinitialized_firmware : boolean;
       g_phys_uart       : boolean := true;
       g_virtual_uart    : boolean := false;
@@ -388,7 +389,7 @@ package wrcore_pkg is
       debug_o         : out std_logic_vector(5 downto 0);
       dbg_fifo_irq_o  : out std_logic);
   end component;
-  
+
   constant cc_unused_master_in : t_wishbone_master_in :=
     ('1', '0', '0', '0', cc_dummy_data);
 
@@ -402,7 +403,7 @@ package wrcore_pkg is
       g_ram_address_space_size_kb : integer                        := 128;
       g_board_name                : string                         := "NA  ";
       g_flash_secsz_kb            : integer                        := 256;        -- default for SVEC (M25P128)
-      g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for SVEC (M25P128)
+      g_flash_sdbfs_baddr         : integer                        := 16#0#; --16#600000#; -- default for SVEC (M25P128)
       g_phys_uart                 : boolean                        := true;
       g_with_phys_uart_fifo       : boolean                        := false;
       g_phys_uart_tx_fifo_size    : integer                        := 1024;
@@ -471,8 +472,8 @@ package wrcore_pkg is
       phy_sfp_tx_disable_o : out std_logic;
       phy_rx_rbclk_sampled_i : in std_logic := '0';
       phy_mdio_master_o : out t_wishbone_master_out;
-      phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out; 
-    
+      phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out;
+
       -----------------------------------------
       -- PHY I/f - record-based
       -- selection done with g_records_for_phy
@@ -552,7 +553,7 @@ package wrcore_pkg is
 
   component wr_core is
     generic(
-      --if set to 1, then blocks in PCS use smaller calibration counter to speed 
+      --if set to 1, then blocks in PCS use smaller calibration counter to speed
       --up simulation
       g_simulation                : integer                        := 0;
       g_verbose                   : boolean                        := true;
@@ -561,7 +562,7 @@ package wrcore_pkg is
       --
       g_board_name                : string                         := "NA  ";
       g_flash_secsz_kb            : integer                        := 256;        -- default for SVEC (M25P128)
-      g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for SVEC (M25P128)
+      g_flash_sdbfs_baddr         : integer                        := 16#0#; --; 16#600000#; -- default for SVEC (M25P128)
       g_phys_uart                 : boolean                        := true;
       g_with_phys_uart_fifo       : boolean                        := false;
       g_phys_uart_tx_fifo_size    : integer                        := 1024;
@@ -818,7 +819,7 @@ package wrcore_pkg is
   component spec_serial_dac_arb
     generic(
       g_invert_sclk    : boolean;
-      g_num_extra_bits : integer);        
+      g_num_extra_bits : integer);
     port (
       clk_i       : in  std_logic;
       rst_n_i     : in  std_logic;
@@ -845,7 +846,48 @@ package wrcore_pkg is
       slave2_i  : in  t_wishbone_slave_in;
       slave2_o  : out t_wishbone_slave_out);
   end component wrc_platform_dpram;
-  
+
+  -- fixme: bring me to dpg_pkg
+  -----------------------------------------------------------------------------
+  -- Debuggery
+  -----------------------------------------------------------------------------
+  -- fixme: this component here is not used
+  constant c_dbg_kasli_regs_sdb : t_sdb_device := (
+    abi_class     => x"0000",              -- undocumented device
+    abi_ver_major => x"01",
+    abi_ver_minor => x"01",
+    wbd_endian    => c_sdb_endian_big,
+    wbd_width     => x"7",                 -- 8/16/32-bit port granularity
+    sdb_component => (
+      addr_first  => x"0000000000000000",
+      addr_last   => x"00000000000000ff",
+      product     => (
+        vendor_id => x"000000000000CE42",  -- CERN
+        device_id => x"0000abcd",
+        version   => x"00000001",
+        date      => x"20241111",
+        name      => "DBG-REG-WR-Core    ")));
+
+  component dbg_xwrc_board_kasli_regs is
+    port (
+      rst_n_i              : in    std_logic;
+      clk_i                : in    std_logic;
+      wb_cyc_i             : in    std_logic;
+      wb_stb_i             : in    std_logic;
+      wb_adr_i             : in    std_logic_vector(5 downto 2);
+      wb_sel_i             : in    std_logic_vector(3 downto 0);
+      wb_we_i              : in    std_logic;
+      wb_dat_i             : in    std_logic_vector(31 downto 0);
+      wb_ack_o             : out   std_logic;
+      wb_err_o             : out   std_logic;
+      wb_rty_o             : out   std_logic;
+      wb_stall_o           : out   std_logic;
+      wb_dat_o             : out   std_logic_vector(31 downto 0);
+      -- Wires and registers
+      dbg_wrpc_kasli_regs_o    : out   t_dbg_wrpc_kasli_regs_master_out
+    );
+  end component;
+
 end wrcore_pkg;
 
 package body wrcore_pkg is

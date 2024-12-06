@@ -115,7 +115,10 @@ package wr_xilinx_pkg is
       ext_ref_mul_o          : out std_logic;
       ext_ref_mul_locked_o   : out std_logic;
       ext_ref_mul_stopped_o  : out std_logic;
-      ext_ref_rst_i          : in  std_logic             := '0');
+      ext_ref_rst_i          : in  std_logic             := '0';
+      -- debug
+      clk_125m_gtp_buf_dbg   : out std_logic
+      );
   end component xwrc_platform_xilinx;
 
   component wr_gtp_phy_spartan6

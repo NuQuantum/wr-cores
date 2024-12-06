@@ -16,22 +16,22 @@
 --
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
--- 
+--
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -55,7 +55,7 @@ entity xwrc_board_common is
     g_board_name                : string                         := "NA  ";
     g_ram_address_space_size_kb : integer                        := 128;
     g_flash_secsz_kb            : integer                        := 256;        -- default for M25P128
-    g_flash_sdbfs_baddr         : integer                        := 16#600000#; -- default for M25P128
+    g_flash_sdbfs_baddr         : integer                        := 16#0#; --16#600000#; -- default for M25P128
     g_phys_uart                 : boolean                        := TRUE;
     g_virtual_uart              : boolean                        := TRUE;
     g_aux_clks                  : integer                        := 0;
@@ -78,7 +78,7 @@ entity xwrc_board_common is
     g_streamers_op_mode         : t_streamers_op_mode            := TX_AND_RX;
     g_tx_streamer_params        : t_tx_streamer_params           := c_tx_streamer_params_defaut;
     g_rx_streamer_params        : t_rx_streamer_params           := c_rx_streamer_params_defaut;
-    -- if WRPC supports only one SFP but we have two connected that are muxed, 
+    -- if WRPC supports only one SFP but we have two connected that are muxed,
     -- mux also the I2C acess to their memory
     g_sfp_i2c_mux_enable        : boolean                        := FALSE;
     g_softpll_aux_channel_config : t_softpll_channels_config_array := c_softpll_default_channels_config;
@@ -357,7 +357,7 @@ architecture struct of xwrc_board_common is
 --   signal sfp1_sda_in  : std_logic;
 --   signal sfp1_det_in  : std_logic;
 
-  
+
   signal pps_valid     : std_logic;
   signal pps_csync     : std_logic;
 

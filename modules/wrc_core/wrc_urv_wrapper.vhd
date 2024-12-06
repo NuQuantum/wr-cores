@@ -32,6 +32,9 @@ use work.wishbone_pkg.all;
 use work.wrc_cpu_csr_wbgen2_pkg.all;
 use work.urv_pkg.all;
 
+library xpm;
+use xpm.vcomponents.all;
+
 entity wrc_urv_wrapper is
   generic(
     g_IRAM_SIZE : integer;
@@ -115,7 +118,48 @@ architecture arch of wrc_urv_wrapper is
   signal regs_in : t_wrc_cpu_csr_out_registers;
   signal regs_out : t_wrc_cpu_csr_in_registers;
 
-begin
+-- fixme: bring me to the dbg_pkg
+----------------------------------------------------------------------------------------
+-- COMPONENT & Signal - Debug
+----------------------------------------------------------------------------------------
+COMPONENT ila_cpu_dbg is
+    Port(
+      clk: in STD_LOGIC;
+      probe0: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe1: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe2: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe3: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe4: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe5: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe6: in STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe7: in STD_LOGIC_VECTOR(3 DOWNTO 0)
+    );
+    END COMPONENT;
+
+    signal im_rd_o_UNUSED: std_logic := '0';
+    signal rst_i: std_logic := '0';
+  ----------------------------------------------------------------------------------------
+
+  begin
+
+  -- fixme: bring to generic param
+  ----------------------------------
+  -- ILA
+  ----------------------------------
+  u_ila_cpu_dbg: component ila_cpu_dbg
+  Port map(
+	clk        => clk_sys_i,
+    -- bit
+	probe0     => im_addr,
+	probe1(0)  => im_rd_o_UNUSED,
+	probe2     => im_data,
+	probe3(0)  => im_valid,
+	probe4     => dm_addr,
+    probe5     => dm_data_s,
+    probe6     => dm_data_l,
+    probe7     => dm_data_select
+  );
+  ----------------------------------
 
   wrc_cpu_csr_wb_slave_1: entity work.wrc_cpu_csr_wb_slave
     port map (
@@ -171,6 +215,7 @@ begin
       g_INIT_FILE                => g_IRAM_INIT,
       g_FAIL_IF_FILE_NOT_FOUND   => TRUE,
       g_DUAL_CLOCK               => FALSE)
+    --   g_use_bram_macros          => TRUE      )
     port map (
       rst_n_i => rst_n_i,
       clka_i  => clk_sys_i,
@@ -230,7 +275,7 @@ begin
         end if;
       end if;
     end process p_iram_host_access;
-  end generate;  
+  end generate;
 
   -- Wishbone bus arbitration / internal RAM access
   p_wishbone_master : process(clk_sys_i)
