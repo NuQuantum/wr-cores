@@ -298,6 +298,7 @@ architecture struct of xwrc_board_kasli is
     clk_125m_gtp             : in  std_logic := '0';
     clk_125m_pllref          : in  std_logic := '0';
     clk_20m_vcxo             : in  std_logic := '0';
+    clk_sfp_rx_clk           : in  std_logic := '0';
     -- clocks and locked inputs from PLL
     clk_pll_125m             : in  std_logic := '0';
     clk_pll_dmtd             : in  std_logic := '0';
@@ -341,6 +342,37 @@ architecture struct of xwrc_board_kasli is
     sda_en_o      : out std_logic
   );
   end COMPONENT;
+
+  -- fixme: bring me to a debug place
+  COMPONENT ila_sfp_dbg is
+    Port(
+      clk: in STD_LOGIC;
+      -----------  sfp2wrc  -----------------
+      -- bit
+      probe0: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe1: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe2: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe3: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe4: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe5: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe6: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe7: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      -- vector
+      probe8: in STD_LOGIC_VECTOR(15 DOWNTO 0);
+      probe9: in STD_LOGIC_VECTOR(4 DOWNTO 0);
+      probe10: in STD_LOGIC_VECTOR(1 DOWNTO 0);
+      -----------  wrc2sfp  -----------------
+      -- bit
+      probe11: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe12: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe13: in STD_LOGIC_VECTOR(0 DOWNTO 0);
+      -- vector
+      probe14: in STD_LOGIC_VECTOR(15 DOWNTO 0);
+      probe15: in STD_LOGIC_VECTOR(2 DOWNTO 0);
+      probe16: in STD_LOGIC_VECTOR(2 DOWNTO 0);
+      probe17: in STD_LOGIC_VECTOR(1 DOWNTO 0)
+    );
+    END COMPONENT;
 
   -----------------------------------------------------------------------------
   -- Signals
@@ -464,6 +496,7 @@ architecture struct of xwrc_board_kasli is
   signal clk_125m_pllref_i             : std_logic := '0';
   signal clk_fclk_clk0                 : std_logic := '0';
   signal clk_ps                        : std_logic := '0';
+  signal clk_sfp_rx_clk_i              : std_logic := '0';
 
     -- output enable
   signal si549_helper_dxco_oe_UNUSED   : std_logic := '0';
@@ -1002,6 +1035,38 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
   -----------------------------------------------------------------------------
 
   ------------------------------------
+  -- SFP
+  ------------------------------------
+  u_ila_sfp_dbg: component ila_sfp_dbg
+  Port map(
+	clk        => clk_125m_gtp,
+    -----------  sfp2wrc  -----------------
+    -- bit
+	probe0(0)  => phy16_to_wrc.tx_disparity,
+	probe1(0)  => phy16_to_wrc.tx_enc_err,
+	probe2(0)  => phy16_to_wrc.rx_clk,
+	probe3(0)  => phy16_to_wrc.rx_sampled_clk,
+	probe4(0)  => phy16_to_wrc.rx_enc_err,
+    probe5(0)  => phy16_to_wrc.rdy,
+    probe6(0)  => phy16_to_wrc.sfp_tx_fault,
+    probe7(0)  => phy16_to_wrc.sfp_los,
+    -- vector
+    probe8     => phy16_to_wrc.rx_data,
+    probe9     => phy16_to_wrc.rx_bitslide,
+    probe10    => phy16_to_wrc.rx_k,
+    -----------  wrc2sfp  -----------------
+    -- bit
+	probe11(0)  => phy16_from_wrc.rst,
+	probe12(0)  => phy16_from_wrc.loopen,
+	probe13(0)  => phy16_from_wrc.sfp_tx_disable,
+    -- vector
+    probe14     => phy16_from_wrc.tx_data,
+    probe15     => phy16_from_wrc.tx_prbs_sel,
+    probe16     => phy16_from_wrc.loopen_vec,
+    probe17     => phy16_from_wrc.tx_k
+  );
+
+  ------------------------------------
   -- UART
   ------------------------------------
   dbg_uart_rxd_i <= uart_rxd_i;
@@ -1060,6 +1125,10 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
   -- 9) pll: clk_pll_62m5
   -- From PLL at xwrc_platform_xilinx
 
+  -- 10) sfp from wr switch: clk_sfp_rx_clk
+  -- From sfp 1
+  clk_sfp_rx_clk_i <= phy16_to_wrc.rx_clk;
+
   ----------------------------------
   -- Debug Component
   ----------------------------------
@@ -1087,6 +1156,7 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
       clk_125m_gtp             => clk_125m_gtp,
       clk_125m_pllref          => clk_125m_pllref,
       clk_20m_vcxo             => clk_20m_vcxo_i, --clk_20m_vcxo,
+      clk_sfp_rx_clk           => clk_sfp_rx_clk_i,
       -- clocks and locked inputs from PLL
       clk_pll_125m             => clk_pll_125m,
       clk_pll_dmtd             => clk_pll_dmtd,
