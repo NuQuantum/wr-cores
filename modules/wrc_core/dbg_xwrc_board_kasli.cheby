@@ -64,8 +64,8 @@ memory-map:
       type: unsigned
       preset: 0x00000006
   - reg:
-      name: DBG_BASE_WDIAGS_PRIV
-      comment: DBG Register DBG_BASE_WDIAGS_PRIV
+      name: DBG_BASE_WDIAGS_USR
+      comment: DBG Register DBG_BASE_WDIAGS_USR
       description: Unsigned register for general debug access.
       width: 32
       access: rw
@@ -95,3 +95,27 @@ memory-map:
       access: rw
       type: unsigned
       preset: 0x0000000A
+  - reg:
+      name: DBG_MEM_SIZE
+      comment: DBG Register MEM SIZE for EEPROM
+      description: Unsigned read only register to get data from vio
+      width: 32
+      access: ro
+      type: unsigned
+      preset: 0x00000000
+  - reg:
+      name: DBG_OFFSET_BYTES
+      comment: DBG Register OFFSET_BYTES for EEPROM
+      description: Unsigned read only register to get data from vio
+      width: 32
+      access: ro
+      type: unsigned
+      preset: 0x00000000
+  - reg:
+      name: DBG_HARD_CODE_REG_IN
+      comment: DBG Register to make sure my ro REGs are being read
+      description: Unsigned read only register to get hard coded data
+      width: 32
+      access: ro
+      type: unsigned
+      preset: 0x00001234

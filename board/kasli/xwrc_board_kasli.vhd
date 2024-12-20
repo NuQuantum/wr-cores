@@ -323,25 +323,25 @@ architecture struct of xwrc_board_kasli is
   end COMPONENT;
 
   -- fixme: temporary workaround for I2C BRAM
-  COMPONENT i2c_bram_wrapper is
-  generic(
-    mem_size     : integer := 8192 -- fixme: not used for now
-  );
-  port(
-    -- Clock, reset ports
-    clk_i         : in  std_logic;
-    rst_n_i       : in  std_logic;
-    -- clock ila
-    clk_ila       : in  std_logic;
-    -- I2C lines
-    scl_i         : in  std_logic;
-    scl_o         : out std_logic;
-    scl_en_o      : out std_logic;
-    sda_i         : in  std_logic;
-    sda_o         : out std_logic;
-    sda_en_o      : out std_logic
-  );
-  end COMPONENT;
+--   COMPONENT i2c_bram_wrapper is
+--   generic(
+--     mem_size     : integer := 8192 -- fixme: not used for now
+--   );
+--   port(
+--     -- Clock, reset ports
+--     clk_i         : in  std_logic;
+--     rst_n_i       : in  std_logic;
+--     -- clock ila
+--     clk_ila       : in  std_logic;
+--     -- I2C lines
+--     scl_i         : in  std_logic;
+--     scl_o         : out std_logic;
+--     scl_en_o      : out std_logic;
+--     sda_i         : in  std_logic;
+--     sda_o         : out std_logic;
+--     sda_en_o      : out std_logic
+--   );
+--   end COMPONENT;
 
   -- fixme: bring me to a debug place
   COMPONENT ila_sfp_dbg is
@@ -374,6 +374,21 @@ architecture struct of xwrc_board_kasli is
     );
     END COMPONENT;
 
+    COMPONENT i2c_eeprom_dbg_component IS
+    port(
+        -- Clock, reset ports
+        clk_i         : in  std_logic;
+        rst_n_i       : in  std_logic;
+        -- clock ila
+        clk_ila       : in  std_logic;
+
+        -- I2C lines
+        dgb_scl_i     : in  std_logic;
+        dgb_sda_i     : in  std_logic;
+        dgb_scl_o     : in  std_logic;
+        dgb_sda_o     : in  std_logic
+    );
+    END COMPONENT;
   -----------------------------------------------------------------------------
   -- Signals
   -----------------------------------------------------------------------------
@@ -873,6 +888,7 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
       g_dac_bits                  => 24
     )
     port map (
+      clk_125m_bootstrap   => clk_125m_bootstrap,
       clk_sys_i            => clk_pll_62m5,
       clk_dmtd_i           => clk_pll_dmtd,
       clk_ref_i            => clk_pll_125m,
@@ -971,62 +987,79 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
 
   -- fixme: temporary workaround for I2C BRAM
   -----------------------------------------------------------------------------
-  -- Fake I2C EEPROM via BRAM
+  -- I2C EEPROM via BRAM (workaround)
   -----------------------------------------------------------------------------
-  u_i2c_bram_wrapper: i2c_bram_wrapper
-    generic map(
-      mem_size     =>  8192 -- fixme: not used for now
-    )
-    port map(
-      -- Clock, reset ports
-      clk_i         => clk_pll_62m5,
-      rst_n_i       => dbg_OR_pll_areset_n, --rst_sys_62m5_n,
-      -- clock ila
-      clk_ila       => clk_125m_bootstrap,
-      -- I2C lines
-      scl_i         => temp_scl_o,
-      sda_i         => temp_sda_o,
-      scl_o         => open,
-      sda_o         => open,
-      scl_en_o      => temp_scl_i,
-      sda_en_o      => temp_sda_i
-    );
-  --   eeprom_scl_t_n <= temp_scl_o;
-  --   temp_scl_i     <= eeprom_scl_i;
-  --   eeprom_sda_t_n <= temp_sda_o;
-  --   temp_sda_i     <= eeprom_sda_i;
+--   u_i2c_bram_wrapper: i2c_bram_wrapper
+--     generic map(
+--       mem_size     =>  8192 -- fixme: not used for now
+--     )
+--     port map(
+--       -- Clock, reset ports
+--       clk_i         => clk_pll_62m5,
+--       rst_n_i       => dbg_OR_pll_areset_n, --rst_sys_62m5_n,
+--       -- clock ila
+--       clk_ila       => clk_125m_bootstrap,
+--       -- I2C lines
+--       scl_i         => temp_scl_o,
+--       sda_i         => temp_sda_o,
+--       scl_o         => open,
+--       sda_o         => open,
+--       scl_en_o      => temp_scl_i,
+--       sda_en_o      => temp_sda_i
+--     );
 
-  testpoint(3) <= temp_scl_o;
-  testpoint(2) <= temp_sda_o;
-  testpoint(1) <= temp_scl_i;
-  testpoint(0) <= temp_sda_i;
   ------------------------------------
-  -- I2C EEPROM
+  -- I2C EEPROM @ Kasli SoC
   ------------------------------------
   -- When using Kasli I2C EEPROM, this
   -- bridge routes the connections to
   -- pins C7 and C8 (EEPROM_I2C) as
   -- well as probing them with ILAs.
-  --
+
   -- Disable this when using BRAM.
   ------------------------------------
-  --   eeprom_scl_t_n <= temp_scl_o;
-  --   temp_scl_i     <= eeprom_scl_i;
-  --   eeprom_sda_t_n <= temp_sda_o;
-  --   temp_sda_i     <= eeprom_sda_i;
+  eeprom_scl_t_n <= temp_scl_o;
+  temp_scl_i     <= eeprom_scl_i;
+  eeprom_sda_t_n <= temp_sda_o;
+  temp_sda_i     <= eeprom_sda_i;
 
+  testpoint(3) <= temp_scl_o;
+  testpoint(2) <= temp_sda_o;
+  testpoint(1) <= temp_scl_i;
+  testpoint(0) <= temp_sda_i;
+
+
+  u_i2c_eeprom_dbg_component: i2c_eeprom_dbg_component
+  port map(
+      -- Clock, reset ports
+      clk_i         => clk_125m_bootstrap,
+      rst_n_i       => vio_reset_n,
+      -- clock ila
+      clk_ila       => clk_125m_bootstrap,
+
+      -- I2C lines
+      dgb_scl_i     => temp_scl_i,
+      dgb_sda_i     => temp_sda_i,
+      dgb_scl_o     => temp_scl_o,
+      dgb_sda_o     => temp_sda_o
+  );
 
   -- fixme: bring all debug signals to the same block
   -----------------------------------------------------------------------------
   -- Debugging
   -----------------------------------------------------------------------------
 
-  dbg_bus_o(0) <= sys_clk_select;
-  dbg_bus_o(1) <= rst_wrpc_core;
-  dbg_bus_o(2) <= pll_locked;
-  dbg_bus_o(3) <= pll_sys_locked;
-  dbg_bus_o(4) <= pll_areset_n;
-  dbg_bus_o(5) <= pll_clk_sys_sel;
+  dbg_bus_o(0) <= temp_scl_o;
+  dbg_bus_o(1) <= temp_sda_o;
+  dbg_bus_o(2) <= temp_scl_i;
+  dbg_bus_o(3) <= temp_sda_i;
+
+--   dbg_bus_o(0) <= sys_clk_select;
+--   dbg_bus_o(1) <= rst_wrpc_core;
+--   dbg_bus_o(2) <= pll_locked;
+--   dbg_bus_o(3) <= pll_sys_locked;
+--   dbg_bus_o(4) <= pll_areset_n;
+--   dbg_bus_o(5) <= pll_clk_sys_sel;
 
 
   -- fixme: bring me to generic param

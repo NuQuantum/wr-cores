@@ -130,6 +130,8 @@ package wr_board_pkg is
       g_sfp_i2c_mux_enable        : boolean                        := FALSE;
       g_fabric_iface              : t_board_fabric_iface           := PLAIN);
     port (
+      -- fixme: this clock is jsut for dbg
+      clk_125m_bootstrap   : in std_logic;
       clk_sys_i            : in  std_logic;
       clk_dmtd_i           : in  std_logic;
       clk_ref_i            : in  std_logic;

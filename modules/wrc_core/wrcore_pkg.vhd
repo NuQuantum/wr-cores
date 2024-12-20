@@ -433,6 +433,8 @@ package wrcore_pkg is
       g_dac_bits                  : integer                        := 16;
       g_with_clock_freq_monitor   : boolean                        := true);
     port(
+      -- fixme: this clock is jsut for dbg
+      clk_125m_bootstrap   : in std_logic;
       clk_sys_i            : in std_logic;
       clk_dmtd_i           : in std_logic := '0';
       clk_ref_i            : in std_logic;
@@ -593,6 +595,9 @@ package wrcore_pkg is
       ---------------------------------------------------------------------------
       -- Clocks/resets
       ---------------------------------------------------------------------------
+
+      -- fixme: this clock is jsut for dbg
+      clk_125m_bootstrap   : in std_logic;
 
       -- system reference clock (any frequency <= f(clk_ref_i))
       clk_sys_i : in std_logic;
@@ -884,7 +889,8 @@ package wrcore_pkg is
       wb_stall_o           : out   std_logic;
       wb_dat_o             : out   std_logic_vector(31 downto 0);
       -- Wires and registers
-      dbg_wrpc_kasli_regs_o    : out   t_dbg_wrpc_kasli_regs_master_out
+      dbg_wrpc_kasli_regs_i : in    t_dbg_wrpc_kasli_regs_master_in;
+      dbg_wrpc_kasli_regs_o : out   t_dbg_wrpc_kasli_regs_master_out
     );
   end component;
 

@@ -87,6 +87,9 @@ entity xwrc_board_common is
     ---------------------------------------------------------------------------
     -- Clocks/resets
     ---------------------------------------------------------------------------
+    -- fixme: this clock is jsut for dbg
+    clk_125m_bootstrap : in std_logic;
+
     -- system reference clock (any frequency <= f(clk_ref_i))
     clk_sys_i : in std_logic;
 
@@ -408,6 +411,7 @@ begin  -- architecture struct
       g_dac_bits                  => g_dac_bits,
       g_softpll_aux_channel_config => g_softpll_aux_channel_config)
     port map (
+      clk_125m_bootstrap   => clk_125m_bootstrap,
       clk_sys_i            => clk_sys_i,
       clk_dmtd_i           => clk_dmtd_i,
       clk_dmtd_over_i      => clk_dmtd_over_i,

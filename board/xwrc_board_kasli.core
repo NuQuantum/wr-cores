@@ -14,7 +14,7 @@ filesets:
       - ohwr:etherbone:etherbone_pkg
       - ohwr:wrpc:xwr_si549_interface
       - nq:debug:clk_dbg_component
-      - nq:prim:i2c_bram_wrapper
+      - nq:debug:i2c_eeprom_dbg_component
       - nq:debug:ila_sfp_dbg
     files:
       - kasli/xwrc_clock_switch_supervisor.vhd

@@ -199,7 +199,8 @@ begin
   -------------------------------------
   sysc_regs_i.hwir_name_i         <= f_board_name_conv(g_board_name);
   sysc_regs_i.hwfr_storage_sec_i  <= std_logic_vector(to_unsigned(g_flash_secsz_kb, 16));
-  sysc_regs_i.hwfr_storage_type_i <= "00";  -- for now these parameters are only for Flash
+  sysc_regs_i.hwfr_storage_type_i <= "01";  -- EEPROM - Romerson
+--   sysc_regs_i.hwfr_storage_type_i <= "00";  -- for now these parameters are only for Flash
   sysc_regs_i.sdbfs_baddr_i       <= std_logic_vector(to_unsigned(g_flash_sdbfs_baddr, 32));
 
   -------------------------------------

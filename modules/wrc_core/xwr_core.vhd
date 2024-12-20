@@ -115,6 +115,9 @@ entity xwr_core is
     -- Clocks/resets
     ---------------------------------------------------------------------------
 
+    -- fixme: this clock is jsut for dbg
+    clk_125m_bootstrap : in std_logic;
+
     -- system reference clock (any frequency <= f(clk_ref_i))
     clk_sys_i : in std_logic;
 
@@ -330,6 +333,7 @@ begin
       g_hwbld_date                => g_hwbld_date
       )
     port map(
+      clk_125m_bootstrap   => clk_125m_bootstrap,
       clk_sys_i     => clk_sys_i,
       clk_dmtd_i    => clk_dmtd_i,
       clk_dmtd_over_i => clk_dmtd_over_i,

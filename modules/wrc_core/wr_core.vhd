@@ -118,6 +118,9 @@ entity wr_core is
     -- Clocks/resets
     ---------------------------------------------------------------------------
 
+    -- fixme: this clock is jsut for dbg
+    clk_125m_bootstrap : in std_logic;
+
     -- system reference clock (any frequency <= f(clk_ref_i))
     clk_sys_i : in std_logic;
 
@@ -379,6 +382,102 @@ architecture struct of wr_core is
   );
   END COMPONENT;
 
+  COMPONENT vio_4b
+  PORT (
+    clk : IN STD_LOGIC;
+    probe_out0 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out1 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out2 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out3 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0)
+  );
+  END COMPONENT;
+
+--   COMPONENT vio_16b
+--   PORT (
+--     clk : IN STD_LOGIC;
+--     probe_out0 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out1 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out2 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out3 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out4 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out5 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out6 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out7 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out8 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out9 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out10 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out11 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out12 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out13 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out14 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out15 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0)
+--   );
+--   END COMPONENT;
+
+  COMPONENT vio_20b
+  PORT (
+    clk : IN STD_LOGIC;
+    probe_out0 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out1 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out2 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out3 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out4 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out5 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out6 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out7 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out8 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out9 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out10 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out11 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out12 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out13 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out14 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out15 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out16 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out17 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out18 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+    probe_out19 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0)
+  );
+  END COMPONENT;
+
+--   COMPONENT vio_32b
+--   PORT (
+--     clk : IN STD_LOGIC;
+--     probe_out0 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out1 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out2 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out3 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out4 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out5 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out6 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out7 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out8 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out9 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out10 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out11 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out12 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out13 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out14 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out15 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out16 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out17 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out18 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out19 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out20 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out21 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out22 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out23 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out24 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out25 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out26 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out27 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out28 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out29 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out30 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+--     probe_out31 : OUT STD_LOGIC_VECTOR(0 DOWNTO 0)
+--   );
+--   END COMPONENT;
+
   -----------------------------------------------------------------------------
   --Local resets for peripheral
   -----------------------------------------------------------------------------
@@ -554,7 +653,11 @@ architecture struct of wr_core is
   signal dbg_wb_kasli_regs_out : t_wishbone_slave_out;
   signal dbg_wb_kasli_regs_in  : t_wishbone_slave_in;
   -- Registers
+  signal dbg_kasli_reg_in : t_dbg_wrpc_kasli_regs_master_in;
   signal dbg_kasli_reg : t_dbg_wrpc_kasli_regs_master_out;
+
+  signal temp_DBG_MEM_SIZE     : std_logic_vector(19 downto 0);
+  signal temp_DBG_OFFSET_BYTES : std_logic_vector(3 downto 0);
 
 begin
 
@@ -1014,8 +1117,59 @@ begin
       wb_stall_o => dbg_wb_kasli_regs_out.stall,
       wb_dat_o   => dbg_wb_kasli_regs_out.dat,
       -- Wires and registers
+      dbg_wrpc_kasli_regs_i => dbg_kasli_reg_in,
       dbg_wrpc_kasli_regs_o => dbg_kasli_reg
     );
+
+
+  P_DBG_REGS_IN: process(clk_sys_i, rst_n_i, temp_DBG_MEM_SIZE, temp_DBG_OFFSET_BYTES)
+  begin
+    if rst_n_i = '0' then
+      dbg_kasli_reg_in.DBG_MEM_SIZE          <= (others => '0');
+      dbg_kasli_reg_in.DBG_OFFSET_BYTES      <= (others => '0');
+      dbg_kasli_reg_in.DBG_HARD_CODE_REG_IN  <= (others => '0');
+    elsif rising_edge(clk_sys_i) then
+        dbg_kasli_reg_in.DBG_MEM_SIZE          <= x"000" & temp_DBG_MEM_SIZE;
+        dbg_kasli_reg_in.DBG_OFFSET_BYTES      <= x"0000_000" & temp_DBG_OFFSET_BYTES;
+        dbg_kasli_reg_in.DBG_HARD_CODE_REG_IN  <= x"0011_00AA"; -- decimal 1114282
+    end if;
+  end process;
+
+  -- fixme: debug.. I don't even know where to put it anymore
+  u_vio_20b_MEM_SIZE: vio_20b
+  PORT MAP (
+    clk => clk_125m_bootstrap,
+    probe_out0(0)  => temp_DBG_MEM_SIZE(0),
+    probe_out1(0)  => temp_DBG_MEM_SIZE(1),
+    probe_out2(0)  => temp_DBG_MEM_SIZE(2),
+    probe_out3(0)  => temp_DBG_MEM_SIZE(3),
+    probe_out4(0)  => temp_DBG_MEM_SIZE(4),
+    probe_out5(0)  => temp_DBG_MEM_SIZE(5),
+    probe_out6(0)  => temp_DBG_MEM_SIZE(6),
+    probe_out7(0)  => temp_DBG_MEM_SIZE(7),
+    probe_out8(0)  => temp_DBG_MEM_SIZE(8),
+    probe_out9(0)  => temp_DBG_MEM_SIZE(9),
+    probe_out10(0) => temp_DBG_MEM_SIZE(10),
+    probe_out11(0) => temp_DBG_MEM_SIZE(11),
+    probe_out12(0) => temp_DBG_MEM_SIZE(12),
+    probe_out13(0) => temp_DBG_MEM_SIZE(13),
+    probe_out14(0) => temp_DBG_MEM_SIZE(14),
+    probe_out15(0) => temp_DBG_MEM_SIZE(15),
+    probe_out16(0) => temp_DBG_MEM_SIZE(16),
+    probe_out17(0) => temp_DBG_MEM_SIZE(17),
+    probe_out18(0) => temp_DBG_MEM_SIZE(18),
+    probe_out19(0) => temp_DBG_MEM_SIZE(19)
+  );
+
+  u_vio_16b_OFFSET_BYTES: vio_4b
+  PORT MAP (
+    clk => clk_125m_bootstrap,
+    probe_out0(0)  => temp_DBG_OFFSET_BYTES(0),
+    probe_out1(0)  => temp_DBG_OFFSET_BYTES(1),
+    probe_out2(0)  => temp_DBG_OFFSET_BYTES(2),
+    probe_out3(0)  => temp_DBG_OFFSET_BYTES(3)
+  );
+
   -- fixme: bring me to generic param
   ----------------------------------
   -- ILA
@@ -1030,7 +1184,7 @@ begin
 	probe4     => dbg_kasli_reg.DEBUG_4,
 	probe5     => dbg_kasli_reg.DEBUG_5,
 	probe6     => dbg_kasli_reg.DEBUG_6,
-    probe7     => dbg_kasli_reg.DBG_BASE_WDIAGS_PRIV,
+    probe7     => dbg_kasli_reg.DBG_BASE_WDIAGS_USR,
     probe8     => dbg_kasli_reg.DBG_BASE_UART,
     probe9     => dbg_kasli_reg.DBG_CONS_UART_BAUDRATE,
     probe10    => dbg_kasli_reg.DBG_UART_REG_BCR
