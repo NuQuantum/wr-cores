@@ -293,7 +293,6 @@ architecture struct of xwrc_board_kasli is
     bootstrap_rstlogic_arst_n : in std_logic := '0';
     -- clock inputs from board/ps
     clk_125m_bootstrap       : in  std_logic := '0';
-    clk_ps                   : in  std_logic := '0';
     clk_ps_fclk_clk0         : in  std_logic := '0';
     clk_125m_gtp             : in  std_logic := '0';
     clk_125m_pllref          : in  std_logic := '0';
@@ -311,37 +310,11 @@ architecture struct of xwrc_board_kasli is
     -- UART
     dbg_uart_rxd_i           : in  std_logic := '0';
     dbg_uart_txd_o           : in  std_logic := '0';
-    -- -- I2C EEPROM
-    -- dbg_scl_o                : in  std_logic := '0';
-    -- dbg_scl_i                : in  std_logic := '0';
-    -- dbg_sda_o                : in  std_logic := '0';
-    -- dbg_sda_i                : in  std_logic := '0';
     -- Exporting the board
     testpoint                : out   std_logic_vector(4 downto 0);
     led_user                 : out   std_logic_vector(1 downto 0)
   );
   end COMPONENT;
-
-  -- fixme: temporary workaround for I2C BRAM
---   COMPONENT i2c_bram_wrapper is
---   generic(
---     mem_size     : integer := 8192 -- fixme: not used for now
---   );
---   port(
---     -- Clock, reset ports
---     clk_i         : in  std_logic;
---     rst_n_i       : in  std_logic;
---     -- clock ila
---     clk_ila       : in  std_logic;
---     -- I2C lines
---     scl_i         : in  std_logic;
---     scl_o         : out std_logic;
---     scl_en_o      : out std_logic;
---     sda_i         : in  std_logic;
---     sda_o         : out std_logic;
---     sda_en_o      : out std_logic
---   );
---   end COMPONENT;
 
   -- fixme: bring me to a debug place
   COMPONENT ila_sfp_dbg is
@@ -985,39 +958,26 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
   eeprom_scl_o <= '0';
 
 
-  -- fixme: temporary workaround for I2C BRAM
-  -----------------------------------------------------------------------------
-  -- I2C EEPROM via BRAM (workaround)
-  -----------------------------------------------------------------------------
---   u_i2c_bram_wrapper: i2c_bram_wrapper
---     generic map(
---       mem_size     =>  8192 -- fixme: not used for now
---     )
---     port map(
---       -- Clock, reset ports
---       clk_i         => clk_pll_62m5,
---       rst_n_i       => dbg_OR_pll_areset_n, --rst_sys_62m5_n,
---       -- clock ila
---       clk_ila       => clk_125m_bootstrap,
---       -- I2C lines
---       scl_i         => temp_scl_o,
---       sda_i         => temp_sda_o,
---       scl_o         => open,
---       sda_o         => open,
---       scl_en_o      => temp_scl_i,
---       sda_en_o      => temp_sda_i
---     );
+  --===========================================================================
+  -- Debugging
+  --===========================================================================
+  -- fixme: bring all debug signals to the same block
+  --
+  --   dbg_bus_o(0) <= sys_clk_select;
+  --   dbg_bus_o(1) <= rst_wrpc_core;
+  --   dbg_bus_o(2) <= pll_locked;
+  --   dbg_bus_o(3) <= pll_sys_locked;
+  --   dbg_bus_o(4) <= pll_areset_n;
+  --   dbg_bus_o(5) <= pll_clk_sys_sel;
 
-  ------------------------------------
-  -- I2C EEPROM @ Kasli SoC
-  ------------------------------------
-  -- When using Kasli I2C EEPROM, this
-  -- bridge routes the connections to
-  -- pins C7 and C8 (EEPROM_I2C) as
-  -- well as probing them with ILAs.
+  -----------------------------------------------------------------------------
+  -- DBG: I2C EEPROM @ Kasli SoC
+  -----------------------------------------------------------------------------
+  -- fixme: bring me to generic param
+  --
+  -- When using Kasli I2C EEPROM, this bridge routes the connections to pins
+  -- C7 and C8 (EEPROM_I2C) as well as probing them with ILAs.
 
-  -- Disable this when using BRAM.
-  ------------------------------------
   eeprom_scl_t_n <= temp_scl_o;
   temp_scl_i     <= eeprom_scl_i;
   eeprom_sda_t_n <= temp_sda_o;
@@ -1028,6 +988,10 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
   testpoint(1) <= temp_scl_i;
   testpoint(0) <= temp_sda_i;
 
+  dbg_bus_o(0) <= temp_scl_o;
+  dbg_bus_o(1) <= temp_sda_o;
+  dbg_bus_o(2) <= temp_scl_i;
+  dbg_bus_o(3) <= temp_sda_i;
 
   u_i2c_eeprom_dbg_component: i2c_eeprom_dbg_component
   port map(
@@ -1044,32 +1008,11 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
       dgb_sda_o     => temp_sda_o
   );
 
-  -- fixme: bring all debug signals to the same block
   -----------------------------------------------------------------------------
-  -- Debugging
+  -- DBG: SFP
   -----------------------------------------------------------------------------
-
-  dbg_bus_o(0) <= temp_scl_o;
-  dbg_bus_o(1) <= temp_sda_o;
-  dbg_bus_o(2) <= temp_scl_i;
-  dbg_bus_o(3) <= temp_sda_i;
-
---   dbg_bus_o(0) <= sys_clk_select;
---   dbg_bus_o(1) <= rst_wrpc_core;
---   dbg_bus_o(2) <= pll_locked;
---   dbg_bus_o(3) <= pll_sys_locked;
---   dbg_bus_o(4) <= pll_areset_n;
---   dbg_bus_o(5) <= pll_clk_sys_sel;
-
-
   -- fixme: bring me to generic param
-  -----------------------------------------------------------------------------
-  -- Debugging with ILAs and VIOs
-  -----------------------------------------------------------------------------
 
-  ------------------------------------
-  -- SFP
-  ------------------------------------
   u_ila_sfp_dbg: component ila_sfp_dbg
   Port map(
 	clk        => clk_125m_gtp,
@@ -1099,71 +1042,73 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
     probe17     => phy16_from_wrc.tx_k
   );
 
-  ------------------------------------
-  -- UART
-  ------------------------------------
+  -----------------------------------------------------------------------------
+  -- DBG: UART PL (wrc# shell)
+  -----------------------------------------------------------------------------
+  -- fixme: bring me to generic param
   dbg_uart_rxd_i <= uart_rxd_i;
   uart_txd_o     <= dbg_uart_txd_o;
 
-  ------------------------------------
-  -- Clocks: differential to single
-  -- ended signals.
-  ------------------------------------
+  -----------------------------------------------------------------------------
+  -- DBG: Clocks
+  -----------------------------------------------------------------------------
+  -- fixme: bring me to generic param
+  --
+  -- CLOCKs:
+  -- Conversions from differential to single ended signals.
+  -- Also , the list bellow explains where each one of them come from:
 
-  -- 1) board:  clk_125m_bootstrap:
-  -- This file: IBUFDS_GTE2 -> BUFG -> here
+  -- board: clk_125m_bootstrap:
+  -- @ this file: IBUFDS_GTE2 -> BUFG -> here
 
-
-  -- 2) board: clk_ps
-  -- There was a BUFG here but it was not allowed.
-
-  -- 3) board: clk_fclk_clk0
+  -- board: clk_fclk_clk0
   BUFG_clk_fclk_clk0 : BUFG
   port map (
      O => clk_fclk_clk0,   -- 1-bit Clock output
      I => fclk_clk0_from_PS  -- 1-bit Clock input
   );
 
-  -- 4) board: clk_20m_vcxo
-  -- Com from IBUFDS at wrc_board_kasli_wrapper
+  -- board: clk_20m_vcxo
+  -- from IBUFDS at wrc_board_kasli_wrapper
 
-  -- 5) board:  clk_125m_pllref
-  -- fixme: depends on what will be decided for pll_ref
---  IBUFDS_125m_pllref : IBUFDS
---  generic map (
---     DIFF_TERM    => TRUE,
---     IBUF_LOW_PWR => FALSE,
---     IOSTANDARD   => "DEFAULT")
---  port map (
---     O  => clk_125m_pllref_i,      -- Buffer output
---     I  => clk_125m_pllref_p_i,    -- Diff_p buffer input
---     IB => clk_125m_pllref_n_i     -- Diff_n buffer input
---  );
+  -- board:  clk_125m_pllref
+  -- @ top level (comes from external oscilator), but we're not outputting it from
+  -- offchip clock fanout
+  --  IBUFDS_125m_pllref : IBUFDS
+  --  generic map (
+  --     DIFF_TERM    => TRUE,
+  --     IBUF_LOW_PWR => FALSE,
+  --     IOSTANDARD   => "DEFAULT")
+  --  port map (
+  --     O  => clk_125m_pllref_i,      -- Buffer output
+  --     I  => clk_125m_pllref_p_i,    -- Diff_p buffer input
+  --     IB => clk_125m_pllref_n_i     -- Diff_n buffer input
+  --  );
 
---  BUFG_clk_pll_ref : BUFG
---  port map (
---     O => clk_125m_pllref,   -- 1-bit Clock output
---     I => clk_125m_pllref_i  -- 1-bit Clock input
---  );
+  --  BUFG_clk_pll_ref : BUFG
+  --  port map (
+  --     O => clk_125m_pllref,   -- 1-bit Clock output
+  --     I => clk_125m_pllref_i  -- 1-bit Clock input
+  --  );
 
-  -- 6) board: clk_125m_gtp
+  -- board: clk_125m_gtp
   -- Coming from the gtx transceivers at xwrc_platform_xilinx.vhd
 
-  -- 7) pll: clk_pll_125m
+  -- pll: clk_pll_125m
   -- From PLL at xwrc_platform_xilinx
 
-  -- 8) pll: clk_pll_dmtd
+  -- pll: clk_pll_dmtd
   -- From PLL at xwrc_platform_xilinx
 
-  -- 9) pll: clk_pll_62m5
+  -- pll: clk_pll_62m5
   -- From PLL at xwrc_platform_xilinx
 
-  -- 10) sfp from wr switch: clk_sfp_rx_clk
+  -- sfp from wr switch: clk_sfp_rx_clk
   -- From sfp 1
   clk_sfp_rx_clk_i <= phy16_to_wrc.rx_clk;
 
   ----------------------------------
-  -- Debug Component
+  -- Debug Component (with ILA and VIOs)
   ----------------------------------
   u_clk_dbg_component: clk_dbg_component
     generic map(
@@ -1184,11 +1129,10 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
       bootstrap_rstlogic_arst_n => bootstrap_rstlogic_arst_n,
       -- clock inputs from board/ps
       clk_125m_bootstrap       => clk_125m_bootstrap,
-      clk_ps                   => '0', -- clk_ps,
       clk_ps_fclk_clk0         => clk_fclk_clk0,
       clk_125m_gtp             => clk_125m_gtp,
       clk_125m_pllref          => clk_125m_pllref,
-      clk_20m_vcxo             => clk_20m_vcxo_i, --clk_20m_vcxo,
+      clk_20m_vcxo             => clk_20m_vcxo_i,
       clk_sfp_rx_clk           => clk_sfp_rx_clk_i,
       -- clocks and locked inputs from PLL
       clk_pll_125m             => clk_pll_125m,
@@ -1202,11 +1146,6 @@ dbg_OR_pll_clk_sys_sel <= pll_clk_sys_sel;
       -- UART
       dbg_uart_rxd_i           => dbg_uart_rxd_i,
       dbg_uart_txd_o           => dbg_uart_txd_o,
-    --   -- EEPROM
-    --   dbg_scl_o                => temp_scl_o,
-    --   dbg_scl_i                => temp_scl_i,
-    --   dbg_sda_o                => temp_sda_o,
-    --   dbg_sda_i                => temp_sda_i,
       -- Exporting the board
       testpoint                => open, --testpoint,
       led_user                 => led_user
