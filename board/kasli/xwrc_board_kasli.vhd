@@ -93,7 +93,7 @@ entity xwrc_board_kasli is
     -- Clocks/resets
     ---------------------------------------------------------------------------
     -- Clock inputs from the board
-    clk_20m_vcxo_i         : in    std_logic;
+    clk_62m5_vcxo_i        : in    std_logic;
     clk_125m_gtp_p_i       : in    std_logic;
     clk_125m_gtp_n_i       : in    std_logic;
     clk_125m_bootstrap_p_i : in    std_logic;
@@ -282,7 +282,6 @@ architecture struct of xwrc_board_kasli is
   signal clk_pll_aux    : std_logic_vector(3 downto 0);
   signal pll_locked     : std_logic;
   signal pll_sys_locked : std_logic;
-  signal clk_10m_ext    : std_logic;
 
   -- Reset logic
   signal sys_rstlogic_clk_in  : std_logic_vector(3 downto 0);
@@ -331,12 +330,6 @@ architecture struct of xwrc_board_kasli is
   -- PHY
   signal phy16_to_wrc   : t_phy_16bits_to_wrc;
   signal phy16_from_wrc : t_phy_16bits_from_wrc;
-
-  -- External reference
-  signal ext_ref_mul         : std_logic;
-  signal ext_ref_mul_locked  : std_logic;
-  signal ext_ref_mul_stopped : std_logic;
-  signal ext_ref_rst         : std_logic;
 
   -- GP1 master port wishbone slave connection
   signal wb_m01_slave_in  : t_wishbone_slave_in;
@@ -551,23 +544,29 @@ begin  -- architecture struct
   -- Platform-dependent part (PHY, PLLs, buffers, etc)
   -----------------------------------------------------------------------------
 
-  u_xwrc_platform : component xwrc_platform_xilinx
+  u_xwrc_platform_kintex7 : component xwrc_platform_kintex7
     generic map (
-      g_fpga_family                => "kintex7",
+      g_with_main_pll              => TRUE,
+      g_with_helper_pll            => FALSE,
+      g_dmtd_div2                  => FALSE,
       g_with_external_clock_input  => FALSE,
       g_with_bootstrap_clock_input => TRUE,
-      g_use_default_plls           => TRUE,
       g_aux_pll_cfg                => g_aux_pll_cfg,
       g_simulation                 => g_simulation
     )
     port map (
-      -- clock / reset
+      -- PLL reset
       areset_n_i             => pll_areset_n,
-      clk_20m_vcxo_i         => clk_20m_vcxo_i,
+      -- Transceiver / main PLL ref clk
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
+      -- Main PLL bootstrap clk + select
       clk_125m_bootstrap_i   => clk_125m_bootstrap,
       clk_sys_sel_i          => pll_clk_sys_sel,
+      -- Helper clock (direct passthrough)
+      clk_62m5_dmtd_i        => clk_62m5_vcxo_i,
+      clk_dmtd_locked_i      => '1',
+      -- SFP
       sfp_txn_o              => sfp_txn_o,
       sfp_txp_o              => sfp_txp_o,
       sfp_rxn_i              => sfp_rxn_i,
@@ -575,19 +574,17 @@ begin  -- architecture struct
       sfp_tx_fault_i         => sfp_tx_fault,
       sfp_los_i              => sfp_los,
       sfp_tx_disable_o       => sfp_tx_disable,
+      -- output clocks
       clk_62m5_sys_o         => clk_pll_62m5,
       clk_125m_ref_o         => clk_pll_125m,
       clk_62m5_dmtd_o        => clk_pll_dmtd,
       clk_pll_aux_o          => clk_pll_aux,
+      -- lock status
       pll_locked_o           => pll_locked,
       pll_aux_locked_o       => pll_sys_locked,
-      clk_10m_ext_o          => clk_10m_ext,
+      -- PHY interface
       phy16_o                => phy16_to_wrc,
-      phy16_i                => phy16_from_wrc,
-      ext_ref_mul_o          => ext_ref_mul,
-      ext_ref_mul_locked_o   => ext_ref_mul_locked,
-      ext_ref_mul_stopped_o  => ext_ref_mul_stopped,
-      ext_ref_rst_i          => ext_ref_rst
+      phy16_i                => phy16_from_wrc
     );
 
   clk_sys_62m5_o <= clk_pll_62m5;
@@ -725,10 +722,6 @@ begin  -- architecture struct
       clk_sys_i            => clk_pll_62m5,
       clk_dmtd_i           => clk_pll_dmtd,
       clk_ref_i            => clk_pll_125m,
-      clk_ext_mul_i        => ext_ref_mul,
-      clk_ext_mul_locked_i => ext_ref_mul_locked,
-      clk_ext_stopped_i    => ext_ref_mul_stopped,
-      clk_ext_rst_o        => ext_ref_rst,
       rst_n_i              => rst_sys_62m5_n,
       -- Helper PLL updates
       dac_hpll_load_p1_o => dac_pll_load_p1(1),

@@ -15,6 +15,7 @@ filesets:
       - xilinx/wr_gtp_phy/gtp_bitslide.vhd
       - xilinx/wr_xilinx_pkg.vhd
       - xilinx/xwrc_platform_xilinx.vhd
+      - xilinx/xwrc_platform_kintex7.vhd
     file_type: vhdlSource
 
 targets:

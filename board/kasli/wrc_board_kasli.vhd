@@ -83,7 +83,7 @@ entity wrc_board_kasli is
     -- Clocks/resets
     ---------------------------------------------------------------------------
     -- Clock inputs from the board
-    clk_20m_vcxo_i         : in    std_logic;
+    clk_62m5_vcxo_i        : in    std_logic;
     clk_125m_gtp_n_i       : in    std_logic;
     clk_125m_gtp_p_i       : in    std_logic;
     clk_125m_bootstrap_p_i : in    std_logic;
@@ -458,7 +458,7 @@ begin  -- architecture struct
       g_wb_crossbar_mask_cfg    => c_wb_crossbar_mask_kasli_periph
     )
     port map (
-      clk_20m_vcxo_i         => clk_20m_vcxo_i,
+      clk_62m5_vcxo_i        => clk_62m5_vcxo_i,
       clk_125m_gtp_p_i       => clk_125m_gtp_p_i,
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
       clk_125m_bootstrap_p_i => clk_125m_bootstrap_p_i,
