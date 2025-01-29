@@ -367,4 +367,55 @@ package wr_xilinx_pkg is
     );
   end component;
 
+  component xwrc_platform_kintex7 is
+    generic (
+      g_with_main_pll              : boolean := TRUE;
+      g_with_helper_pll            : boolean := TRUE;
+      g_dmtd_div2                  : boolean := TRUE;
+      g_with_external_clock_input  : boolean := FALSE;
+      g_with_bootstrap_clock_input : boolean := FALSE;
+      g_aux_pll_cfg                : t_auxpll_cfg_array := c_AUXPLL_CFG_ARRAY_DEFAULT;
+      g_simulation                 : integer := 0);
+    port (
+      areset_n_i             : in  std_logic;
+      clk_10m_ext_i          : in  std_logic             := '0';
+      clk_125m_gtp_p_i       : in  std_logic;
+      clk_125m_gtp_n_i       : in  std_logic;
+      clk_125m_bootstrap_i   : in  std_logic             := '0';
+      clk_sys_sel_i          : in  std_logic             := '1';
+      clk_62m5_sys_i         : in  std_logic             := '0';
+      clk_sys_locked_i       : in  std_logic             := '1';
+      clk_20m_vcxo_i         : in  std_logic             := '0';
+      clk_125m_dmtd_i        : in  std_logic             := '0';
+      clk_62m5_dmtd_i        : in  std_logic             := '0';
+      clk_dmtd_locked_i      : in  std_logic             := '1';
+      clk_125m_ext_i         : in  std_logic             := '0';
+      clk_ext_locked_i       : in  std_logic             := '1';
+      clk_ext_stopped_i      : in  std_logic             := '0';
+      clk_ext_rst_o          : out std_logic;
+      sfp_txn_o              : out std_logic;
+      sfp_txp_o              : out std_logic;
+      sfp_rxn_i              : in  std_logic;
+      sfp_rxp_i              : in  std_logic;
+      sfp_tx_fault_i         : in  std_logic             := '0';
+      sfp_los_i              : in  std_logic             := '0';
+      sfp_tx_disable_o       : out std_logic;
+      clk_pll_aux_o          : out std_logic_vector(3 downto 0);
+      pll_aux_locked_o       : out std_logic;
+      clk_62m5_sys_o         : out std_logic;
+      clk_125m_ref_o         : out std_logic;
+      clk_20m_o              : out std_logic;
+      clk_ref_locked_o       : out std_logic;
+      clk_62m5_dmtd_o        : out std_logic;
+      clk_250m_dmtd_over_o   : out std_logic;
+      pll_locked_o           : out std_logic;
+      clk_10m_ext_o          : out std_logic;
+      phy16_o                : out t_phy_16bits_to_wrc;
+      phy16_i                : in  t_phy_16bits_from_wrc := c_dummy_phy16_from_wrc;
+      ext_ref_mul_o          : out std_logic;
+      ext_ref_mul_locked_o   : out std_logic;
+      ext_ref_mul_stopped_o  : out std_logic;
+      ext_ref_rst_i          : in  std_logic             := '0');
+end component;
+
 end wr_xilinx_pkg;

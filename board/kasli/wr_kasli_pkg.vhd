@@ -176,7 +176,7 @@ package wr_kasli_pkg is
       -- Clocks/resets
       ---------------------------------------------------------------------------
       -- Clock inputs from the board
-      clk_20m_vcxo_i         : in    std_logic;
+      clk_62m5_vcxo_i        : in    std_logic;
       clk_125m_gtp_p_i       : in    std_logic;
       clk_125m_gtp_n_i       : in    std_logic;
       clk_125m_bootstrap_p_i : in    std_logic;
@@ -430,7 +430,7 @@ package wr_kasli_pkg is
       -- Clocks/resets
       ---------------------------------------------------------------------------
       -- Clock inputs from the board
-      clk_20m_vcxo_i         : in    std_logic;
+      clk_62m5_vcxo_i        : in    std_logic;
       clk_125m_gtp_p_i       : in    std_logic;
       clk_125m_gtp_n_i       : in    std_logic;
       clk_125m_bootstrap_p_i : in    std_logic;
