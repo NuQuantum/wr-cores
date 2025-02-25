@@ -284,9 +284,9 @@ architecture struct of xwrc_board_kasli is
   signal pll_sys_locked : std_logic;
 
   -- Reset logic
-  signal sys_rstlogic_clk_in  : std_logic_vector(3 downto 0);
+  signal sys_rstlogic_clk_in  : std_logic_vector((1 + c_num_aux_clocks) - 1 downto 0);
   signal sys_rstlogic_arst_n  : std_logic;
-  signal sys_rstlogic_rst_out : std_logic_vector(3 downto 0);
+  signal sys_rstlogic_rst_out : std_logic_vector((1 + c_num_aux_clocks) - 1 downto 0);
 
   signal bootstrap_rstlogic_clk_in  : std_logic_vector(1 downto 0);
   signal bootstrap_rstlogic_arst_n  : std_logic;
@@ -297,15 +297,10 @@ architecture struct of xwrc_board_kasli is
   signal rst_bootstrap_125m_n : std_logic;
 
   -- Async reset generation and clock selection
-  type t_pll_reset_state is (ST_IDLE, ST_RESET, ST_DONE);
   signal pll_areset_n       : std_logic;
   signal pll_clk_sys_sel    : std_logic;
-  signal clk_sel_change     : std_logic;
-  signal pll_reset_state_q  : t_pll_reset_state := ST_IDLE;
-  signal pll_reset_count_q  : unsigned(16 downto 0) := (others => '0');
   signal rst_wrpc_core      : std_logic;
   signal sys_clk_select     : std_logic;
-  signal clk_sel_changed    : std_logic;
 
   -- Registers
   signal reg2hw : t_wrpc_kasli_regs_master_out;
@@ -365,6 +360,9 @@ architecture struct of xwrc_board_kasli is
 
   signal eeprom_scl_t_n :  std_logic;
   signal eeprom_sda_t_n :  std_logic;
+
+  signal tm_link_up : std_logic;
+  signal tm_time_valid : std_logic;
 
 begin  -- architecture struct
 
@@ -604,8 +602,10 @@ begin  -- architecture struct
   bootstrap_rstlogic_arst_n <= pll_sys_locked or sys_clk_select;
 
   -- concatenation of all clocks required to have synced resets
-  sys_rstlogic_clk_in(0)          <= clk_pll_62m5;
-  sys_rstlogic_clk_in(3 downto 1) <= clk_pll_aux(c_num_aux_clocks - 1 downto 0);
+  sys_rstlogic_clk_in(0)                         <= clk_pll_62m5;
+  sys_rstlogic_clk_in(c_num_aux_clocks downto 1) <= (
+    clk_pll_aux(c_num_aux_clocks - 1 downto 0)
+  );
 
   -- TODO: free_clock_i -> locked_i false path
   u_sys_rstlogic_reset : component gc_reset
@@ -645,7 +645,7 @@ begin  -- architecture struct
 
   -- Export the resets for use in higher level startup
   rst_sys_62m5_n_o       <= rst_sys_62m5_n;
-  rst_aux_n_o            <= sys_rstlogic_rst_out(3 downto 1);
+  rst_aux_n_o            <= sys_rstlogic_rst_out(c_num_aux_clocks downto 1);
   rst_bootstrap_62m5_n_o <= rst_bootstrap_62m5_n;
 
   -----------------------------------------------------------------------------
@@ -705,7 +705,7 @@ begin  -- architecture struct
       g_interface_mode            => PIPELINED,
       g_address_granularity       => BYTE,
       g_aux_sdb                   => c_wrc_periph3_sdb,
-      g_softpll_enable_debugger   => FALSE,
+      g_softpll_enable_debugger   => TRUE,
       g_vuart_fifo_size           => 1024,
       g_pcs_16bit                 => TRUE,
       g_diag_id                   => g_diag_id,
@@ -773,17 +773,22 @@ begin  -- architecture struct
       tm_dac_wr_o          => tm_dac_wr_o,
       tm_clk_aux_lock_en_i => tm_clk_aux_lock_en_i,
       tm_clk_aux_locked_o  => tm_clk_aux_locked_o,
+      --
       timestamps_o         => timestamps_o,
       timestamps_ack_i     => timestamps_ack_i,
+      --
       abscal_txts_o        => abscal_txts_o,
       abscal_rxts_o        => abscal_rxts_o,
+      --
       fc_tx_pause_req_i    => fc_tx_pause_req_i,
       fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
       fc_tx_pause_ready_o  => fc_tx_pause_ready_o,
-      tm_link_up_o         => tm_link_up_o,
-      tm_time_valid_o      => tm_time_valid_o,
+      --
+      tm_link_up_o         => tm_link_up,
+      tm_time_valid_o      => tm_time_valid,
       tm_tai_o             => tm_tai_o,
       tm_cycles_o          => tm_cycles_o,
+      --
       led_act_o            => led_act_o,
       led_link_o           => led_link_o,
       pps_p_o              => pps_p_o,
@@ -805,6 +810,9 @@ begin  -- architecture struct
   eeprom_sda_o <= '0';
   eeprom_scl_o <= '0';
 
+  tm_link_up_o    <= tm_link_up;
+  tm_time_valid_o <= tm_time_valid;
+
   -----------------------------------------------------------------------------
   -- Debugging
   -----------------------------------------------------------------------------
@@ -815,5 +823,7 @@ begin  -- architecture struct
   dbg_bus_o(3) <= pll_sys_locked;
   dbg_bus_o(4) <= pll_areset_n;
   dbg_bus_o(5) <= pll_clk_sys_sel;
+  dbg_bus_o(6) <= tm_link_up;
+  dbg_bus_o(7) <= tm_time_valid;
 
 end architecture struct;

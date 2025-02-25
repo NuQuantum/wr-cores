@@ -337,13 +337,11 @@ architecture std_wrapper of wrc_board_kasli is
   -- sys PLL aux clock config
   constant c_auxpll_cfg_rtio_125m : t_auxpll_cfg       := (TRUE, TRUE, 8);
   constant c_auxpll_cfg_rtio_500m : t_auxpll_cfg       := (TRUE, TRUE, 2);
-  constant c_auxpll_cfg_rtio_200m : t_auxpll_cfg       := (TRUE, TRUE, 5);
   constant c_auxpll_cfg           : t_auxpll_cfg_array :=
   (
-    c_auxpll_cfg_rtio_200m,
-    c_auxpll_cfg_rtio_500m,
-    c_auxpll_cfg_rtio_125m,
-    c_AUXPLL_CFG_DEFAULT
+    0 => c_auxpll_cfg_rtio_125m,
+    1 => c_auxpll_cfg_rtio_500m,
+    others => c_AUXPLL_CFG_DEFAULT
   );
 
   -- vsg_on
@@ -443,6 +441,7 @@ begin  -- architecture struct
   cmp_xwrc_board_kasli : component xwrc_board_kasli
     generic map (
       g_simulation              => g_simulation,
+      g_dbg_bits                => g_dbg_bits,
       g_aux_clks                => c_num_aux_clocks,
       g_fabric_iface            => f_str2iface_type(g_fabric_iface),
       g_streamers_op_mode       => TX_AND_RX,
@@ -463,8 +462,10 @@ begin  -- architecture struct
       clk_125m_gtp_n_i       => clk_125m_gtp_n_i,
       clk_125m_bootstrap_p_i => clk_125m_bootstrap_p_i,
       clk_125m_bootstrap_n_i => clk_125m_bootstrap_n_i,
-      --
+      -- Generated sys clock and reset
+      clk_sys_62m5_o         => clk_sys_62m5_o,
       rst_sys_62m5_n_o       => rst_sys_62m5_n_o,
+      -- Generated bootstrap reset
       rst_bootstrap_62m5_n_o => rst_bootstrap_62m5_n_o,
       -- Auxillary clocks / reset
       clk_aux_o   => clk_aux_o,
@@ -547,7 +548,6 @@ begin  -- architecture struct
       pps_led_o => pps_led_o,
       --
       link_ok_o => link_ok_o,
-
       -- debug
       dbg_bus_o => dbg_bus_o
     );
