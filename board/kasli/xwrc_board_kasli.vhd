@@ -277,7 +277,7 @@ architecture struct of xwrc_board_kasli is
 
   -- PLLs, clocks
   signal clk_pll_62m5   : std_logic;
-  signal clk_pll_125m   : std_logic;
+  signal clk_ref_62m5   : std_logic;
   signal clk_pll_dmtd   : std_logic;
   signal clk_pll_aux    : std_logic_vector(3 downto 0);
   signal pll_locked     : std_logic;
@@ -574,7 +574,7 @@ begin  -- architecture struct
       sfp_tx_disable_o       => sfp_tx_disable,
       -- output clocks
       clk_62m5_sys_o         => clk_pll_62m5,
-      clk_125m_ref_o         => clk_pll_125m,
+      clk_62m5_ref_o         => clk_ref_62m5,
       clk_62m5_dmtd_o        => clk_pll_dmtd,
       clk_pll_aux_o          => clk_pll_aux,
       -- lock status
@@ -721,7 +721,7 @@ begin  -- architecture struct
     port map (
       clk_sys_i            => clk_pll_62m5,
       clk_dmtd_i           => clk_pll_dmtd,
-      clk_ref_i            => clk_pll_125m,
+      clk_ref_i            => clk_ref_62m5,
       rst_n_i              => rst_sys_62m5_n,
       -- Helper PLL updates
       dac_hpll_load_p1_o => dac_pll_load_p1(1),

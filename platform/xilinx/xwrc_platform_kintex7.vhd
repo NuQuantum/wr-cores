@@ -135,8 +135,7 @@ entity xwrc_platform_kintex7 is
     ---------------------------------------------------------------------------
     -- PLL outputs
     clk_62m5_sys_o         : out std_logic;
-    clk_125m_ref_o         : out std_logic;
-    clk_20m_o              : out std_logic;
+    clk_62m5_ref_o         : out std_logic;
     clk_ref_locked_o       : out std_logic;
     clk_62m5_dmtd_o        : out std_logic;
     clk_250m_dmtd_over_o   : out std_logic;
@@ -603,7 +602,7 @@ begin  -- architecture rtl
 
       tx_locked_o   => clk_ref_locked);
 
-  clk_125m_ref_o       <= clk_ref;
+  clk_62m5_ref_o       <= clk_ref;
   clk_ref_locked_o     <= clk_ref_locked;
   phy16_o.ref_clk      <= clk_ref;
   phy16_o.sfp_tx_fault <= sfp_tx_fault_i;
