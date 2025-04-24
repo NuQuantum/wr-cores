@@ -6,10 +6,10 @@
 	url =  https://github.com/NuQuantum/etherbone-core.git
 [submodule "ip_cores/gn4124-core"]
 	path = ip_cores/gn4124-core
-	url = https://ohwr.org/project/gn4124-core.git
+	url = https://gitlab.com/ohwr/project/gn4124-core.git
 [submodule "ip_cores/vme64x-core"]
 	path = ip_cores/vme64x-core
-	url = https://ohwr.org/project/vme64x-core.git
+	url = https://gitlab.com/ohwr/project/vme64x-core.git
 [submodule "ip_cores/urv-core"]
 	path = ip_cores/urv-core
-	url =  https://github.com/NuQuantum/urv-core.git
+	url = https://gitlab.com/ohwr/project/urv-core.git
