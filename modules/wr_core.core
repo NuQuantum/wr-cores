@@ -12,7 +12,6 @@ filesets:
       - ohwr:wrpc:timing
       - ohwr:wrpc:fabric
       - ohwr:wrpc:wr_pps_gen
-      - ohwr:urv:cpu_core
       - ohwr:urv:xurv_core
       - ohwr:general-cores:wb_clock_monitor
       - ohwr:general-cores:wb_crossbar
