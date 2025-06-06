@@ -58,7 +58,7 @@ package wr_kasli_pkg is
   constant c_num_wb_crossbar_slaves           : integer := 5;
   constant c_wb_crossbar_address_vector_width : integer := c_wishbone_address_width * c_num_wb_crossbar_slaves;
 
-  constant c_num_aux_clocks : integer := 3;
+  constant c_num_aux_clocks : integer := 2;
 
   -- Address Map for the componenets connected to the WB_Crossbar outside the WRPC core - secondary crossbar.
   -- Addresses in the range 0x00020000 to 0x0002_0800 belong to HDL modules connected to the primary crossar.
