@@ -826,6 +826,6 @@ begin  -- architecture struct
   dbg_bus_o(4) <= pll_areset_n;
   dbg_bus_o(5) <= pll_clk_sys_sel;
   dbg_bus_o(6) <= tm_link_up;
-  dbg_bus_o(7) <= tm_time_valid;
+  dbg_bus_o(7) <= pps_p;
 
 end architecture struct;
