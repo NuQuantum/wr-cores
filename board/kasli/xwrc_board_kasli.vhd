@@ -62,8 +62,6 @@ entity xwrc_board_kasli is
   generic (
     -- set to 1 to speed up some initialization processes during simulation
     g_simulation : integer := 0;
-    -- Define how many debug signals are exported to the top level
-    g_dbg_bits : integer := 6;
     -- Select whether to include external ref clock input
     g_aux_clks : integer := 4;
     -- plain     = expose WRC fabric interface
@@ -247,7 +245,7 @@ entity xwrc_board_kasli is
     ---------------------------------------------------------------------------
     -- Debug interface for clock_select, reset and clock
     ---------------------------------------------------------------------------
-    dbg_bus_o : out   std_logic_vector(g_dbg_bits-1 downto 0)
+    dbg_bus_o : out   std_logic_vector(7 downto 0)
   );
 end entity xwrc_board_kasli;
 
@@ -363,6 +361,8 @@ architecture struct of xwrc_board_kasli is
 
   signal tm_link_up : std_logic;
   signal tm_time_valid : std_logic;
+
+  signal pps_p : std_logic;
 
 begin  -- architecture struct
 
@@ -791,7 +791,7 @@ begin  -- architecture struct
       --
       led_act_o            => led_act_o,
       led_link_o           => led_link_o,
-      pps_p_o              => pps_p_o,
+      pps_p_o              => pps_p,
       pps_led_o            => pps_led_o,
       link_ok_o            => link_ok_o
     );
@@ -812,6 +812,8 @@ begin  -- architecture struct
 
   tm_link_up_o    <= tm_link_up;
   tm_time_valid_o <= tm_time_valid;
+
+  pps_p_o <= pps_p;
 
   -----------------------------------------------------------------------------
   -- Debugging
