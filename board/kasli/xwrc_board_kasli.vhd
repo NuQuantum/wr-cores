@@ -819,13 +819,13 @@ begin  -- architecture struct
   -- Debugging
   -----------------------------------------------------------------------------
 
-  dbg_bus_o(0) <= sys_clk_select;
-  dbg_bus_o(1) <= rst_wrpc_core;
-  dbg_bus_o(2) <= pll_locked;
-  dbg_bus_o(3) <= pll_sys_locked;
-  dbg_bus_o(4) <= pll_areset_n;
-  dbg_bus_o(5) <= pll_clk_sys_sel;
-  dbg_bus_o(6) <= tm_link_up;
-  dbg_bus_o(7) <= pps_p;
+  dbg_bus_o(0) <= pps_p;
+  dbg_bus_o(1) <= sys_clk_select;
+  dbg_bus_o(2) <= rst_wrpc_core;
+  dbg_bus_o(3) <= pll_locked;
+  dbg_bus_o(4) <= pll_sys_locked;
+  dbg_bus_o(5) <= pll_areset_n;
+  dbg_bus_o(6) <= pll_clk_sys_sel;
+  dbg_bus_o(7) <= tm_link_up;
 
 end architecture struct;
